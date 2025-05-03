@@ -1,0 +1,84 @@
+[
+    {
+      "id": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d",
+      "name": "My test project",
+      "currency": "GBP",
+      "createdAt": "2025-04-26T20:05:59.004Z",
+      "updatedAt": "2025-04-26T20:06:38.641Z",
+      "fixedCosts": [
+        {
+          "id": "3171f494-434f-486e-8c09-5264580a5d34",
+          "name": "Shopify",
+          "amount": 30,
+          "frequency": "monthly",
+          "category": "premises",
+          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+        }
+      ],
+      "products": [
+        {
+          "id": "552a38b7-dc2b-4e1c-88ca-8ae60f86b5d3",
+          "name": "1 Pack",
+          "price": 40,
+          "associatedCosts": [
+            {
+              "id": "891a97d1-1c12-4000-8e32-2001b9087ef9",
+              "name": "Materials ",
+              "amount": 20,
+              "productId": "552a38b7-dc2b-4e1c-88ca-8ae60f86b5d3",
+              "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+            },
+            {
+              "id": "c27ea6ab-55e7-4e6f-98fc-15c50f826df7",
+              "name": "Shipping ",
+              "amount": 5,
+              "productId": "552a38b7-dc2b-4e1c-88ca-8ae60f86b5d3",
+              "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+            }
+          ],
+          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+        },
+        {
+          "id": "80f2f792-15da-483d-a0d9-da9f929614f6",
+          "name": "5 Pack",
+          "price": 120,
+          "associatedCosts": [
+            {
+              "id": "891a97d1-1c12-4000-8e32-2001b9087ef9",
+              "name": "Materials ",
+              "amount": 20,
+              "productId": "80f2f792-15da-483d-a0d9-da9f929614f6",
+              "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+            },
+            {
+              "id": "c27ea6ab-55e7-4e6f-98fc-15c50f826df7",
+              "name": "Shipping ",
+              "amount": 5,
+              "productId": "80f2f792-15da-483d-a0d9-da9f929614f6",
+              "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+            }
+          ],
+          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+        }
+      ],
+      "productSales": {
+        "552a38b7-dc2b-4e1c-88ca-8ae60f86b5d3": {
+          "volume": 10,
+          "period": "monthly"
+        },
+        "80f2f792-15da-483d-a0d9-da9f929614f6": {
+          "volume": 5,
+          "period": "monthly"
+        }
+      }
+    },
+    {
+      "id": "7de275d3-8737-4dc2-80fa-165964e2289d",
+      "name": "second project",
+      "currency": "GBP",
+      "createdAt": "2025-04-26T20:09:58.450Z",
+      "updatedAt": "2025-04-26T20:09:58.450Z",
+      "fixedCosts": [],
+      "products": []
+    }
+  ]

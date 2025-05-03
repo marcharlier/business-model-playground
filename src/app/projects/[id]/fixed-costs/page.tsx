@@ -1,0 +1,103 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
+import { FIXED_COST_CATEGORIES } from '@/lib/constants/fixedCostCategories';
+import { CategoryCard } from '@/components/fixed-costs/CategoryCard';
+import type { FixedCost } from '@/lib/storage/types';
+import type { FixedCostCategory } from '@/lib/constants/fixedCostCategories';
+import { formatCurrency } from '@/lib/utils/currency';
+import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
+import { useProject } from '@/lib/context/ProjectContext';
+
+export default function FixedCostsPage() {
+  const params = useParams();
+  const projectId = params.id as string;
+  const { project, isLoading, refreshProject } = useProject();
+  const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
+  const [totalMonthlyCost, setTotalMonthlyCost] = useState(0);
+
+  useEffect(() => {
+    const loadFixedCosts = async () => {
+      try {
+        const costs = fixedCostStorage.getFixedCostsByProjectId(projectId);
+        setFixedCosts(costs);
+        calculateTotalMonthlyCost(costs);
+      } catch (error) {
+        console.error('Error loading fixed costs:', error);
+      }
+    };
+
+    loadFixedCosts();
+  }, [projectId]);
+
+  const calculateTotalMonthlyCost = (costs: FixedCost[]) => {
+    const total = costs.reduce((sum, cost) => {
+      const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
+      return sum + monthlyAmount;
+    }, 0);
+    setTotalMonthlyCost(total);
+  };
+
+  const handleCostAdded = () => {
+    const costs = fixedCostStorage.getFixedCostsByProjectId(projectId);
+    setFixedCosts(costs);
+    calculateTotalMonthlyCost(costs);
+    refreshProject();
+  };
+
+  const handleCostUpdated = () => {
+    const costs = fixedCostStorage.getFixedCostsByProjectId(projectId);
+    setFixedCosts(costs);
+    calculateTotalMonthlyCost(costs);
+    refreshProject();
+  };
+
+  const handleCostDeleted = () => {
+    const costs = fixedCostStorage.getFixedCostsByProjectId(projectId);
+    setFixedCosts(costs);
+    calculateTotalMonthlyCost(costs);
+    refreshProject();
+  };
+
+  if (isLoading || !project) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div>
+      <OnboardingProgress 
+        hasCosts={fixedCosts.length > 0}
+        hasProducts={project.products.length > 0}
+        projectId={project.id}
+        currentPage="fixed-costs"
+      />
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Fixed Costs</h1>
+        <div className="text-right">
+          <p className="text-sm text-muted-foreground">Total Monthly Fixed Costs</p>
+          <p className="text-2xl font-bold">{formatCurrency(totalMonthlyCost, project.currency)}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {FIXED_COST_CATEGORIES.map((category: FixedCostCategory) => {
+          const categoryCosts = fixedCosts.filter(cost => cost.category === category.id);
+          return (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              costs={categoryCosts}
+              projectId={projectId}
+              currency={project.currency}
+              onCostAdded={handleCostAdded}
+              onCostUpdated={handleCostUpdated}
+              onCostDeleted={handleCostDeleted}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+} 
