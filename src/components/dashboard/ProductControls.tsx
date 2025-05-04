@@ -41,7 +41,7 @@ export function ProductControls({
   totalMonthlyFixedCosts
 }: ProductControlsProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [openDrawerId, setOpenDrawerId] = useState<string | null>(null);
 
   useEffect(() => {
     // Small delay to ensure the initial state is set before showing the controls
@@ -162,13 +162,13 @@ export function ProductControls({
               {formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales
             </p>
           </div>
-          <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <Drawer open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
             <DrawerTrigger asChild>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => {
-                  setIsDrawerOpen(true);
+                  setOpenDrawerId(product.id);
                 }}
               >
                 <Pencil className="h-4 w-4" />
@@ -278,7 +278,7 @@ export function ProductControls({
                 <Button
                   className="w-full h-12 text-base"
                   onClick={() => {
-                    setIsDrawerOpen(false);
+                    setOpenDrawerId(null);
                   }}
                 >
                   Done
