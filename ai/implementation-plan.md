@@ -51,16 +51,16 @@
      - [ ] Implement horizontal scroll for large numbers
      - [ ] Optimize chart sizes and interactions
    - [ ] Layout Adjustments
-     - [ ] Switch to single column on mobile
+     - [x] Switch to single column on mobile
      - [ ] Improve spacing between sections
 
 ### 2. Deployment to Vercel
 1. Vercel Setup
-   - [ ] Set up Vercel project
-   - [ ] Configure environment variables
-   - [ ] Set up CI/CD pipeline
-   - [ ] Add basic analytics
-   - [ ] Test deployment with localStorage
+   - [x] Set up Vercel project
+   - [x] Configure environment variables
+   - [x] Set up CI/CD pipeline
+   - [x] Add basic analytics
+   - [x] Test deployment with localStorage
    - [ ] Configure custom domain
 
 2. Post-Deployment
@@ -72,7 +72,7 @@
 ## Future Improvements
 
 ### 1. UI/UX Enhancements
-- [ ] Implement dark/light mode
+- [x] Implement dark/light mode
 - [ ] Add success/error notifications
 - [ ] Enhance form validation and error handling
 - [ ] Improve data visualization
