@@ -64,7 +64,7 @@ export default function Home() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <div className="container mx-auto px-4 py-8 sm:py-16 flex-1">
+      <div className="container mx-auto px-4 md:px-8 py-8 sm:py-16 flex-1">
         <div className="max-w-4xl mx-auto text-center mb-8 sm:mb-16">
           <h1 className="text-3xl sm:text-4xl font-bold mb-4 sm:mb-6">Business Model Playground</h1>
           <p className="text-lg sm:text-xl mb-6 sm:mb-8 text-muted-foreground">

@@ -120,7 +120,7 @@ export default function ProjectsList() {
   }
 
   return (
-    <main className="container mx-auto py-6 sm:py-10">
+    <main className="container mx-auto py-6 sm:py-10 px-4 md:px-8">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Your Projects</h1>
         {projects.length > 0 && (

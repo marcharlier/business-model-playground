@@ -36,9 +36,9 @@ export function AppBar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
+      <div className="container px-4 md:px-8 flex h-14 items-center">
         <div className="mr-4 flex">
-          <Link className="mr-6 flex items-center space-x-2" href="/">
+          <Link className="flex items-center space-x-2" href="/">
             <Image className="h-8 w-8" src="/favicon.svg" alt="Logo" width={32} height={32} />
             <span className="font-bold">Business Model Playground</span>
           </Link>

@@ -121,7 +121,7 @@ function ProjectLayoutContent({
   }
 
   return (
-    <main className="container mx-auto py-6 sm:py-10">
+    <main className="container mx-auto py-6 sm:py-10 px-4 md:px-8">
       <div className="flex flex-col gap-4 mb-6">
         {/* Back Button - Mobile */}
         <div className="sm:hidden">
