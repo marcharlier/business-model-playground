@@ -237,11 +237,11 @@ export function CategoryCard({
                   ) : (
                     <>
                       <div>
-                        <p className="font-medium">{cost.name}</p>
+                        <p className="font-small text-sm">{cost.name}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <div className="text-right">
-                          <p>{formatCurrency(cost.amount, currency)}</p>
+                          <p className="font-small text-sm">{formatCurrency(cost.amount, currency)}</p>
                           <p className="text-xs text-muted-foreground">{cost.frequency}</p>
                         </div>
                         <Button 

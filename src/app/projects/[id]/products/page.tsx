@@ -506,7 +506,7 @@ export default function ProductsPage() {
               return (
                 <Card key={product.id} className="h-full">
                   <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center">
                       <CardTitle>Edit Product</CardTitle>
                     </div>
                   </CardHeader>
@@ -679,7 +679,7 @@ export default function ProductsPage() {
             return (
               <Card key={product.id} className="h-full">
                 <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-center">
                     <CardTitle>{product.name}</CardTitle>
                     <div className="flex items-center space-x-2">
                       <TooltipProvider>
