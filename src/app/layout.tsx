@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { AppBar } from "@/components/ui/app-bar"
 import { Footer } from "@/components/ui/footer"
 import { ThemeProvider } from "@/context/ThemeContext"
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = NextInter({ subsets: ["latin"] })
 
@@ -36,6 +37,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
