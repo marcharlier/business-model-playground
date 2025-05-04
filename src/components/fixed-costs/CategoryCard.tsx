@@ -161,7 +161,7 @@ export function CategoryCard({
               {costs.map(cost => (
                 <li key={cost.id} className="flex justify-between items-center p-2 border rounded">
                   {editingCostId === cost.id ? (
-                    <form onSubmit={handleSubmit} className="space-y-3">
+                    <form onSubmit={handleSubmit} className="space-y-3 w-full">
                       <Input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -270,7 +270,7 @@ export function CategoryCard({
           
           {isAdding ? (
             <div className="p-2 border rounded">
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3 w-full">
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
