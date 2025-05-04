@@ -30,8 +30,17 @@ export function Footer() {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Support & Feedback</h3>
             <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+                💬 Have ideas for improvements?{' '}
+                <a 
+                  href="mailto:m@marcharlier.com?subject=Business Model Playground - Feedback"
+                  className="text-primary hover:underline"
+                >
+                  Email me
+                </a>
+              </p>
               <p className="text-sm text-muted-foreground">
-                ☕ Enjoy this app?{' '}
+                ☕ Useful for your business?{' '}
                 <a
                   href="https://buymeacoffee.com/martincharlier" 
                   target="_blank"
@@ -39,15 +48,6 @@ export function Footer() {
                   className="text-primary hover:underline"
                 >
                   Buy me a coffee
-                </a>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                💬 Have ideas for improvements?{' '}
-                <a 
-                  href="mailto:m@marcharlier.com?subject=Business Model Playground - Feedback"
-                  className="text-primary hover:underline"
-                >
-                  Email me
                 </a>
               </p>
             </div>
