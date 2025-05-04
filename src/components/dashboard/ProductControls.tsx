@@ -131,7 +131,7 @@ export function ProductControls({
                 id={`price-${product.id}`}
                 type="number"
                 min="0"
-                step="0.1"
+                step="0.01"
                 value={product.price}
                 onChange={(e) => onPriceChange(product.id, e.target.value)}
                 className="h-8 text-sm"
@@ -198,7 +198,7 @@ export function ProductControls({
                           id={`mobile-price-${product.id}`}
                           type="number"
                           min="0"
-                          step="0.1"
+                          step="0.01"
                           value={product.price}
                           onChange={(e) => onPriceChange(product.id, e.target.value)}
                           className="h-10 text-base"

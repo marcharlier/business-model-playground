@@ -350,7 +350,7 @@ export default function ProductsPage() {
                         id="product-price"
                         type="number"
                         min="0"
-                        step="0.1"
+                        step="0.01"
                         value={productPrice}
                         onChange={(e) => setProductPrice(e.target.value)}
                         required
@@ -387,7 +387,7 @@ export default function ProductsPage() {
                                   id={`cost-amount-${cost.id}`}
                                   type="number"
                                   min="0"
-                                  step="0.1"
+                                  step="0.01"
                                   value={cost.amount}
                                   onChange={(e) => handleUpdateCost(cost.id, 'amount', Number(e.target.value))}
                                   className="h-8 text-sm pl-6"
@@ -433,7 +433,7 @@ export default function ProductsPage() {
                                   id={`new-cost-amount-${row.id}`}
                                   type="number"
                                   min="0"
-                                  step="0.1"
+                                  step="0.01"
                                   value={row.amount}
                                   onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
                                   placeholder="0.00"
@@ -529,7 +529,7 @@ export default function ProductsPage() {
                             id="product-price"
                             type="number"
                             min="0"
-                            step="0.1"
+                            step="0.01"
                             value={productPrice}
                             onChange={(e) => setProductPrice(e.target.value)}
                             required
@@ -566,7 +566,7 @@ export default function ProductsPage() {
                                       id={`cost-amount-${cost.id}`}
                                       type="number"
                                       min="0"
-                                      step="0.1"
+                                      step="0.01"
                                       value={cost.amount}
                                       onChange={(e) => handleUpdateCost(cost.id, 'amount', Number(e.target.value))}
                                       className="h-8 text-sm pl-6"
@@ -612,7 +612,7 @@ export default function ProductsPage() {
                                       id={`new-cost-amount-${row.id}`}
                                       type="number"
                                       min="0"
-                                      step="0.1"
+                                      step="0.01"
                                       value={row.amount}
                                       onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
                                       placeholder="0.00"
