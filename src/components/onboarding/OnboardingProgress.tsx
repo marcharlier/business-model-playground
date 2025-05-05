@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Sparkles } from 'lucide-react';
+import { Building2, Package, LineChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { formatProfitMargin, calculateProfitMargin } from '@/lib/utils/financial';
@@ -45,11 +45,10 @@ export function OnboardingProgress({
             "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mb-1 sm:mb-2",
             hasCosts ? "bg-black" : "bg-primary/10"
           )}>
-            {hasCosts ? (
-              <Check className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
-            ) : (
-              <span className="text-muted-foreground text-sm sm:text-base">1</span>
-            )}
+            <Building2 className={cn(
+              "w-3 h-3 sm:w-5 sm:h-5",
+              hasCosts ? "text-white" : "text-muted-foreground"
+            )} />
           </div>
           <h3 className="font-medium text-sm sm:text-base">Fixed Costs</h3>
           <p className="hidden sm:block text-sm text-muted-foreground mt-1">
@@ -73,11 +72,10 @@ export function OnboardingProgress({
             "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mb-1 sm:mb-2",
             hasProducts ? "bg-black" : "bg-primary/10"
           )}>
-            {hasProducts ? (
-              <Check className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
-            ) : (
-              <span className="text-muted-foreground text-sm sm:text-base">2</span>
-            )}
+            <Package className={cn(
+              "w-3 h-3 sm:w-5 sm:h-5",
+              hasProducts ? "text-white" : "text-muted-foreground"
+            )} />
           </div>
           <h3 className="font-medium text-sm sm:text-base">Products & Services</h3>
           <p className="hidden sm:block text-sm text-muted-foreground mt-1">
@@ -94,12 +92,14 @@ export function OnboardingProgress({
             currentPage === 'dashboard' && "ring-2 ring-foreground"
           )}
         >
-          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center mb-1 sm:mb-2">
-            {hasCosts && hasProducts ? (
-              <Sparkles className="w-3 h-3 sm:w-5 sm:h-5 text-muted-foreground" />
-            ) : (
-              <span className="text-muted-foreground text-sm sm:text-base">3</span>
-            )}
+          <div className={cn(
+            "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mb-1 sm:mb-2",
+            hasCosts && hasProducts ? "bg-black" : "bg-primary/10"
+          )}>
+            <LineChart className={cn(
+              "w-3 h-3 sm:w-5 sm:h-5",
+              hasCosts && hasProducts ? "text-white" : "text-muted-foreground"
+            )} />
           </div>
           <h3 className="font-medium text-sm sm:text-base">Play with Dashboard</h3>
           <p className="hidden sm:block text-sm text-muted-foreground mt-1">
