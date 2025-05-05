@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,17 +40,7 @@ export function ProductControls({
   onPriceChange,
   totalMonthlyFixedCosts
 }: ProductControlsProps) {
-  const [isLoading, setIsLoading] = useState(true);
   const [openDrawerId, setOpenDrawerId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Small delay to ensure the initial state is set before showing the controls
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 50);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // Calculate break-even point for each product
   const calculateBreakEven = (product: Product, period: 'monthly' | 'daily') => {
@@ -117,11 +107,15 @@ export function ProductControls({
             
             <div className="flex items-center space-x-2">
               <span className="text-xs">Daily</span>
-              <Switch
-                id={`period-${product.id}`}
-                checked={sales.period === 'monthly'}
-                onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
-              />
+              {productSales[product.id] ? (
+                <Switch
+                  id={`period-${product.id}`}
+                  checked={sales.period === 'monthly'}
+                  onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
+                />
+              ) : (
+                <Skeleton className="h-5 w-9 rounded-full" />
+              )}
               <span className="text-xs">Monthly</span>
             </div>
             
@@ -253,12 +247,16 @@ export function ProductControls({
                       </Button>
                       <div className="flex items-center space-x-2 ml-2">
                         <span className="text-sm">Daily</span>
-                        <Switch
-                          id={`mobile-period-${product.id}`}
-                          checked={sales.period === 'monthly'}
-                          onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
-                          className="h-6 w-11"
-                        />
+                        {productSales[product.id] ? (
+                          <Switch
+                            id={`mobile-period-${product.id}`}
+                            checked={sales.period === 'monthly'}
+                            onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
+                            className="h-6 w-11"
+                          />
+                        ) : (
+                          <Skeleton className="h-6 w-11 rounded-full" />
+                        )}
                         <span className="text-sm">Monthly</span>
                       </div>
                     </div>
@@ -291,7 +289,7 @@ export function ProductControls({
     );
   };
 
-  if (isLoading) {
+  if (products.length === 0) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

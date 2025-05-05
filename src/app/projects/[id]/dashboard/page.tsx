@@ -29,9 +29,9 @@ export default function DashboardPage() {
     }
   }, [id, refreshProject]);
 
-  // Initialize product sales only once when project is loaded
+  // Initialize product sales when project is loaded or changes
   useEffect(() => {
-    if (project && !initialized) {
+    if (project) {
       // Initialize product sales from project data or defaults
       const initialSales: Record<string, ProductSales> = {};
       
@@ -43,14 +43,17 @@ export default function DashboardPage() {
         };
       }
       
-      setProductSales(initialSales);
+      // Only update if we have products to initialize
+      if (project.products.length > 0) {
+        setProductSales(initialSales);
+      }
       setInitialized(true);
     }
-  }, [project, initialized]);
+  }, [project]);
 
   // Save sales volumes to localStorage when they change
   useEffect(() => {
-    if (project && initialized) {
+    if (project && initialized && Object.keys(productSales).length > 0) {
       const updatedProject = {
         ...project,
         productSales
@@ -277,6 +280,19 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Mobile Product Controls */}
+          <div className="lg:hidden">
+            <ProductControls 
+              products={project.products}
+              productSales={productSales}
+              currency={project.currency}
+              onSalesVolumeChange={handleSalesVolumeChange}
+              onSalesPeriodChange={handleSalesPeriodChange}
+              onPriceChange={handlePriceChange}
+              totalMonthlyFixedCosts={totalMonthlyFixedCosts}
+            />
+          </div>
           
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -310,8 +326,8 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        {/* Right Column - Product Controls and Revenue Breakdown */}
-        <div className="space-y-6">
+        {/* Right Column - Product Controls and Revenue Breakdown (Desktop only) */}
+        <div className="hidden lg:block space-y-6">
           <ProductControls 
             products={project.products}
             productSales={productSales}
