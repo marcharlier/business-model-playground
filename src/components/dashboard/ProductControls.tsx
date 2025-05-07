@@ -126,8 +126,12 @@ export function ProductControls({
                 type="number"
                 min="0"
                 step="0.01"
-                value={product.price}
-                onChange={(e) => onPriceChange(product.id, e.target.value)}
+                value={product.price === 0 ? '' : product.price}
+                placeholder="Free"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  onPriceChange(product.id, value === '' ? '0' : value);
+                }}
                 className="h-8 text-sm"
               />
             </div>
@@ -182,9 +186,9 @@ export function ProductControls({
                         variant="outline"
                         size="icon"
                         className="h-10 w-10"
-                        onClick={() => onPriceChange(product.id, (product.price - 0.1).toFixed(1))}
+                        onClick={() => onPriceChange(product.id, (product.price * 0.95).toFixed(2))}
                       >
-                        <Minus className="h-4 w-4" />
+                        <span className="text-sm">-5%</span>
                       </Button>
                       <div className="flex-1 flex items-center space-x-1">
                         <span className="text-sm">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
@@ -193,8 +197,12 @@ export function ProductControls({
                           type="number"
                           min="0"
                           step="0.01"
-                          value={product.price}
-                          onChange={(e) => onPriceChange(product.id, e.target.value)}
+                          value={product.price === 0 ? '' : product.price}
+                          placeholder="Free"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            onPriceChange(product.id, value === '' ? '0' : value);
+                          }}
                           className="h-10 text-base"
                         />
                       </div>
@@ -202,9 +210,9 @@ export function ProductControls({
                         variant="outline"
                         size="icon"
                         className="h-10 w-10"
-                        onClick={() => onPriceChange(product.id, (product.price + 0.1).toFixed(1))}
+                        onClick={() => onPriceChange(product.id, (product.price * 1.05).toFixed(2))}
                       >
-                        <Plus className="h-4 w-4" />
+                        <span className="text-sm">+5%</span>
                       </Button>
                     </div>
                   </div>
