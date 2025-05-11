@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CostBreakdownChart } from '@/components/dashboard/CostBreakdownChart';
 import { RevenueBreakdownChart } from '@/components/dashboard/RevenueBreakdownChart';
 import { ProfitabilityChart } from '@/components/dashboard/ProfitabilityChart';
+import { MonthlyProjectionChart } from '@/components/dashboard/MonthlyProjectionChart';
 import { ProductControls } from '@/components/dashboard/ProductControls';
 import { formatCurrency } from '@/lib/utils/currency';
 import { formatProfitMargin } from '@/lib/utils/financial';
@@ -123,6 +124,15 @@ export default function DashboardPage() {
         ? cost.amount / 12 
         : cost.amount * 12;
     return total + monthlyAmount;
+  }, 0);
+
+  // Calculate total annual fixed costs
+  const totalAnnualFixedCosts = project.fixedCosts.reduce((total, cost) => {
+    // Only include costs that are specifically marked as annual
+    if (cost.frequency === 'annual') {
+      return total + cost.amount;
+    }
+    return total;
   }, 0);
 
   // Calculate total monthly variable costs
@@ -324,6 +334,25 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Monthly Projection Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>12-Month Projection</CardTitle>
+              <CardDescription>Revenue and costs over time. Annual costs added in month 1.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MonthlyProjectionChart 
+                products={project.products}
+                productSales={productSales}
+                fixedCosts={{
+                  monthly: totalMonthlyFixedCosts,
+                  annual: totalAnnualFixedCosts
+                }}
+                currency={project.currency}
+              />
+            </CardContent>
+          </Card>
         </div>
         
         {/* Right Column - Product Controls and Revenue Breakdown (Desktop only) */}
