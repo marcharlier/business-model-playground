@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,14 @@ import { Pencil, Plus, Minus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
 import { formatProfitMargin } from '@/lib/utils/financial';
 import { calculateProductTotalCost } from '@/lib/utils/financial';
-import type { Product, Currency, ProductSales } from '@/lib/storage/types';
+import type { Product, Currency, ProductSales, Project } from '@/lib/storage/types';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CardTitle } from '@/components/ui/card';
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -29,6 +30,7 @@ interface ProductControlsProps {
   onSalesPeriodChange: (productId: string, period: 'monthly' | 'daily') => void;
   onPriceChange: (productId: string, value: string) => void;
   totalMonthlyFixedCosts: number;
+  project: Project;
 }
 
 export function ProductControls({
@@ -38,149 +40,132 @@ export function ProductControls({
   onSalesVolumeChange,
   onSalesPeriodChange,
   onPriceChange,
-  totalMonthlyFixedCosts
+  totalMonthlyFixedCosts,
+  project
 }: ProductControlsProps) {
   const [openDrawerId, setOpenDrawerId] = useState<string | null>(null);
 
   // Calculate break-even point for each product
   const calculateBreakEven = (product: Product, period: 'monthly' | 'daily') => {
     const variableCost = calculateProductTotalCost(product);
-    if (product.price <= variableCost) return Number.POSITIVE_INFINITY; // Can't break even if price is less than or equal to variable cost
+    if (product.price <= variableCost) return Number.POSITIVE_INFINITY;
     
-    // Break-even formula: Fixed Costs / (Price - Variable Cost)
-    // We allocate all fixed costs to this product for the break-even calculation
     const breakEvenPoint = Math.ceil(totalMonthlyFixedCosts / (product.price - variableCost));
-    
-    // If daily, convert to daily break-even point
     return period === 'daily' ? Math.ceil(breakEvenPoint / 30) : breakEvenPoint;
   };
+
+  // Calculate average product margin
+  const calculateAverageMargin = () => {
+    if (products.length === 0) return 0;
+    
+    const totalMargin = products.reduce((sum, product) => {
+      const revenue = product.price * (productSales[product.id]?.volume || 1);
+      const costs = calculateProductTotalCost(product) * (productSales[product.id]?.volume || 1);
+      const profit = revenue - costs;
+      return sum + (revenue > 0 ? (profit / revenue) * 100 : 0);
+    }, 0);
+    
+    return totalMargin / products.length;
+  };
+
+  const averageMargin = calculateAverageMargin();
+  const getMarginStatus = () => {
+    // Calculate total monthly fixed costs
+    const totalMonthlyFixedCosts = project.fixedCosts.reduce((total: number, cost: { frequency: string; amount: number }) => {
+      const monthlyAmount = cost.frequency === 'monthly' 
+        ? cost.amount 
+        : cost.frequency === 'annual' 
+          ? cost.amount / 12 
+          : cost.amount * 12;
+      return total + monthlyAmount;
+    }, 0);
+
+    // Calculate total monthly revenue
+    const totalMonthlyRevenue = products.reduce((total: number, product: Product) => {
+      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+      return total + (product.price * monthlyVolume);
+    }, 0);
+
+    // Calculate total monthly variable costs
+    const totalMonthlyVariableCosts = products.reduce((total: number, product: Product) => {
+      const productCost = calculateProductTotalCost(product);
+      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+      return total + (productCost * monthlyVolume);
+    }, 0);
+
+    // Calculate total monthly profit
+    const totalMonthlyProfit = totalMonthlyRevenue - totalMonthlyFixedCosts - totalMonthlyVariableCosts;
+
+    if (averageMargin < 0) {
+      return { 
+        text: "Products are currently unprofitable", 
+        color: "text-red-600" 
+      };
+    }
+
+    if (averageMargin < 20) {
+      return { 
+        text: "Product margins are tight", 
+        color: "text-yellow-600" 
+      };
+    }
+
+    if (totalMonthlyProfit < 0) {
+      return { 
+        text: `Product margins are healthy (Avg. ${Math.round(averageMargin)}%) but business is unprofitable due to high fixed costs or low sales volume`, 
+        color: "text-yellow-600" 
+      };
+    }
+
+    return { 
+      text: `Product margins are healthy (Avg. ${Math.round(averageMargin)}%)`, 
+      color: "text-green-600" 
+    };
+  };
+
+  const marginStatus = getMarginStatus();
 
   const renderProductCard = (product: Product, sales: ProductSales) => {
     const revenue = product.price * sales.volume;
     const costs = calculateProductTotalCost(product) * sales.volume;
     const profit = revenue - costs;
     const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
-    const breakEvenPoint = calculateBreakEven(product, sales.period);
 
-    return (
-      <div key={product.id} className="border rounded p-3 space-y-2">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="font-medium">{product.name}</p>
-          </div>
-          <div className="text-right">
-            <p>{formatCurrency(product.price, currency)}</p>
-            <p className="text-sm text-muted-foreground">
-              {formatCurrency(
-                product.associatedCosts.reduce((total, cost) => total + cost.amount, 0),
-                currency
-              )} total costs • {formatProfitMargin(profitMargin)} margin
-            </p>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="grid grid-cols-3 gap-2">
-            <Label htmlFor={`sales-${product.id}`} className="text-xs">
-              {sales.period === 'monthly' ? 'Monthly' : 'Daily'} Sales
-            </Label>
-            <div className="text-center">
-              <Label htmlFor={`period-${product.id}`} className="text-xs hidden">Frequency</Label>
-            </div>
-            <Label htmlFor={`price-${product.id}`} className="text-xs">Price</Label>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2">
-            <Input
-              id={`sales-${product.id}`}
-              type="number"
-              min="0"
-              step="1"
-              value={sales.volume === 0 ? '' : sales.volume}
-              placeholder="0"
-              onChange={(e) => {
-                const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value);
-                onSalesVolumeChange(product.id, value);
-              }}
-              className="h-8 text-sm"
-            />
-            
-            <div className="flex items-center space-x-2">
-              <span className="text-xs">Daily</span>
-              {productSales[product.id] ? (
-                <Switch
-                  id={`period-${product.id}`}
-                  checked={sales.period === 'monthly'}
-                  onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
-                />
-              ) : (
-                <Skeleton className="h-5 w-9 rounded-full" />
-              )}
-              <span className="text-xs">Monthly</span>
-            </div>
-            
-            <div className="flex items-center space-x-1">
-              <span className="text-xs">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
-              <Input
-                id={`price-${product.id}`}
-                type="number"
-                min="0"
-                step="0.01"
-                value={product.price === 0 ? '' : product.price}
-                placeholder="Free"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  onPriceChange(product.id, value === '' ? '0' : value);
-                }}
-                className="h-8 text-sm"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-xs p-1.5 bg-muted rounded">
-          <p className="font-medium">Break-Even Analysis</p>
-          <p>
-            {breakEvenPoint === Number.POSITIVE_INFINITY 
-              ? "Cannot break even at current price (price is less than or equal to variable cost)" 
-              : `Selling ${breakEvenPoint} units ${sales.period === 'monthly' ? 'per month' : 'per day'} would cover fixed costs`}
-          </p>
-        </div>
-      </div>
-    );
-  };
-
-  const renderMobileProductCard = (product: Product, sales: ProductSales) => {
     return (
       <div key={product.id} className="border rounded p-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="font-medium">{product.name}</p>
-            <p className="text-sm text-muted-foreground">
-              {formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales
-            </p>
-          </div>
-          <Drawer open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
-            <DrawerTrigger asChild>
+        <Drawer open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
+          <DrawerTrigger asChild>
+            <div className="flex justify-between items-center cursor-pointer">
+              <div>
+                <p className="font-medium">{product.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
+                </p>
+              </div>
               <Button 
                 variant="ghost" 
-                size="icon" 
-                onClick={() => {
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setOpenDrawerId(product.id);
                 }}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
-            </DrawerTrigger>
-            <DrawerContent>
+            </div>
+          </DrawerTrigger>
+          <DrawerContent>
+            <div className="mx-auto w-full max-w-sm">
               <DrawerHeader>
-                <DrawerTitle>Edit {product.name}</DrawerTitle>
+                <DrawerTitle>{product.name}</DrawerTitle>
+                <DrawerDescription>Change price and sales estimates</DrawerDescription>
               </DrawerHeader>
               <div className="p-4 space-y-4">
-                {/* Mobile-optimized controls */}
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor={`mobile-price-${product.id}`} className="text-sm">Price</Label>
+                    <Label htmlFor={`price-${product.id}`} className="text-sm">Price</Label>
                     <div className="flex items-center space-x-2 mt-1">
                       <Button
                         variant="outline"
@@ -193,7 +178,7 @@ export function ProductControls({
                       <div className="flex-1 flex items-center space-x-1">
                         <span className="text-sm">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
                         <Input
-                          id={`mobile-price-${product.id}`}
+                          id={`price-${product.id}`}
                           type="number"
                           min="0"
                           step="0.01"
@@ -219,7 +204,7 @@ export function ProductControls({
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <Label htmlFor={`mobile-sales-${product.id}`} className="text-sm">
+                      <Label htmlFor={`sales-${product.id}`} className="text-sm">
                         {sales.period === 'monthly' ? 'Monthly' : 'Daily'} Sales
                       </Label>
                     </div>
@@ -233,7 +218,7 @@ export function ProductControls({
                         <Minus className="h-4 w-4" />
                       </Button>
                       <Input
-                        id={`mobile-sales-${product.id}`}
+                        id={`sales-${product.id}`}
                         type="number"
                         min="0"
                         step="1"
@@ -257,7 +242,7 @@ export function ProductControls({
                         <span className="text-sm">Daily</span>
                         {productSales[product.id] ? (
                           <Switch
-                            id={`mobile-period-${product.id}`}
+                            id={`period-${product.id}`}
                             checked={sales.period === 'monthly'}
                             onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
                             className="h-6 w-11"
@@ -290,72 +275,57 @@ export function ProductControls({
                   Done
                 </Button>
               </div>
-            </DrawerContent>
-          </Drawer>
-        </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
     );
   };
 
   if (products.length === 0) {
     return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-8 w-20" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {products.map(product => (
-              <div key={product.id} className="border rounded p-3 space-y-2">
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-4 w-20 mb-1" />
-                    <Skeleton className="h-4 w-12 mb-1" />
-                  </div>
-                  <Skeleton className="h-8 w-full" />
-                </div>
-                <Skeleton className="h-12 w-full" />
+      <div>
+        <div className="flex flex-row items-center justify-between mb-4">
+          <CardTitle>Product sales controls</CardTitle>
+        </div>
+        <div className="space-y-4">
+          {products.map(product => (
+            <div key={product.id} className="border rounded p-3 space-y-2">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-32" />
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-20 mb-1" />
+                  <Skeleton className="h-4 w-12 mb-1" />
+                </div>
+                <Skeleton className="h-8 w-full" />
+              </div>
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <div>
+      <div className="flex flex-row items-center justify-between mb-2">
         <CardTitle>Product sales controls</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {products.length === 0 ? (
-          <p className="text-muted-foreground">No products or services added yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {products.map(product => {
-              const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-              return (
-                <React.Fragment key={product.id}>
-                  {/* Mobile View */}
-                  <div className="sm:hidden">
-                    {renderMobileProductCard(product, sales)}
-                  </div>
-                  {/* Desktop View */}
-                  <div className="hidden sm:block">
-                    {renderProductCard(product, sales)}
-                  </div>
-                </React.Fragment>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      <p className={`text-sm mb-4 ${marginStatus.color}`}>{marginStatus.text}</p>
+      {products.length === 0 ? (
+        <p className="text-muted-foreground">No products or services added yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {products.map(product => {
+            const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+            return renderProductCard(product, sales);
+          })}
+        </div>
+      )}
+    </div>
   );
 } 
