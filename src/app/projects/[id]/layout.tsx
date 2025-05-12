@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectProvider, useProject } from '@/lib/context/ProjectContext';
-import { Badge } from '@/components/ui/badge';
 import { PencilIcon, Trash2, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { useState } from 'react';
 import type { Currency } from '@/lib/storage/types';
+import { Badge } from '@/components/ui/badge';
 
 function ProjectLayoutContent({
   children,

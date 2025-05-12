@@ -107,7 +107,7 @@ export function ProductControls({
 
     if (averageMargin < 20) {
       return { 
-        text: "Product margins are tight", 
+        text: "Product margins are tight (Below 20%)", 
         color: "text-yellow-600" 
       };
     }
@@ -134,7 +134,7 @@ export function ProductControls({
     const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
     return (
-      <div key={product.id} className="border rounded p-3">
+      <div key={product.id} className="border rounded p-3 hover:bg-muted/50 transition-colors duration-200">
         <Drawer open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
           <DrawerTrigger asChild>
             <div className="flex justify-between items-center cursor-pointer">
@@ -286,25 +286,10 @@ export function ProductControls({
     return (
       <div>
         <div className="flex flex-row items-center justify-between mb-4">
-          <CardTitle>Product sales controls</CardTitle>
+          <CardTitle>Product pricing and sales</CardTitle>
         </div>
         <div className="space-y-4">
-          {products.map(product => (
-            <div key={product.id} className="border rounded p-3 space-y-2">
-              <div className="flex justify-between items-center">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-20 mb-1" />
-                  <Skeleton className="h-4 w-12 mb-1" />
-                </div>
-                <Skeleton className="h-8 w-full" />
-              </div>
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ))}
+          <p className="text-sm text-muted-foreground">No products or services added yet.</p>
         </div>
       </div>
     );
@@ -313,7 +298,7 @@ export function ProductControls({
   return (
     <div>
       <div className="flex flex-row items-center justify-between mb-2">
-        <CardTitle>Product sales controls</CardTitle>
+        <CardTitle>Product pricing and sales</CardTitle>
       </div>
       <p className={`text-sm mb-4 ${marginStatus.color}`}>{marginStatus.text}</p>
       {products.length === 0 ? (

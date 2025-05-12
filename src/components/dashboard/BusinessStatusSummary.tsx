@@ -1,4 +1,4 @@
-import { AlertCircle, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, TrendingUp, CircleDollarSign } from 'lucide-react';
 import type { Project, ProductSales } from '@/lib/storage/types';
 import { calculateProductTotalCost } from '@/lib/utils/financial';
 import { CardTitle } from '@/components/ui/card';
@@ -57,14 +57,22 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
       return {
         icon: <TrendingUp className="h-5 w-5 text-yellow-500" />,
         title: "Just about profitable",
-        message: "Your business is profitable but margins are tight. Optimize costs or adjust prices."
+        message: "Your business is profitable but margins are tight (below 10%)."
+      };
+    }
+
+    if (profitMargin < 25) {
+      return {
+        icon: <TrendingUp className="h-5 w-5 text-green-500" />,
+        title: "Good profitability",
+        message: `Your business is profitable and margins are good (~${Math.round(profitMargin)}%).`
       };
     }
     
     return {
-      icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+      icon: <CircleDollarSign className="h-5 w-5 text-green-500" />,
       title: "Firmly profitable",
-      message: "Well done! Your business is showing healthy profitability."
+      message: "Well done! Your business is showing healthy profitability. (Above 25%)"
     };
   };
 

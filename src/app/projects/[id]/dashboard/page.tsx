@@ -46,13 +46,13 @@ export default function DashboardPage() {
         };
       }
       
-      // Only update if we have products to initialize
-      if (project.products.length > 0) {
+      // Only update if we have products to initialize and we haven't initialized yet
+      if (project.products.length > 0 && !initialized) {
         setProductSales(initialSales);
+        setInitialized(true);
       }
-      setInitialized(true);
     }
-  }, [project]);
+  }, [project, initialized]);
 
   // Save sales volumes to localStorage when they change
   useEffect(() => {
@@ -221,7 +221,7 @@ export default function DashboardPage() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>Product Controls</CardTitle>
+                <CardTitle>Sales scenarios</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -330,7 +330,7 @@ export default function DashboardPage() {
               <div className="text-sm text-muted-foreground">
                 {totalMonthlyFixedCosts > totalMonthlyRevenue * 0.5 ? (
                   <p className="text-red-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are high ({Math.round((totalMonthlyFixedCosts / totalMonthlyRevenue) * 100)}% of revenue). Consider reducing costs or increasing sales.
+                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are high ({Math.round((totalMonthlyFixedCosts / totalMonthlyRevenue) * 100)}% of revenue). Reduce costs or increase revenue.
                   </p>
                 ) : totalMonthlyFixedCosts > totalMonthlyRevenue * 0.3 ? (
                   <p className="text-yellow-600">
