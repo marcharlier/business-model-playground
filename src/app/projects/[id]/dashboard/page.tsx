@@ -243,171 +243,177 @@ export default function DashboardPage() {
         projectId={project.id}
         currentPage="dashboard"
       />
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 auto-rows-min">
-        {/* Financial Summary Cards */}
-        <div className="grid grid-cols-2 gap-6 order-1 lg:col-span-2">
-          <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Business Overview - Shows first on mobile, right side on desktop */}
+        <div className="order-first lg:order-last">
+          <Card className="bg-muted/50 lg:sticky top-20">
             <CardHeader className="pb-2">
-              <CardTitle>Revenue</CardTitle>
+              <BusinessStatusSummary 
+                project={project}
+                productSales={productSales}
+                showTitle={true}
+              />
             </CardHeader>
-            <CardContent>
-              <p className="lg:text-2xl text-lg font-bold">{formatCurrency(totalMonthlyRevenue, project.currency)}</p>
-              <p className="text-sm text-muted-foreground">Monthly</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Costs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="lg:text-2xl text-lg font-bold">{formatCurrency(totalMonthlyFixedCosts + totalMonthlyVariableCosts, project.currency)}</p>
-              <p className="text-sm text-muted-foreground">Monthly</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Profit</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`lg:text-2xl text-lg font-bold ${totalMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(totalMonthlyProfit, project.currency)}
-              </p>
-              <p className="text-sm text-muted-foreground">Monthly</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Margin</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`lg:text-2xl text-lg font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatProfitMargin(profitMargin)}
-              </p>
-              <p className="text-sm text-muted-foreground">Monthly</p>
+            <CardContent className="space-y-6 px-0">
+              <Separator />
+              {/* Product Controls */}
+              <div className="px-6">
+                <ProductControls 
+                  products={project.products}
+                  productSales={productSales}
+                  currency={project.currency}
+                  onSalesVolumeChange={handleSalesVolumeChange}
+                  onSalesPeriodChange={handleSalesPeriodChange}
+                  onPriceChange={handlePriceChange}
+                  totalMonthlyFixedCosts={totalMonthlyFixedCosts}
+                  project={project}
+                />
+              </div>
+              <Separator />
+              {/* Costs Summary */}
+              <div className="space-y-2 px-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium">Fixed costs</h3>
+                  <Link 
+                    href={`/projects/${project.id}/fixed-costs`}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Edit costs
+                  </Link>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {totalMonthlyFixedCosts > totalMonthlyRevenue * 0.5 ? (
+                    <p className="text-red-600">
+                      Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are high (&gt;50% of revenue). Reduce costs or increase revenue.
+                    </p>
+                  ) : totalMonthlyFixedCosts > totalMonthlyRevenue * 0.3 ? (
+                    <p className="text-yellow-600">
+                      Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are moderate (&gt;30% of revenue). Monitor their impact on profitability.
+                    </p>
+                  ) : (
+                    <p className="text-green-600">
+                      Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are well managed (&lt;30% of revenue).
+                    </p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Business Overview Card */}
-        <Card className="bg-muted/50 order-2 lg:col-span-2 gap-2">
-          <CardHeader className="pb-2">
-            <BusinessStatusSummary 
-              project={project}
-              productSales={productSales}
-              showTitle={true}
-            />
-          </CardHeader>
-          <CardContent className="space-y-6 px-0">
-            <Separator />
-            {/* Product Controls */}
-            <div className="px-6">
-              <ProductControls 
+        {/* Left Column - Financial Summary and Charts */}
+        <div className="space-y-6 order-last lg:order-first">
+          {/* Financial Summary Cards */}
+          <div className="grid grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Revenue</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="lg:text-2xl text-lg font-bold">{formatCurrency(totalMonthlyRevenue, project.currency)}</p>
+                <p className="text-sm text-muted-foreground">Monthly</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Costs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="lg:text-2xl text-lg font-bold">{formatCurrency(totalMonthlyFixedCosts + totalMonthlyVariableCosts, project.currency)}</p>
+                <p className="text-sm text-muted-foreground">Monthly</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Profit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`lg:text-2xl text-lg font-bold ${totalMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(totalMonthlyProfit, project.currency)}
+                </p>
+                <p className="text-sm text-muted-foreground">Monthly</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Margin</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`lg:text-2xl text-lg font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatProfitMargin(profitMargin)}
+                </p>
+                <p className="text-sm text-muted-foreground">Monthly</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Business Costs Chart and Profit Threshold Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Business costs</CardTitle>
+                <CardDescription>Monthly fixed and variable costs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CostBreakdownChart 
+                  fixedCosts={totalMonthlyFixedCosts}
+                  variableCosts={totalMonthlyVariableCosts}
+                  currency={project.currency}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Profit threshold</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProfitabilityChart 
+                  products={project.products}
+                  productSales={productSales}
+                  fixedCosts={totalMonthlyFixedCosts}
+                  currency={project.currency}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Revenue Breakdown Chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Revenue by product</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RevenueBreakdownChart 
                 products={project.products}
                 productSales={productSales}
                 currency={project.currency}
-                onSalesVolumeChange={handleSalesVolumeChange}
-                onSalesPeriodChange={handleSalesPeriodChange}
-                onPriceChange={handlePriceChange}
-                totalMonthlyFixedCosts={totalMonthlyFixedCosts}
-                project={project}
               />
-            </div>
-            <Separator />
-            {/* Costs Summary */}
-            <div className="space-y-2 px-6">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Fixed costs</h3>
-                <Link 
-                  href={`/projects/${project.id}/fixed-costs`}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Edit costs
-                </Link>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {totalMonthlyFixedCosts > totalMonthlyRevenue * 0.5 ? (
-                  <p className="text-red-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are high (&gt;50% of revenue). Reduce costs or increase revenue.
-                  </p>
-                ) : totalMonthlyFixedCosts > totalMonthlyRevenue * 0.3 ? (
-                  <p className="text-yellow-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are moderate (&gt;30% of revenue). Monitor their impact on profitability.
-                  </p>
-                ) : (
-                  <p className="text-green-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are well managed (&lt;30% of revenue).
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Business Costs Chart */}
-        <Card className="order-3 lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Business costs</CardTitle>
-            <CardDescription>Monthly fixed and variable costs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CostBreakdownChart 
-              fixedCosts={totalMonthlyFixedCosts}
-              variableCosts={totalMonthlyVariableCosts}
-              currency={project.currency}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Profit Threshold Chart */}
-        <Card className="order-4 lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Profit threshold</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProfitabilityChart 
-              products={project.products}
-              productSales={productSales}
-              fixedCosts={totalMonthlyFixedCosts}
-              currency={project.currency}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Revenue Breakdown Chart */}
-        <Card className="order-5 lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle>Revenue by product</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RevenueBreakdownChart 
-              products={project.products}
-              productSales={productSales}
-              currency={project.currency}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Monthly Projection Chart */}
-        <Card className="order-6 lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle>12-Month Projection</CardTitle>
-            <CardDescription>Revenue and costs over time. Annual costs added in month 1.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <MonthlyProjectionChart 
-              products={project.products}
-              productSales={productSales}
-              fixedCosts={{
-                monthly: totalMonthlyFixedCosts,
-                annual: totalAnnualFixedCosts
-              }}
-              currency={project.currency}
-            />
-          </CardContent>
-        </Card>
+          {/* Monthly Projection Chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>12-Month Projection</CardTitle>
+              <CardDescription>Revenue and costs over time. Annual costs added in month 1.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MonthlyProjectionChart 
+                products={project.products}
+                productSales={productSales}
+                fixedCosts={{
+                  monthly: totalMonthlyFixedCosts,
+                  annual: totalAnnualFixedCosts
+                }}
+                currency={project.currency}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
