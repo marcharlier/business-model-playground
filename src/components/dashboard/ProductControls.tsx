@@ -100,27 +100,27 @@ export function ProductControls({
 
     if (averageMargin < 0) {
       return { 
-        text: "Products are currently unprofitable", 
+        text: "Products are currently unprofitable.", 
         color: "text-red-600" 
       };
     }
 
     if (averageMargin < 20) {
       return { 
-        text: "Product margins are tight (Below 20%)", 
+        text: "Product margins are tight (Below 20%).", 
         color: "text-yellow-600" 
       };
     }
 
     if (totalMonthlyProfit < 0) {
       return { 
-        text: "Product margins are healthy (Average above 20%) but business is unprofitable due to high fixed costs or low sales volume", 
+        text: "Product margins are healthy (Average above 20%) but business is unprofitable due to high fixed costs or low sales volume.", 
         color: "text-yellow-600" 
       };
     }
 
     return { 
-      text: "Product margins are healthy (Average above 20%)", 
+      text: "Product margins are healthy (Average above 20%).", 
       color: "text-green-600" 
     };
   };
