@@ -330,15 +330,15 @@ export default function DashboardPage() {
               <div className="text-sm text-muted-foreground">
                 {totalMonthlyFixedCosts > totalMonthlyRevenue * 0.5 ? (
                   <p className="text-red-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are high ({Math.round((totalMonthlyFixedCosts / totalMonthlyRevenue) * 100)}% of revenue). Reduce costs or increase revenue.
+                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are high (&gt;50% of revenue). Reduce costs or increase revenue.
                   </p>
                 ) : totalMonthlyFixedCosts > totalMonthlyRevenue * 0.3 ? (
                   <p className="text-yellow-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are moderate ({Math.round((totalMonthlyFixedCosts / totalMonthlyRevenue) * 100)}% of revenue). Monitor their impact on profitability.
+                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are moderate (&gt;30% of revenue). Monitor their impact on profitability.
                   </p>
                 ) : (
                   <p className="text-green-600">
-                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are well managed ({Math.round((totalMonthlyFixedCosts / totalMonthlyRevenue) * 100)}% of revenue).
+                    Fixed costs ({formatCurrency(totalMonthlyFixedCosts, project.currency)}) are well managed (&lt;30% of revenue).
                   </p>
                 )}
               </div>

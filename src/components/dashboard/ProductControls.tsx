@@ -114,13 +114,13 @@ export function ProductControls({
 
     if (totalMonthlyProfit < 0) {
       return { 
-        text: `Product margins are healthy (Avg. ${Math.round(averageMargin)}%) but business is unprofitable due to high fixed costs or low sales volume`, 
+        text: "Product margins are healthy (Average above 20%) but business is unprofitable due to high fixed costs or low sales volume", 
         color: "text-yellow-600" 
       };
     }
 
     return { 
-      text: `Product margins are healthy (Avg. ${Math.round(averageMargin)}%)`, 
+      text: "Product margins are healthy (Average above 20%)", 
       color: "text-green-600" 
     };
   };
