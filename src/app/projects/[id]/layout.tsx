@@ -33,6 +33,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
+import { LongPressButton } from '@/components/ui/long-press-button';
 
 function ProjectEditForm({ 
   className,
@@ -90,16 +91,16 @@ function ProjectEditForm({
         <Button type="submit" disabled={isSubmitting || !name.trim()}>
           Save Changes
         </Button>
-        <Button
-          type="button"
+        <LongPressButton
           variant="destructive"
-          onClick={onDelete}
+          onLongPress={onDelete}
           disabled={isSubmitting}
           className="gap-2"
+          duration={2000}
         >
           <Trash2 className="h-4 w-4" />
-          Delete Project
-        </Button>
+          Hold to delete project
+        </LongPressButton>
       </div>
     </form>
   );
