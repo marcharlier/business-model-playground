@@ -136,7 +136,7 @@ export function CategoryCard({
 
   return (
     <Card className={cn(
-      "h-full relative transition-all duration-300",
+      "h-full relative transition-all duration-300 gap-0",
       isInfoHovered && "backdrop-blur-sm bg-background/80"
     )}>
       <CardHeader className="flex flex-row items-center space-y-0 pb-2">
@@ -156,6 +156,13 @@ export function CategoryCard({
         isInfoHovered && "opacity-30"
       )}>
         <div className="space-y-2">
+          {costs.length === 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground italic">For example:{' '}
+                {category.examples.join(', ')}
+              </p>
+            </div>
+          )}
           {costs.length > 0 && (
             <ul className="space-y-2">
               {costs.map(cost => (
