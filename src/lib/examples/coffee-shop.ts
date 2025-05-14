@@ -2,7 +2,7 @@ import type { Project } from "../storage/types";
 
 export const coffeeShopExample: Project = {
   id: "example-coffee-shop",
-  name: "Coffee Shop Example",
+  name: "☕️ Coffee Shop Example",
   currency: "GBP",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -73,7 +73,7 @@ export const coffeeShopExample: Project = {
   products: [
     {
       id: "espresso",
-      name: "Espresso",
+      name: "☕️ Espresso",
       price: 2.50,
       projectId: "example-coffee-shop",
       associatedCosts: [
@@ -95,7 +95,7 @@ export const coffeeShopExample: Project = {
     },
     {
       id: "cappuccino",
-      name: "Cappuccino",
+      name: "☕️🥛 Cappuccino",
       price: 3.50,
       projectId: "example-coffee-shop",
       associatedCosts: [
@@ -124,7 +124,7 @@ export const coffeeShopExample: Project = {
     },
     {
       id: "croissant",
-      name: "Croissant",
+      name: "🥐 Croissant",
       price: 2.80,
       projectId: "example-coffee-shop",
       associatedCosts: [
