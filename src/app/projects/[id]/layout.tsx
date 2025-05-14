@@ -171,7 +171,7 @@ function ProjectEditDialog({
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={setOpen} repositionInputs={false}>
       <DrawerTrigger asChild>
         {trigger}
       </DrawerTrigger>

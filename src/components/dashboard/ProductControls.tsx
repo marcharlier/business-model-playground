@@ -135,7 +135,7 @@ export function ProductControls({
 
     return (
       <div key={product.id} className="border rounded p-3 hover:bg-muted/50 transition-colors duration-200">
-        <Drawer open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
+        <Drawer repositionInputs={false} open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
           <DrawerTrigger asChild>
             <div className="flex justify-between items-center cursor-pointer">
               <div>
