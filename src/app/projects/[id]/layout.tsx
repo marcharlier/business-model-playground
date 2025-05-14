@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
 import { LongPressButton } from '@/components/ui/long-press-button';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 function ProjectEditForm({ 
   className,
@@ -91,16 +92,23 @@ function ProjectEditForm({
         <Button type="submit" disabled={isSubmitting || !name.trim()}>
           Save Changes
         </Button>
-        <LongPressButton
-          variant="destructive"
-          onLongPress={onDelete}
-          disabled={isSubmitting}
-          className="gap-2"
-          duration={2000}
+        <Accordion type="single" collapsible>
+          <AccordionItem value="delete">
+            <AccordionTrigger>Delete project?</AccordionTrigger>
+            <AccordionContent>
+              <LongPressButton
+                variant="destructive"
+                onLongPress={onDelete}
+                disabled={isSubmitting}
+                className="gap-2 w-full"
+                duration={2000}
         >
-          <Trash2 className="h-4 w-4" />
-          Hold to delete project
-        </LongPressButton>
+              <Trash2 className="h-4 w-4" />
+                Hold to delete project
+              </LongPressButton>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </form>
   );
