@@ -72,7 +72,6 @@ function ProjectEditForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={isSubmitting}
-          autoFocus
         />
       </div>
       <div className="grid gap-2">
@@ -184,10 +183,10 @@ function ProjectEditDialog({
         {trigger}
       </DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader className="text-left">
+        <DrawerHeader>
           <DrawerTitle>Edit Project</DrawerTitle>
           <DrawerDescription>
-            Make changes to your project here. Click save when you&apos;re done.
+            Make changes to your project here.
           </DrawerDescription>
         </DrawerHeader>
         <ProjectEditForm

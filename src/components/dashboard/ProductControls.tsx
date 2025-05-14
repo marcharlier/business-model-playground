@@ -165,18 +165,17 @@ export function ProductControls({
               <div className="p-4 space-y-4">
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor={`price-${product.id}`} className="text-sm">Price</Label>
-                    <div className="flex items-center space-x-2 mt-1">
+                    <Label htmlFor={`price-${product.id}`} className="text-sm">Change price</Label>
+                    <div className="flex items-center space-x-2 mt-1 justify-between">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10"
+                        className="h-10 w-10 text-muted-foreground"
                         onClick={() => onPriceChange(product.id, (product.price * 0.95).toFixed(2))}
                       >
                         <span className="text-sm">-5%</span>
                       </Button>
-                      <div className="flex-1 flex items-center space-x-1">
-                        <span className="text-sm">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
+                      <div className="flex-1 flex items-center space-x-1 max-w-36">
                         <Input
                           id={`price-${product.id}`}
                           type="number"
@@ -188,13 +187,14 @@ export function ProductControls({
                             const value = e.target.value;
                             onPriceChange(product.id, value === '' ? '0' : value);
                           }}
-                          className="h-10 text-base"
+                          className="h-10 text-base pl-6"
                         />
+                        <span className="text-sm absolute pl-1 text-muted-foreground">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
                       </div>
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10"
+                        className="h-10 w-10 text-muted-foreground"
                         onClick={() => onPriceChange(product.id, (product.price * 1.05).toFixed(2))}
                       >
                         <span className="text-sm">+5%</span>
