@@ -168,7 +168,7 @@ export function ProductControls({
                     <Label htmlFor={`price-${product.id}`} className="text-sm">Change price</Label>
                     <div className="flex items-center space-x-2 mt-1 justify-between">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         className="h-10 w-10 text-muted-foreground"
                         onClick={() => onPriceChange(product.id, (product.price * 0.95).toFixed(2))}
@@ -192,7 +192,7 @@ export function ProductControls({
                         <span className="text-sm absolute pl-1 text-muted-foreground">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
                       </div>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         className="h-10 w-10 text-muted-foreground"
                         onClick={() => onPriceChange(product.id, (product.price * 1.05).toFixed(2))}
@@ -203,16 +203,14 @@ export function ProductControls({
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1">
                       <Label htmlFor={`sales-${product.id}`} className="text-sm">
                         {sales.period === 'monthly' ? 'Monthly' : 'Daily'} Sales
                       </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 mt-1 justify-between">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        className="h-10 w-10"
+                        className="h-10 w-10 text-muted-foreground hover:text-foreground"
                         onClick={() => onSalesVolumeChange(product.id, Math.max(0, sales.volume - 1))}
                       >
                         <Minus className="h-4 w-4" />
@@ -228,17 +226,18 @@ export function ProductControls({
                           const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value);
                           onSalesVolumeChange(product.id, value);
                         }}
-                        className="h-10 text-base flex-1"
+                        className="h-10 text-base flex-1 max-w-36"
                       />
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        className="h-10 w-10"
+                        className="h-10 w-10 text-muted-foreground hover:text-foreground"
                         onClick={() => onSalesVolumeChange(product.id, sales.volume + 1)}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
-                      <div className="flex items-center space-x-2 ml-2">
+                      </div>
+                      <div className="flex items-center space-x-2 mt-4 justify-center">
                         <span className="text-sm">Daily</span>
                         {productSales[product.id] ? (
                           <Switch
@@ -252,7 +251,6 @@ export function ProductControls({
                         )}
                         <span className="text-sm">Monthly</span>
                       </div>
-                    </div>
                   </div>
 
                   <div className="text-sm p-2 bg-muted rounded">
