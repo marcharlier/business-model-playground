@@ -66,7 +66,7 @@ function ProjectEditForm({
   return (
     <form className={cn("grid items-start gap-4", className)} onSubmit={handleSubmit}>
       <div className="grid gap-2">
-        <Label htmlFor="project-name">Project Name</Label>
+        <Label htmlFor="project-name">Project name</Label>
         <Input
           id="project-name"
           value={name}
@@ -89,7 +89,7 @@ function ProjectEditForm({
       </div>
       <div className="flex flex-col gap-2">
         <Button type="submit" disabled={isSubmitting || !name.trim()}>
-          Save Changes
+          Save changes
         </Button>
         <Accordion type="single" collapsible>
           <AccordionItem value="delete">
@@ -161,9 +161,9 @@ function ProjectEditDialog({
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
+            <DialogTitle>Edit project</DialogTitle>
             <DialogDescription>
-              Make changes to your project here. Click save when you&apos;re done.
+              Make changes to your project here.
             </DialogDescription>
           </DialogHeader>
           <ProjectEditForm
@@ -184,7 +184,7 @@ function ProjectEditDialog({
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Edit Project</DrawerTitle>
+          <DrawerTitle>Edit project</DrawerTitle>
           <DrawerDescription>
             Make changes to your project here.
           </DrawerDescription>
