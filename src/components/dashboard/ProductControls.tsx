@@ -272,12 +272,12 @@ export function ProductControls({
                   <Button 
                     variant="outline" 
                     size="icon"
-                    className="hidden lg:flex"
+                    className="hidden md:flex"
                   >
                     <Settings2 className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80">
+                <PopoverContent className="w-80" align="end">
                   <ProductControlForm
                     product={product}
                     sales={sales}
@@ -293,7 +293,7 @@ export function ProductControls({
                 <Button 
                   variant="outline" 
                   size="icon"
-                  className="lg:hidden"
+                  className="md:hidden"
                 >
                   <Settings2 className="h-4 w-4" />
                 </Button>
