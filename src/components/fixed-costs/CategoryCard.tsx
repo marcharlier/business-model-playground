@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { InfoIcon, PlusIcon, PencilIcon, TrashIcon, XIcon, CheckIcon } from 'lucide-react';
+import { InfoIcon, PlusIcon, PencilIcon, Trash2 } from 'lucide-react';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { parseCurrencyInput } from '@/lib/utils/currency';
 import { formatCurrency } from '@/lib/utils/currency';
@@ -13,7 +13,140 @@ import type { FixedCost } from '@/lib/storage/types';
 import type { FixedCostCategory } from '@/lib/constants/fixedCostCategories';
 import type { Currency } from '@/lib/storage/types';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Label } from '@/components/ui/label';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { LongPressButton } from '@/components/ui/long-press-button';
+
+function FixedCostForm({ 
+  className,
+  cost,
+  currency,
+  onSave,
+  onCancel,
+  onDelete,
+  isSubmitting,
+  hideCancel
+}: {
+  className?: string;
+  cost?: FixedCost;
+  currency: Currency;
+  onSave: (name: string, amount: number, frequency: 'monthly' | 'annual') => void;
+  onCancel: () => void;
+  onDelete: () => void;
+  isSubmitting: boolean;
+  hideCancel?: boolean;
+}) {
+  const [name, setName] = useState(cost?.name ?? '');
+  const [amount, setAmount] = useState(cost?.amount.toString() ?? '');
+  const [frequency, setFrequency] = useState<'monthly' | 'annual'>(cost?.frequency ?? 'monthly');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim() && amount.trim()) {
+      const parsedAmount = parseCurrencyInput(amount);
+      onSave(name.trim(), parsedAmount, frequency);
+    }
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty value or numbers with up to 2 decimal places, no scientific notation
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setAmount(value);
+    }
+  };
+
+  return (
+    <form className={cn("grid items-start gap-4", className)} onSubmit={handleSubmit}>
+      <div className="grid gap-2">
+        <Label htmlFor="cost-name">Cost name</Label>
+        <Input
+          id="cost-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={isSubmitting}
+          placeholder="Enter cost name"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="cost-amount">Amount</Label>
+        <div className="relative">
+          <Input
+            id="cost-amount"
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={handleAmountChange}
+            disabled={isSubmitting}
+            placeholder="0.00"
+            className="pl-6"
+          />
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+            {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
+          </span>
+        </div>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="frequency">Frequency</Label>
+        <Select value={frequency} onValueChange={(value) => setFrequency(value as 'monthly' | 'annual')} disabled={isSubmitting}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="monthly">Monthly</SelectItem>
+            <SelectItem value="annual">Annual</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Button type="submit" disabled={isSubmitting || !name.trim() || !amount.trim()}>
+          {cost ? 'Save changes' : 'Add cost'}
+        </Button>
+        {!hideCancel && (
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        )}
+        {cost && (
+          <Accordion type="single" collapsible>
+            <AccordionItem value="delete">
+              <AccordionTrigger>Delete cost?</AccordionTrigger>
+              <AccordionContent>
+                <LongPressButton
+                  variant="destructive"
+                  onLongPress={onDelete}
+                  disabled={isSubmitting}
+                  className="gap-2 w-full"
+                  duration={2000}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Hold to delete cost
+                </LongPressButton>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
+      </div>
+    </form>
+  );
+}
 
 interface CategoryCardProps {
   category: FixedCostCategory;
@@ -36,63 +169,27 @@ export function CategoryCard({
 }: CategoryCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [frequency, setFrequency] = useState<'monthly' | 'annual'>('monthly');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInfoHovered, setIsInfoHovered] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleAddClick = () => {
-    // Cancel any in-progress edits
-    if (editingCostId) {
-      setEditingCostId(null);
-      setName('');
-      setAmount('');
-      setFrequency('monthly');
-    }
-
-    // Start adding new cost
     setIsAdding(true);
-    setName('');
-    setAmount('');
-    setFrequency('monthly');
   };
 
   const handleEditClick = (cost: FixedCost) => {
-    // Cancel any in-progress additions
-    if (isAdding) {
-      setIsAdding(false);
-      setName('');
-      setAmount('');
-      setFrequency('monthly');
-    }
-
-    // Start editing the selected cost
     setEditingCostId(cost.id);
-    setName(cost.name);
-    setAmount(cost.amount.toString());
-    setFrequency(cost.frequency);
   };
 
   const handleCancel = () => {
     setIsAdding(false);
     setEditingCostId(null);
-    setName('');
-    setAmount('');
-    setFrequency('monthly');
     setIsSubmitting(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim() || !amount.trim()) return;
-    
+  const handleSave = async (name: string, amount: number, frequency: 'monthly' | 'annual') => {
     setIsSubmitting(true);
-    
     try {
-      const parsedAmount = parseCurrencyInput(amount);
-      
       if (editingCostId) {
         // Update existing cost
         const costToUpdate = costs.find(c => c.id === editingCostId);
@@ -100,7 +197,7 @@ export function CategoryCard({
           fixedCostStorage.updateFixedCost(projectId, {
             ...costToUpdate,
             name,
-            amount: parsedAmount,
+            amount,
             frequency
           });
           onCostUpdated();
@@ -110,7 +207,7 @@ export function CategoryCard({
         fixedCostStorage.createFixedCost(
           projectId,
           name,
-          parsedAmount,
+          amount,
           frequency,
           category.id
         );
@@ -129,9 +226,67 @@ export function CategoryCard({
     try {
       fixedCostStorage.deleteFixedCost(projectId, costId);
       onCostDeleted();
+      handleCancel(); // Close the form after successful deletion
     } catch (error) {
       console.error('Error deleting fixed cost:', error);
     }
+  };
+
+  const editingCost = editingCostId ? costs.find(c => c.id === editingCostId) : undefined;
+
+  const renderForm = () => {
+    const form = (
+      <FixedCostForm
+        cost={editingCost}
+        currency={currency}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        onDelete={() => editingCost && handleDelete(editingCost.id)}
+        isSubmitting={isSubmitting}
+        hideCancel={!isDesktop}
+      />
+    );
+
+    if (isDesktop) {
+      return (
+        <Dialog open={isAdding || !!editingCostId} onOpenChange={(open) => !open && handleCancel()}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{editingCost ? 'Edit cost' : 'Add cost'}</DialogTitle>
+              <DialogDescription>
+                {editingCost 
+                  ? `Make changes to your cost in the ${category.name} category.`
+                  : `Add a new cost to the ${category.name} category.`}
+              </DialogDescription>
+            </DialogHeader>
+            {form}
+          </DialogContent>
+        </Dialog>
+      );
+    }
+
+    return (
+      <Drawer open={isAdding || !!editingCostId} onOpenChange={(open) => !open && handleCancel()}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{editingCost ? 'Edit cost' : 'Add cost'}</DrawerTitle>
+            <DrawerDescription>
+              {editingCost 
+                ? `Make changes to your cost in the ${category.name} category.`
+                : `Add a new cost to the ${category.name} category.`}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4">
+            {form}
+          </div>
+          <DrawerFooter className="pt-2">
+            <DrawerClose asChild>
+              <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
   };
 
   return (
@@ -167,196 +322,32 @@ export function CategoryCard({
             <ul className="space-y-2">
               {costs.map(cost => (
                 <li key={cost.id} className="flex justify-between items-center p-2 border rounded">
-                  {editingCostId === cost.id ? (
-                    <form onSubmit={handleSubmit} className="space-y-3 w-full">
-                      <Input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter cost name"
-                        required
-                        className="h-8 text-sm"
-                      />
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <Input
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="0.00"
-                            required
-                            className="h-8 pl-6 text-sm"
-                          />
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                            {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-                          </span>
-                        </div>
-                        <Select 
-                          value={frequency} 
-                          onValueChange={(value) => setFrequency(value as 'monthly' | 'annual')}
-                        >
-                          <SelectTrigger id="frequency" className="w-28 text-sm" size="sm">
-                            <SelectValue placeholder="Frequency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="monthly" className="text-sm">Monthly</SelectItem>
-                            <SelectItem value="annual" className="text-sm">Annual</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center gap-1 justify-end">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8" 
-                                onClick={handleCancel}
-                              >
-                                <XIcon className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Cancel</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                type="submit" 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8" 
-                                disabled={isSubmitting}
-                              >
-                                <CheckIcon className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Update</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <div>
-                        <p className="font-small text-sm">{cost.name}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="text-right">
-                          <p className="font-small text-sm">{formatCurrency(cost.amount, currency)}</p>
-                          <p className="text-xs text-muted-foreground">{cost.frequency}</p>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          onClick={() => handleEditClick(cost)}
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive" 
-                          onClick={() => handleDelete(cost.id)}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                  <div>
+                    <p className="font-small text-sm">{cost.name}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="text-right">
+                      <p className="font-small text-sm">{formatCurrency(cost.amount, currency)}</p>
+                      <p className="text-xs text-muted-foreground">{cost.frequency}</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8" 
+                      onClick={() => handleEditClick(cost)}
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
           
-          {isAdding ? (
-            <div className="p-2 border rounded">
-              <form onSubmit={handleSubmit} className="space-y-3 w-full">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter cost name"
-                  required
-                  className="h-8 text-sm"
-                />
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      required
-                      className="h-8 pl-6 text-sm"
-                    />
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-                    </span>
-                  </div>
-                  <Select 
-                    value={frequency} 
-                    onValueChange={(value) => setFrequency(value as 'monthly' | 'annual')}
-                  >
-                    <SelectTrigger id="frequency" className="w-28 text-sm" size="sm">
-                      <SelectValue placeholder="Frequency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly" className="text-sm">Monthly</SelectItem>
-                      <SelectItem value="annual" className="text-sm">Annual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-1 justify-end">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          onClick={handleCancel}
-                        >
-                          <XIcon className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Cancel</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          type="submit" 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          disabled={isSubmitting}
-                        >
-                          <CheckIcon className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Add</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <Button size="sm" variant="outline" className="w-full" onClick={handleAddClick}>
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Add Cost
-            </Button>
-          )}
+          <Button size="sm" variant="outline" className="w-full" onClick={handleAddClick}>
+            <PlusIcon className="h-4 w-4 mr-1" />
+            Add Cost
+          </Button>
         </div>
       </CardContent>
       {isInfoHovered && (
@@ -372,6 +363,7 @@ export function CategoryCard({
           </div>
         </div>
       )}
+      {renderForm()}
     </Card>
   );
 } 
