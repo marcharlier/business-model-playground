@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Pencil, Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Settings2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
 import { formatProfitMargin } from '@/lib/utils/financial';
 import { calculateProductTotalCost } from '@/lib/utils/financial';
@@ -21,6 +21,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import React from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 interface ProductControlsProps {
   products: Product[];
@@ -31,6 +32,128 @@ interface ProductControlsProps {
   onPriceChange: (productId: string, value: string) => void;
   totalMonthlyFixedCosts: number;
   project: Project;
+}
+
+interface ProductControlFormProps {
+  product: Product;
+  sales: ProductSales;
+  currency: Currency;
+  onPriceChange: (productId: string, value: string) => void;
+  onSalesVolumeChange: (productId: string, value: number) => void;
+  onSalesPeriodChange: (productId: string, period: 'monthly' | 'daily') => void;
+  calculateBreakEven: (product: Product, period: 'monthly' | 'daily') => number;
+}
+
+function ProductControlForm({
+  product,
+  sales,
+  currency,
+  onPriceChange,
+  onSalesVolumeChange,
+  onSalesPeriodChange,
+  calculateBreakEven
+}: ProductControlFormProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor={`price-${product.id}`} className="text-sm">Change price</Label>
+        <div className="flex items-center space-x-2 mt-1 justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground"
+            onClick={() => onPriceChange(product.id, (product.price * 0.95).toFixed(2))}
+          >
+            <span className="text-sm">-5%</span>
+          </Button>
+          <div className="flex-1 flex items-center space-x-1 max-w-36">
+            <Input
+              id={`price-${product.id}`}
+              type="number"
+              min="0"
+              step="0.01"
+              value={product.price === 0 ? '' : product.price}
+              placeholder="Free"
+              onChange={(e) => {
+                const value = e.target.value;
+                onPriceChange(product.id, value === '' ? '0' : value);
+              }}
+              className="h-10 text-base pl-6"
+            />
+            <span className="text-sm absolute pl-1 text-muted-foreground">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground"
+            onClick={() => onPriceChange(product.id, (product.price * 1.05).toFixed(2))}
+          >
+            <span className="text-sm">+5%</span>
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor={`sales-${product.id}`} className="text-sm">
+          {sales.period === 'monthly' ? 'Monthly' : 'Daily'} Sales
+        </Label>
+        <div className="flex items-center space-x-2 mt-1 justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            onClick={() => onSalesVolumeChange(product.id, Math.max(0, sales.volume - 1))}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <Input
+            id={`sales-${product.id}`}
+            type="number"
+            min="0"
+            step="1"
+            value={sales.volume === 0 ? '' : sales.volume}
+            placeholder="0"
+            onChange={(e) => {
+              const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value);
+              onSalesVolumeChange(product.id, value);
+            }}
+            className="h-10 text-base flex-1 max-w-36"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            onClick={() => onSalesVolumeChange(product.id, sales.volume + 1)}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center space-x-2 mt-4 justify-center">
+          <span className="text-sm">Daily</span>
+          {sales ? (
+            <Switch
+              id={`period-${product.id}`}
+              checked={sales.period === 'monthly'}
+              onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
+              className="h-6 w-11"
+            />
+          ) : (
+            <Skeleton className="h-6 w-11 rounded-full" />
+          )}
+          <span className="text-sm">Monthly</span>
+        </div>
+      </div>
+
+      <div className="text-sm p-2 bg-muted rounded">
+        <p className="font-medium">Break-Even Analysis</p>
+        <p>
+          {calculateBreakEven(product, sales.period) === Number.POSITIVE_INFINITY 
+            ? "Cannot break even at current price (price is less than or equal to variable cost)" 
+            : `Selling ${calculateBreakEven(product, sales.period)} units ${sales.period === 'monthly' ? 'per month' : 'per day'} would cover fixed costs`}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function ProductControls({
@@ -136,132 +259,63 @@ export function ProductControls({
     return (
       <div key={product.id} className="border rounded p-3 hover:bg-muted/50 transition-colors duration-200">
         <Drawer repositionInputs={false} open={openDrawerId === product.id} onOpenChange={(open) => setOpenDrawerId(open ? product.id : null)}>
-          <DrawerTrigger asChild>
-            <div className="flex justify-between items-center cursor-pointer">
-              <div>
-                <p className="font-medium">{product.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
-                </p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenDrawerId(product.id);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium">{product.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
+              </p>
             </div>
-          </DrawerTrigger>
+            <div className="flex items-center space-x-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="hidden lg:flex"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <ProductControlForm
+                    product={product}
+                    sales={sales}
+                    currency={currency}
+                    onPriceChange={onPriceChange}
+                    onSalesVolumeChange={onSalesVolumeChange}
+                    onSalesPeriodChange={onSalesPeriodChange}
+                    calculateBreakEven={calculateBreakEven}
+                  />
+                </PopoverContent>
+              </Popover>
+              <DrawerTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  className="lg:hidden"
+                >
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </DrawerTrigger>
+            </div>
+          </div>
           <DrawerContent>
             <div className="mx-auto w-full max-w-sm">
               <DrawerHeader>
                 <DrawerTitle>{product.name}</DrawerTitle>
                 <DrawerDescription>Change price and sales estimates</DrawerDescription>
               </DrawerHeader>
-              <div className="p-4 space-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor={`price-${product.id}`} className="text-sm">Change price</Label>
-                    <div className="flex items-center space-x-2 mt-1 justify-between">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-muted-foreground"
-                        onClick={() => onPriceChange(product.id, (product.price * 0.95).toFixed(2))}
-                      >
-                        <span className="text-sm">-5%</span>
-                      </Button>
-                      <div className="flex-1 flex items-center space-x-1 max-w-36">
-                        <Input
-                          id={`price-${product.id}`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={product.price === 0 ? '' : product.price}
-                          placeholder="Free"
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            onPriceChange(product.id, value === '' ? '0' : value);
-                          }}
-                          className="h-10 text-base pl-6"
-                        />
-                        <span className="text-sm absolute pl-1 text-muted-foreground">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-muted-foreground"
-                        onClick={() => onPriceChange(product.id, (product.price * 1.05).toFixed(2))}
-                      >
-                        <span className="text-sm">+5%</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                      <Label htmlFor={`sales-${product.id}`} className="text-sm">
-                        {sales.period === 'monthly' ? 'Monthly' : 'Daily'} Sales
-                      </Label>
-                    <div className="flex items-center space-x-2 mt-1 justify-between">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-muted-foreground hover:text-foreground"
-                        onClick={() => onSalesVolumeChange(product.id, Math.max(0, sales.volume - 1))}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        id={`sales-${product.id}`}
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={sales.volume === 0 ? '' : sales.volume}
-                        placeholder="0"
-                        onChange={(e) => {
-                          const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value);
-                          onSalesVolumeChange(product.id, value);
-                        }}
-                        className="h-10 text-base flex-1 max-w-36"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-muted-foreground hover:text-foreground"
-                        onClick={() => onSalesVolumeChange(product.id, sales.volume + 1)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                      </div>
-                      <div className="flex items-center space-x-2 mt-4 justify-center">
-                        <span className="text-sm">Daily</span>
-                        {productSales[product.id] ? (
-                          <Switch
-                            id={`period-${product.id}`}
-                            checked={sales.period === 'monthly'}
-                            onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
-                            className="h-6 w-11"
-                          />
-                        ) : (
-                          <Skeleton className="h-6 w-11 rounded-full" />
-                        )}
-                        <span className="text-sm">Monthly</span>
-                      </div>
-                  </div>
-
-                  <div className="text-sm p-2 bg-muted rounded">
-                    <p className="font-medium">Break-Even Analysis</p>
-                    <p>
-                      {calculateBreakEven(product, sales.period) === Number.POSITIVE_INFINITY 
-                        ? "Cannot break even at current price (price is less than or equal to variable cost)" 
-                        : `Selling ${calculateBreakEven(product, sales.period)} units ${sales.period === 'monthly' ? 'per month' : 'per day'} would cover fixed costs`}
-                    </p>
-                  </div>
-                </div>
+              <div className="p-4">
+                <ProductControlForm
+                  product={product}
+                  sales={sales}
+                  currency={currency}
+                  onPriceChange={onPriceChange}
+                  onSalesVolumeChange={onSalesVolumeChange}
+                  onSalesPeriodChange={onSalesPeriodChange}
+                  calculateBreakEven={calculateBreakEven}
+                />
               </div>
               <div className="p-4 border-t">
                 <Button
