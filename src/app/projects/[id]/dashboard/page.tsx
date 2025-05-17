@@ -243,9 +243,9 @@ export default function DashboardPage() {
         projectId={project.id}
         currentPage="dashboard"
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Business Overview - Shows first on mobile, right side on desktop */}
-        <div className="order-first lg:order-last">
+        <div className="order-first md:order-first">
           <Card className="bg-muted/50 lg:sticky top-20">
             <CardHeader className="pb-2">
               <BusinessStatusSummary 
@@ -302,7 +302,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Left Column - Financial Summary and Charts */}
-        <div className="space-y-6 order-last lg:order-first">
+        <div className="space-y-6 order-last md:order-last">
           {/* Financial Summary Cards */}
           <div className="grid grid-cols-2 gap-6">
             <Card>
