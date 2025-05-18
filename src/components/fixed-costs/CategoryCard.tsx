@@ -266,7 +266,7 @@ export function CategoryCard({
     }
 
     return (
-      <Drawer open={isAdding || !!editingCostId} onOpenChange={(open) => !open && handleCancel()}>
+      <Drawer open={isAdding || !!editingCostId} onOpenChange={(open) => !open && handleCancel()} repositionInputs={false}>
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>{editingCost ? 'Edit cost' : 'Add cost'}</DrawerTitle>
