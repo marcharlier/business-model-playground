@@ -85,35 +85,41 @@ function FixedCostForm({
           placeholder="Enter cost name"
         />
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor="cost-amount">Amount</Label>
-        <div className="relative">
-          <Input
-            id="cost-amount"
-            type="text"
-            inputMode="decimal"
-            value={amount}
-            onChange={handleAmountChange}
-            disabled={isSubmitting}
-            placeholder="0.00"
-            className="pl-6"
-          />
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-            {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-          </span>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="cost-amount">Amount</Label>
+          <div className="relative">
+            <Input
+              id="cost-amount"
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={handleAmountChange}
+              disabled={isSubmitting}
+              placeholder="0.00"
+              className="pl-6"
+            />
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="frequency">Frequency</Label>
-        <Select value={frequency} onValueChange={(value) => setFrequency(value as 'monthly' | 'annual')} disabled={isSubmitting}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="annual">Annual</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="grid gap-2">
+          <Label htmlFor="frequency">Frequency</Label>
+          <Select 
+            value={frequency} 
+            onValueChange={(value) => setFrequency(value as 'monthly' | 'annual')} 
+            disabled={isSubmitting}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="annual">Annual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         <Button type="submit" disabled={isSubmitting || !name.trim() || !amount.trim()}>
@@ -321,7 +327,12 @@ export function CategoryCard({
           {costs.length > 0 && (
             <ul className="space-y-2">
               {costs.map(cost => (
-                <li key={cost.id} className="flex justify-between items-center p-2 border rounded">
+                <button
+                  type="button"
+                  key={cost.id} 
+                  className="w-full flex justify-between items-center p-2 border rounded cursor-pointer hover:bg-accent/50 transition-colors text-left"
+                  onClick={() => handleEditClick(cost)}
+                >
                   <div>
                     <p className="font-small text-sm">{cost.name}</p>
                   </div>
@@ -334,12 +345,15 @@ export function CategoryCard({
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8" 
-                      onClick={() => handleEditClick(cost)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(cost);
+                      }}
                     >
                       <PencilIcon className="h-4 w-4" />
                     </Button>
                   </div>
-                </li>
+                </button>
               ))}
             </ul>
           )}
