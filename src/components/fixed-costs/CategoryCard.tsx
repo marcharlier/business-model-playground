@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -180,6 +180,12 @@ export function CategoryCard({
   const [showExamples, setShowExamples] = useState(costs.length === 0);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
+  useEffect(() => {
+    if (costs.length > 0) {
+      setShowExamples(false);
+    }
+  }, [costs.length]);
+
   const handleAddClick = () => {
     setIsAdding(true);
   };
@@ -297,7 +303,7 @@ export function CategoryCard({
   };
 
   return (
-    <Card className="h-full relative transition-all gap-0">
+    <Card className="h-full relative transition-all gap-0 pt-4 pb-2">
       <CardHeader className="flex flex-row items-center space-y-0 pb-2">
         <CardTitle className="capitalize">{category.name}</CardTitle>
         <Toggle
@@ -310,21 +316,23 @@ export function CategoryCard({
           <InfoIcon className="h-4 w-4 text-muted-foreground" />
         </Toggle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
+      <CardContent className="px-0">
+        <div className="">
           {showExamples && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground italic">For example:{' '}
+            <div className="px-6 pb-4">
+              <p className="text-xs text-muted-foreground italic">
+                {category.description}{' '}
+                For example:{' '}
                 {category.examples.join(', ')}
               </p>
             </div>
           )}
           {costs.length > 0 && (
-            <ul className="space-y-2">
+            <ul className="">
               {costs.map(cost => (
                 <div
                   key={cost.id} 
-                  className="w-full flex justify-between items-center p-2 border rounded cursor-pointer hover:bg-accent/50 transition-colors"
+                  className="w-full flex justify-between items-center cursor-pointer hover:bg-accent/50 transition-colors border-t px-6 py-2"
                   onClick={() => handleEditClick(cost)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -357,11 +365,12 @@ export function CategoryCard({
               ))}
             </ul>
           )}
-          
+          <div className="border-t px-6 py-2 pt-4">
           <Button size="sm" variant="outline" className="w-full" onClick={handleAddClick}>
             <PlusIcon className="h-4 w-4 mr-1" />
             Add Cost
           </Button>
+          </div>
         </div>
       </CardContent>
       {renderForm()}
