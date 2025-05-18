@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { InfoIcon, PlusIcon, PencilIcon, Trash2 } from 'lucide-react';
+import { PlusIcon, PencilIcon, Trash2, InfoIcon } from 'lucide-react';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { parseCurrencyInput } from '@/lib/utils/currency';
 import { formatCurrency } from '@/lib/utils/currency';
@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/drawer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LongPressButton } from '@/components/ui/long-press-button';
+import { Toggle } from '@/components/ui/toggle';
 
 function FixedCostForm({ 
   className,
@@ -176,7 +177,7 @@ export function CategoryCard({
   const [isAdding, setIsAdding] = useState(false);
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isInfoHovered, setIsInfoHovered] = useState(false);
+  const [showExamples, setShowExamples] = useState(costs.length === 0);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleAddClick = () => {
@@ -296,28 +297,22 @@ export function CategoryCard({
   };
 
   return (
-    <Card className={cn(
-      "h-full relative transition-all duration-300 gap-0",
-      isInfoHovered && "backdrop-blur-sm bg-background/80"
-    )}>
+    <Card className="h-full relative transition-all gap-0">
       <CardHeader className="flex flex-row items-center space-y-0 pb-2">
         <CardTitle className="capitalize">{category.name}</CardTitle>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8"
-          onMouseEnter={() => setIsInfoHovered(true)}
-          onMouseLeave={() => setIsInfoHovered(false)}
+        <Toggle
+          size="sm"
+          variant="default"
+          pressed={showExamples}
+          onPressedChange={setShowExamples}
+          aria-label="Toggle examples"
         >
-          <InfoIcon className="h-4 w-4" />
-        </Button>
+          <InfoIcon className="h-4 w-4 text-muted-foreground" />
+        </Toggle>
       </CardHeader>
-      <CardContent className={cn(
-        "transition-opacity duration-300",
-        isInfoHovered && "opacity-30"
-      )}>
+      <CardContent>
         <div className="space-y-2">
-          {costs.length === 0 && (
+          {showExamples && (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground italic">For example:{' '}
                 {category.examples.join(', ')}
@@ -327,11 +322,16 @@ export function CategoryCard({
           {costs.length > 0 && (
             <ul className="space-y-2">
               {costs.map(cost => (
-                <button
-                  type="button"
+                <div
                   key={cost.id} 
-                  className="w-full flex justify-between items-center p-2 border rounded cursor-pointer hover:bg-accent/50 transition-colors text-left"
+                  className="w-full flex justify-between items-center p-2 border rounded cursor-pointer hover:bg-accent/50 transition-colors"
                   onClick={() => handleEditClick(cost)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleEditClick(cost);
+                    }
+                  }}
                 >
                   <div>
                     <p className="font-small text-sm">{cost.name}</p>
@@ -353,7 +353,7 @@ export function CategoryCard({
                       <PencilIcon className="h-4 w-4" />
                     </Button>
                   </div>
-                </button>
+                </div>
               ))}
             </ul>
           )}
@@ -364,19 +364,6 @@ export function CategoryCard({
           </Button>
         </div>
       </CardContent>
-      {isInfoHovered && (
-        <div className="absolute inset-1 flex items-center justify-center pointer-events-none rounded-xl">
-          <div className="w-full h-full bg-background/80 backdrop-blur-sm flex flex-col items-start justify-center px-4">
-            <p className="mb-2 text-sm">{category.description}</p>
-            <p className="text-xs text-muted-foreground font-medium mb-1">Examples:</p>
-            <ul className="text-xs text-muted-foreground list-disc list-inside">
-              {category.examples.map((example) => (
-                <li key={example}>{example}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
       {renderForm()}
     </Card>
   );
