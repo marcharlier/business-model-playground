@@ -247,7 +247,7 @@ export default function DashboardPage() {
         {/* Business Overview - Shows first on mobile, right side on desktop */}
         <div className="order-first md:order-first">
           <Card className="bg-muted/50 lg:sticky top-20 pt-0 gap-0">
-            <CardHeader className="px-0 gap-0">
+            <CardHeader className="px-0 gap-0 bg-background">
               <BusinessStatusSummary 
                 project={project}
                 productSales={productSales}
