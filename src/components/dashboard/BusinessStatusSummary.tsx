@@ -49,7 +49,8 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
       return {
         icon: <AlertCircle className="h-5 w-5 text-red-500" />,
         title: "Not profitable",
-        message: "Increase sales, raise prices, or reduce costs to achieve profitability."
+        message: "Increase sales, raise prices, or reduce costs to achieve profitability.",
+        bgColor: "bg-red-500/10"
       };
     }
     
@@ -57,7 +58,8 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
       return {
         icon: <TrendingUp className="h-5 w-5 text-yellow-500" />,
         title: "Just about profitable",
-        message: "Your business is profitable but margins are tight (below 10%)."
+        message: "Your business is profitable but margins are tight (below 10%).",
+        bgColor: "bg-yellow-500/10"
       };
     }
 
@@ -65,21 +67,23 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
       return {
         icon: <TrendingUp className="h-5 w-5 text-green-500" />,
         title: "Good profitability",
-        message: `Your business is profitable and margins are good (~${Math.round(profitMargin)}%).`
+        message: `Your business is profitable and margins are good (~${Math.round(profitMargin)}%).`,
+        bgColor: "bg-green-500/10"
       };
     }
     
     return {
       icon: <CircleDollarSign className="h-5 w-5 text-green-500" />,
       title: "Firmly profitable",
-      message: "Well done! Your business is showing healthy profitability. (Above 25%)"
+      message: "Well done! Your business is showing healthy profitability. (Above 25%)",
+      bgColor: "bg-green-500/20"
     };
   };
 
   const statusInfo = getStatusInfo();
 
   return (
-    <div>
+    <div className={`py-8 px-4 h-full ${statusInfo.bgColor} rounded-t-lg`}>
       <div className="flex flex-row items-center gap-2">
         {statusInfo.icon}
         {showTitle ? (
