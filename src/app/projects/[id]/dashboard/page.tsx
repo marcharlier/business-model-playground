@@ -89,23 +89,32 @@ export default function DashboardPage() {
   const handlePriceChange = useCallback((productId: string, value: string) => {
     if (!project) return;
     
-    const numericValue = Number.parseFloat(value);
-    if (!Number.isNaN(numericValue) && numericValue >= 0) {
-      // Find the product to update
-      const productToUpdate = project.products.find(p => p.id === productId);
-      if (!productToUpdate) return;
+    // Find the product to update
+    const productToUpdate = project.products.find(p => p.id === productId);
+    if (!productToUpdate) return;
 
-      // Update the product with the new price
+    // If the value is empty or only whitespace, set price to 0
+    if (!value.trim()) {
       const updatedProduct: Product = {
         ...productToUpdate,
-        price: numericValue
+        price: 0
       };
-
-      // Update the product in storage
       productStorage.updateProduct(updatedProduct, project.id);
-
-      // Refresh the project to get the updated data
       refreshProject();
+      return;
+    }
+
+    // Only convert to number if the input is complete (no trailing decimal point)
+    if (!value.endsWith('.')) {
+      const numericValue = Number.parseFloat(value);
+      if (!Number.isNaN(numericValue) && numericValue >= 0) {
+        const updatedProduct: Product = {
+          ...productToUpdate,
+          price: numericValue
+        };
+        productStorage.updateProduct(updatedProduct, project.id);
+        refreshProject();
+      }
     }
   }, [project, refreshProject]);
 

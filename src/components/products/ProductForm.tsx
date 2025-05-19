@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { PlusIcon, XIcon } from 'lucide-react';
 import type { Product, AssociatedCost, Currency } from '@/lib/storage/types';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 interface ProductFormProps {
   className?: string;
@@ -26,7 +27,7 @@ export function ProductForm({
   hideCancel
 }: ProductFormProps) {
   const [name, setName] = useState(product?.name ?? '');
-  const [price, setPrice] = useState(product?.price.toString() ?? '');
+  const [price, setPrice] = useState(product?.price === 0 ? '' : product?.price.toString() ?? '');
   const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>(product?.associatedCosts ?? []);
   const [newCostRows, setNewCostRows] = useState<{id: string, name: string, amount: string}[]>([]);
 
@@ -45,7 +46,10 @@ export function ProductForm({
 
   const handleUpdateCostRow = (rowId: string, field: 'name' | 'amount', value: string) => {
     setNewCostRows(newCostRows.map(row => 
-      row.id === rowId ? { ...row, [field]: value } : row
+      row.id === rowId ? { 
+        ...row, 
+        [field]: value 
+      } : row
     ));
   };
 
@@ -55,19 +59,22 @@ export function ProductForm({
 
   const handleUpdateCost = (costId: string, field: keyof AssociatedCost, value: string | number) => {
     setAssociatedCosts(associatedCosts.map(cost => 
-      cost.id === costId ? { ...cost, [field]: value } : cost
+      cost.id === costId ? { 
+        ...cost, 
+        [field]: value 
+      } : cost
     ));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !price) {
+    if (!name.trim()) {
       return;
     }
 
-    const priceValue = Number.parseFloat(price);
-    if (Number.isNaN(priceValue) || priceValue <= 0) {
+    const priceValue = price.trim() ? Number.parseFloat(price) : 0;
+    if (Number.isNaN(priceValue) || priceValue < 0) {
       return;
     }
 
@@ -75,22 +82,26 @@ export function ProductForm({
     let finalAssociatedCosts = [...associatedCosts];
     
     for (const row of newCostRows) {
-      if (row.name && row.amount) {
-        const amount = Number.parseFloat(row.amount);
-        if (!Number.isNaN(amount) && amount > 0) {
-          const newCost: AssociatedCost = {
-            id: crypto.randomUUID(),
-            name: row.name,
-            amount: amount,
-            productId: product?.id || '',
-            projectId: product?.projectId || ''
-          };
-          finalAssociatedCosts = [...finalAssociatedCosts, newCost];
-        }
+      if (row.name.trim()) {  // Only require name for associated costs
+        const amount = Number.parseFloat(row.amount) || 0;  // Default to 0 if no amount
+        const newCost: AssociatedCost = {
+          id: crypto.randomUUID(),
+          name: row.name.trim(),
+          amount: amount,
+          productId: product?.id || '',
+          projectId: product?.projectId || ''
+        };
+        finalAssociatedCosts = [...finalAssociatedCosts, newCost];
       }
     }
 
-    onSave(name, priceValue, finalAssociatedCosts);
+    // Convert all cost amounts to numbers before saving
+    finalAssociatedCosts = finalAssociatedCosts.map(cost => ({
+      ...cost,
+      amount: Number.parseFloat(cost.amount.toString()) || 0
+    }));
+
+    onSave(name.trim(), priceValue, finalAssociatedCosts);
   };
 
   return (
@@ -103,27 +114,18 @@ export function ProductForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            placeholder="Enter product name"
           />
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="product-price">Price</Label>
-          <div className="relative">
-            <Input
-              id="product-price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-              className="pl-6"
-            />
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-              {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-            </span>
-          </div>
-        </div>
+        <CurrencyInput
+          id="product-price"
+          label="Price"
+          currency={currency}
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          showFree
+        />
         
         <div className="space-y-2">
           <div className="flex justify-between items-center">
@@ -140,23 +142,18 @@ export function ProductForm({
                       value={cost.name}
                       onChange={(e) => handleUpdateCost(cost.id, 'name', e.target.value)}
                       className="h-8 text-sm"
+                      placeholder="Enter cost name"
+                      required
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="relative">
-                      <Input
-                        id={`cost-amount-${cost.id}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={cost.amount}
-                        onChange={(e) => handleUpdateCost(cost.id, 'amount', Number(e.target.value))}
-                        className="h-8 text-sm pl-6"
-                      />
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                        {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-                      </span>
-                    </div>
+                    <CurrencyInput
+                      id={`cost-amount-${cost.id}`}
+                      currency={currency}
+                      value={cost.amount === 0 ? '' : cost.amount.toString()}
+                      onChange={(e) => handleUpdateCost(cost.id, 'amount', e.target.value)}
+                      className="h-8 text-sm"
+                    />
                   </div>
                   <Button
                     type="button"
@@ -184,24 +181,17 @@ export function ProductForm({
                       onChange={(e) => handleUpdateCostRow(row.id, 'name', e.target.value)}
                       placeholder="Enter cost name"
                       className="h-8 text-sm"
+                      required
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="relative">
-                      <Input
-                        id={`new-cost-amount-${row.id}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={row.amount}
-                        onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
-                        placeholder="0.00"
-                        className="h-8 text-sm pl-6"
-                      />
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                        {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-                      </span>
-                    </div>
+                    <CurrencyInput
+                      id={`new-cost-amount-${row.id}`}
+                      currency={currency}
+                      value={row.amount}
+                      onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
+                      className="h-8 text-sm"
+                    />
                   </div>
                   <Button
                     type="button"
@@ -247,7 +237,7 @@ export function ProductForm({
           <Button 
             type="submit" 
             size="sm" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || !name.trim()}
             className={`h-9 ${hideCancel ? 'w-full' : 'flex-1'}`}
           >
             {product ? 'Save changes' : 'Add product'}

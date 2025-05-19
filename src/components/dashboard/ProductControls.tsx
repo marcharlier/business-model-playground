@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/drawer";
 import React from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 interface ProductControlsProps {
   products: Product[];
@@ -53,6 +54,12 @@ function ProductControlForm({
   onSalesPeriodChange,
   calculateBreakEven
 }: ProductControlFormProps) {
+  const [inputValue, setInputValue] = useState<string>(product.price === 0 ? '' : product.price.toString());
+
+  useEffect(() => {
+    setInputValue(product.price === 0 ? '' : product.price.toString());
+  }, [product.price]);
+
   return (
     <div className="space-y-4">
       <div>
@@ -62,31 +69,36 @@ function ProductControlForm({
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-muted-foreground"
-            onClick={() => onPriceChange(product.id, (product.price * 0.95).toFixed(2))}
+            onClick={() => {
+              const newValue = (product.price * 0.95).toFixed(2);
+              setInputValue(newValue);
+              onPriceChange(product.id, newValue);
+            }}
           >
             <span className="text-sm">-5%</span>
           </Button>
           <div className="flex-1 flex items-center space-x-1 max-w-36">
-            <Input
+            <CurrencyInput
               id={`price-${product.id}`}
-              type="number"
-              min="0"
-              step="0.01"
-              value={product.price === 0 ? '' : product.price}
-              placeholder="Free"
+              currency={currency}
+              value={inputValue}
               onChange={(e) => {
-                const value = e.target.value;
-                onPriceChange(product.id, value === '' ? '0' : value);
+                setInputValue(e.target.value);
+                onPriceChange(product.id, e.target.value);
               }}
-              className="h-10 text-base pl-6"
+              showFree
+              className="h-10 text-base"
             />
-            <span className="text-sm absolute pl-1 text-muted-foreground">{currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}</span>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-muted-foreground"
-            onClick={() => onPriceChange(product.id, (product.price * 1.05).toFixed(2))}
+            onClick={() => {
+              const newValue = (product.price * 1.05).toFixed(2);
+              setInputValue(newValue);
+              onPriceChange(product.id, newValue);
+            }}
           >
             <span className="text-sm">+5%</span>
           </Button>
@@ -114,7 +126,7 @@ function ProductControlForm({
             value={sales.volume === 0 ? '' : sales.volume}
             placeholder="0"
             onChange={(e) => {
-              const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value);
+              const value = e.target.value === '' ? 0 : Math.max(0, Number.parseInt(e.target.value));
               onSalesVolumeChange(product.id, value);
             }}
             className="h-10 text-base flex-1 max-w-36"

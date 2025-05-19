@@ -35,6 +35,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LongPressButton } from '@/components/ui/long-press-button';
 import { Toggle } from '@/components/ui/toggle';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 function FixedCostForm({ 
   className,
@@ -67,14 +68,6 @@ function FixedCostForm({
     }
   };
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Allow empty value or numbers with up to 2 decimal places, no scientific notation
-    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
-      setAmount(value);
-    }
-  };
-
   return (
     <form className={cn("space-y-4", className)} onSubmit={handleSubmit}>
       <div className="space-y-2">
@@ -88,24 +81,14 @@ function FixedCostForm({
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="cost-amount">Amount</Label>
-          <div className="relative">
-            <Input
-              id="cost-amount"
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={handleAmountChange}
-              disabled={isSubmitting}
-              placeholder="0.00"
-              className="pl-6"
-            />
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-              {currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€'}
-            </span>
-          </div>
-        </div>
+        <CurrencyInput
+          id="cost-amount"
+          label="Amount"
+          currency={currency}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          disabled={isSubmitting}
+        />
         <div className="space-y-2">
           <Label htmlFor="frequency">Frequency</Label>
           <Select 
