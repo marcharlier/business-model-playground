@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { Product, AssociatedCost } from '@/lib/storage/types';
 import { formatCurrency } from '@/lib/utils/currency';
 import { 
@@ -15,10 +13,11 @@ import {
   calculateProductTotalCost
 } from '@/lib/utils/financial';
 import { productStorage } from '@/lib/storage/productStorage';
-import { PencilIcon, CopyIcon, TrashIcon, XIcon, PlusIcon, Plus } from 'lucide-react';
+import { PencilIcon, CopyIcon, TrashIcon, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import { useProject } from '@/lib/context/ProjectContext';
+import { ProductDialog } from '@/components/products/ProductDialog';
 
 export default function ProductsPage() {
   const params = useParams();
@@ -29,10 +28,7 @@ export default function ProductsPage() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [isAddingNewProduct, setIsAddingNewProduct] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
-  const [productName, setProductName] = useState('');
-  const [productPrice, setProductPrice] = useState('');
-  const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>([]);
-  const [newCostRows, setNewCostRows] = useState<{id: string, name: string, amount: string}[]>([]);
+  const [duplicatingProduct, setDuplicatingProduct] = useState<Product | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -56,22 +52,16 @@ export default function ProductsPage() {
       const productToDuplicate = project?.products.find(p => p.id === productId);
       if (!productToDuplicate) return;
       
+      // Create a copy of the product with "(Copy)" appended to the name
+      const productToDuplicateWithCopyName = {
+        ...productToDuplicate,
+        name: `${productToDuplicate.name} (Copy)`
+      };
+      
       // Set up the form with the duplicated product's data
       setIsDuplicating(true);
-      setProductName(`${productToDuplicate.name} (Copy)`);
-      setProductPrice(productToDuplicate.price.toString());
-      
-      // Create new associated costs with new IDs
-      const duplicatedCosts = productToDuplicate.associatedCosts.map(cost => ({
-        ...cost,
-        id: crypto.randomUUID(),
-        productId: '', // Will be set when the product is created
-        projectId: project?.id || ''
-      }));
-      
-      setAssociatedCosts(duplicatedCosts);
-      setNewCostRows([]);
-      setIsSubmitting(false);
+      setIsAddingNewProduct(true);
+      setDuplicatingProduct(productToDuplicateWithCopyName);
     } catch (error) {
       console.error('Error preparing to duplicate product:', error);
     }
@@ -93,128 +83,41 @@ export default function ProductsPage() {
   };
 
   const handleEditClick = (product: Product) => {
-    // Cancel any in-progress additions
-    if (isAddingNewProduct) {
-      setIsAddingNewProduct(false);
-      setProductName('');
-      setProductPrice('');
-      setAssociatedCosts([]);
-      setNewCostRows([]);
-    }
-
-    // Start editing the selected product
     setEditingProductId(product.id);
-    setProductName(product.name);
-    setProductPrice(product.price.toString());
-    setAssociatedCosts([...product.associatedCosts]);
-    setNewCostRows([]);
   };
 
-  const handleCancelEdit = () => {
-    setEditingProductId(null);
-    setProductName('');
-    setProductPrice('');
-    setAssociatedCosts([]);
-    setNewCostRows([]);
+  const handleCancel = () => {
+    if (isAddingNewProduct) {
+      setIsAddingNewProduct(false);
+      setIsDuplicating(false);
+      setDuplicatingProduct(undefined);
+    }
+    if (editingProductId) {
+      setEditingProductId(null);
+    }
   };
 
   const handleAddNewProduct = () => {
-    // Cancel any in-progress edits
-    if (editingProductId) {
-      setEditingProductId(null);
-      setProductName('');
-      setProductPrice('');
-      setAssociatedCosts([]);
-      setNewCostRows([]);
-    }
-
-    // Start adding new product
     setIsAddingNewProduct(true);
-    setProductName('');
-    setProductPrice('');
-    setAssociatedCosts([]);
-    setNewCostRows([]);
   };
 
-  const handleCancelAdd = () => {
-    setIsAddingNewProduct(false);
-    setIsDuplicating(false);
-    setProductName('');
-    setProductPrice('');
-    setAssociatedCosts([]);
-    setNewCostRows([]);
-  };
-
-  const handleAddCostRow = () => {
-    const newRow = {
-      id: crypto.randomUUID(),
-      name: '',
-      amount: ''
-    };
-    setNewCostRows([...newCostRows, newRow]);
-  };
-
-  const handleRemoveCostRow = (rowId: string) => {
-    setNewCostRows(newCostRows.filter(row => row.id !== rowId));
-  };
-
-  const handleUpdateCostRow = (rowId: string, field: 'name' | 'amount', value: string) => {
-    setNewCostRows(newCostRows.map(row => 
-      row.id === rowId ? { ...row, [field]: value } : row
-    ));
-  };
-
-  const handleRemoveCost = (costId: string) => {
-    setAssociatedCosts(associatedCosts.filter(cost => cost.id !== costId));
-  };
-
-  const handleUpdateCost = (costId: string, field: keyof AssociatedCost, value: string | number) => {
-    setAssociatedCosts(associatedCosts.map(cost => 
-      cost.id === costId ? { ...cost, [field]: value } : cost
-    ));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!productName || !productPrice || !project) {
-      return;
-    }
-
-    const price = Number.parseFloat(productPrice);
-    if (Number.isNaN(price) || price <= 0) {
-      return;
-    }
+  const handleSave = async (name: string, price: number, associatedCosts: AssociatedCost[]) => {
+    if (!project) return;
 
     setIsSubmitting(true);
-
     try {
-      // Process new cost rows and add valid ones to associated costs
-      let finalAssociatedCosts = [...associatedCosts];
-      
-      for (const row of newCostRows) {
-        if (row.name && row.amount) {
-          const amount = Number.parseFloat(row.amount);
-          if (!Number.isNaN(amount) && amount > 0) {
-            const newCost: AssociatedCost = {
-              id: crypto.randomUUID(),
-              name: row.name,
-              amount: amount,
-              productId: editingProductId || '',
-              projectId: project.id
-            };
-            finalAssociatedCosts = [...finalAssociatedCosts, newCost];
-          }
-        }
-      }
-
       if (isAddingNewProduct || isDuplicating) {
         // Create a new product
         const newProduct: Product = {
           id: crypto.randomUUID(),
-          name: productName,
+          name: name,
           price: price,
-          associatedCosts: finalAssociatedCosts,
+          associatedCosts: associatedCosts.map(cost => ({
+            ...cost,
+            id: crypto.randomUUID(),
+            productId: '', // Will be set when the product is created
+            projectId: project.id
+          })),
           projectId: project.id
         };
 
@@ -226,7 +129,7 @@ export default function ProductsPage() {
         refreshProject();
 
         // Reset the form
-        handleCancelAdd();
+        handleCancel();
       } else if (editingProductId) {
         // Find the product to update
         const productToUpdate = products.find(p => p.id === editingProductId);
@@ -238,9 +141,9 @@ export default function ProductsPage() {
         // Update the product
         const updatedProduct: Product = {
           ...productToUpdate,
-          name: productName,
-          price: price,
-          associatedCosts: finalAssociatedCosts
+          name,
+          price,
+          associatedCosts
         };
 
         // Update the product in storage
@@ -253,7 +156,7 @@ export default function ProductsPage() {
         refreshProject();
 
         // Reset the form
-        handleCancelEdit();
+        handleCancel();
       }
     } catch (error) {
       console.error('Error updating product:', error);
@@ -270,6 +173,8 @@ export default function ProductsPage() {
   const averageProductProfitMargin = products.length > 0
     ? products.reduce((total, product) => total + calculateProfitMargin(product), 0) / products.length
     : 0;
+
+  const editingProduct = editingProductId ? products.find(p => p.id === editingProductId) : undefined;
 
   return (
     <div>
@@ -324,177 +229,15 @@ export default function ProductsPage() {
             </Button>
           </div>
 
-          {/* New Product Form */}
-          {(isAddingNewProduct || isDuplicating) && (
-            <Card className="h-full">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle>{isDuplicating ? 'Duplicate Product' : 'New Product'}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="product-name">Product Name</Label>
-                    <Input
-                      id="product-name"
-                      value={productName}
-                      onChange={(e) => setProductName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="product-price">Price</Label>
-                    <div className="relative">
-                      <Input
-                        id="product-price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={productPrice}
-                        onChange={(e) => setProductPrice(e.target.value)}
-                        required
-                        className="pl-6"
-                      />
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        {project.currency === 'GBP' ? '£' : project.currency === 'USD' ? '$' : '€'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label>Associated Costs</Label>
-                    </div>
-                    
-                    {associatedCosts.length > 0 && (
-                      <div className="space-y-2">
-                        {associatedCosts.map(cost => (
-                          <div key={cost.id} className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <Label htmlFor={`cost-name-${cost.id}`} className="text-xs">Cost Name</Label>
-                              <Input
-                                id={`cost-name-${cost.id}`}
-                                value={cost.name}
-                                onChange={(e) => handleUpdateCost(cost.id, 'name', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <Label htmlFor={`cost-amount-${cost.id}`} className="text-xs">Amount</Label>
-                              <div className="relative">
-                                <Input
-                                  id={`cost-amount-${cost.id}`}
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={cost.amount}
-                                  onChange={(e) => handleUpdateCost(cost.id, 'amount', Number(e.target.value))}
-                                  className="h-8 text-sm pl-6"
-                                />
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                  {project.currency === 'GBP' ? '£' : project.currency === 'USD' ? '$' : '€'}
-                                </span>
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => handleRemoveCost(cost.id)}
-                            >
-                              <XIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* New cost rows */}
-                    {newCostRows.length > 0 && (
-                      <div className="space-y-2">
-                        {newCostRows.map(row => (
-                          <div key={row.id} className="flex items-center gap-2 p-2 border rounded-md">
-                            <div className="flex-1">
-                              <Label htmlFor={`new-cost-name-${row.id}`} className="text-xs">Cost Name</Label>
-                              <Input
-                                id={`new-cost-name-${row.id}`}
-                                value={row.name}
-                                onChange={(e) => handleUpdateCostRow(row.id, 'name', e.target.value)}
-                                placeholder="Enter cost name"
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <Label htmlFor={`new-cost-amount-${row.id}`} className="text-xs">Amount</Label>
-                              <div className="relative">
-                                <Input
-                                  id={`new-cost-amount-${row.id}`}
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={row.amount}
-                                  onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
-                                  placeholder="0.00"
-                                  className="h-8 text-sm pl-6"
-                                />
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                  {project.currency === 'GBP' ? '£' : project.currency === 'USD' ? '$' : '€'}
-                                </span>
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => handleRemoveCostRow(row.id)}
-                            >
-                              <XIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Add Cost button */}
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleAddCostRow}
-                      className="h-8 w-full"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      Add Cost
-                    </Button>
-                  </div>
-                  
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCancelAdd}
-                      className="h-8"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      size="sm" 
-                      disabled={isSubmitting}
-                      className="h-8"
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+          {/* Product Dialog */}
+          <ProductDialog
+            open={isAddingNewProduct || !!editingProductId}
+            onOpenChange={(open) => !open && handleCancel()}
+            product={isDuplicating ? duplicatingProduct : editingProduct}
+            currency={project.currency}
+            onSave={handleSave}
+            isSubmitting={isSubmitting}
+          />
 
           {/* Existing Products */}
           {products.map(product => {
@@ -502,181 +245,6 @@ export default function ProductsPage() {
             const profitMarginColorClass = getProfitMarginColorClass(profitMargin);
             const totalCost = calculateProductTotalCost(product);
             
-            // If this product is being edited, show the edit form
-            if (editingProductId === product.id) {
-              return (
-                <Card key={product.id} className="h-full">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <CardTitle>Edit Product</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="product-name">Product Name</Label>
-                        <Input
-                          id="product-name"
-                          value={productName}
-                          onChange={(e) => setProductName(e.target.value)}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="product-price">Price</Label>
-                        <div className="relative">
-                          <Input
-                            id="product-price"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={productPrice}
-                            onChange={(e) => setProductPrice(e.target.value)}
-                            required
-                            className="pl-6"
-                          />
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                            {project.currency === 'GBP' ? '£' : project.currency === 'USD' ? '$' : '€'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Associated Costs</Label>
-                        </div>
-                        
-                        {associatedCosts.length > 0 && (
-                          <div className="space-y-2">
-                            {associatedCosts.map(cost => (
-                              <div key={cost.id} className="flex items-center gap-2">
-                                <div className="flex-1">
-                                  <Label htmlFor={`cost-name-${cost.id}`} className="text-xs">Cost Name</Label>
-                                  <Input
-                                    id={`cost-name-${cost.id}`}
-                                    value={cost.name}
-                                    onChange={(e) => handleUpdateCost(cost.id, 'name', e.target.value)}
-                                    className="h-8 text-sm"
-                                  />
-                                </div>
-                                <div className="flex-1">
-                                  <Label htmlFor={`cost-amount-${cost.id}`} className="text-xs">Amount</Label>
-                                  <div className="relative">
-                                    <Input
-                                      id={`cost-amount-${cost.id}`}
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={cost.amount}
-                                      onChange={(e) => handleUpdateCost(cost.id, 'amount', Number(e.target.value))}
-                                      className="h-8 text-sm pl-6"
-                                    />
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                      {project.currency === 'GBP' ? '£' : project.currency === 'USD' ? '$' : '€'}
-                                    </span>
-                                  </div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => handleRemoveCost(cost.id)}
-                                >
-                                  <XIcon className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* New cost rows */}
-                        {newCostRows.length > 0 && (
-                          <div className="space-y-2">
-                            {newCostRows.map(row => (
-                              <div key={row.id} className="flex items-center gap-2 p-2 border rounded-md">
-                                <div className="flex-1">
-                                  <Label htmlFor={`new-cost-name-${row.id}`} className="text-xs">Cost Name</Label>
-                                  <Input
-                                    id={`new-cost-name-${row.id}`}
-                                    value={row.name}
-                                    onChange={(e) => handleUpdateCostRow(row.id, 'name', e.target.value)}
-                                    placeholder="Enter cost name"
-                                    className="h-8 text-sm"
-                                  />
-                                </div>
-                                <div className="flex-1">
-                                  <Label htmlFor={`new-cost-amount-${row.id}`} className="text-xs">Amount</Label>
-                                  <div className="relative">
-                                    <Input
-                                      id={`new-cost-amount-${row.id}`}
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={row.amount}
-                                      onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
-                                      placeholder="0.00"
-                                      className="h-8 text-sm pl-6"
-                                    />
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                      {project.currency === 'GBP' ? '£' : project.currency === 'USD' ? '$' : '€'}
-                                    </span>
-                                  </div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => handleRemoveCostRow(row.id)}
-                                >
-                                  <XIcon className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Add Cost button */}
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleAddCostRow}
-                          className="h-8 w-full"
-                        >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          Add Cost
-                        </Button>
-                      </div>
-                      
-                      <div className="flex justify-end gap-2 pt-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleCancelEdit}
-                          className="h-8"
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          type="submit" 
-                          size="sm" 
-                          disabled={isSubmitting}
-                          className="h-8"
-                        >
-                          Save
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              );
-            }
-            
-            // Otherwise, show the regular product card
             return (
               <Card key={product.id} className="h-full">
                 <CardHeader className="pb-2">

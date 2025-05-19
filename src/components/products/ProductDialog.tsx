@@ -1,0 +1,94 @@
+import { useMediaQuery } from '@/hooks/use-media-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Button } from '@/components/ui/button';
+import { ProductForm } from './ProductForm';
+import type { Product, AssociatedCost, Currency } from '@/lib/storage/types';
+
+interface ProductDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  product?: Product;
+  currency: Currency;
+  onSave: (name: string, price: number, associatedCosts: AssociatedCost[]) => void;
+  isSubmitting: boolean;
+}
+
+export function ProductDialog({
+  open,
+  onOpenChange,
+  product,
+  currency,
+  onSave,
+  isSubmitting
+}: ProductDialogProps) {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  if (isDesktop) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{product ? 'Edit product' : 'Add product'}</DialogTitle>
+            <DialogDescription>
+              {product 
+                ? 'Make changes to your product here.'
+                : 'Add a new product to your business.'}
+            </DialogDescription>
+          </DialogHeader>
+          <ProductForm
+            product={product}
+            currency={currency}
+            onSave={onSave}
+            onCancel={() => onOpenChange(false)}
+            isSubmitting={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>{product ? 'Edit product' : 'Add product'}</DrawerTitle>
+          <DrawerDescription>
+            {product 
+              ? 'Make changes to your product here.'
+              : 'Add a new product to your business.'}
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="px-4">
+          <ProductForm
+            product={product}
+            currency={currency}
+            onSave={onSave}
+            onCancel={() => onOpenChange(false)}
+            isSubmitting={isSubmitting}
+            hideCancel
+          />
+        </div>
+        <DrawerFooter className="pt-2">
+          <DrawerClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  );
+} 

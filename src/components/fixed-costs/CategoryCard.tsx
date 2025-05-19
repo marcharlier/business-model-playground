@@ -14,6 +14,7 @@ import type { FixedCostCategory } from '@/lib/constants/fixedCostCategories';
 import type { Currency } from '@/lib/storage/types';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import {
   Dialog,
@@ -75,8 +76,8 @@ function FixedCostForm({
   };
 
   return (
-    <form className={cn("grid items-start gap-4", className)} onSubmit={handleSubmit}>
-      <div className="grid gap-2">
+    <form className={cn("space-y-4", className)} onSubmit={handleSubmit}>
+      <div className="space-y-2">
         <Label htmlFor="cost-name">Cost name</Label>
         <Input
           id="cost-name"
@@ -87,7 +88,7 @@ function FixedCostForm({
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
+        <div className="space-y-2">
           <Label htmlFor="cost-amount">Amount</Label>
           <div className="relative">
             <Input
@@ -105,7 +106,7 @@ function FixedCostForm({
             </span>
           </div>
         </div>
-        <div className="grid gap-2">
+        <div className="space-y-2">
           <Label htmlFor="frequency">Frequency</Label>
           <Select 
             value={frequency} 
@@ -122,35 +123,51 @@ function FixedCostForm({
           </Select>
         </div>
       </div>
-      <div className="flex flex-col gap-2">
-        <Button type="submit" disabled={isSubmitting || !name.trim() || !amount.trim()}>
-          {cost ? 'Save changes' : 'Add cost'}
-        </Button>
+
+      <Separator className="my-4" />
+
+      <div className={`${hideCancel ? 'flex flex-col' : 'flex flex-row justify-between'} gap-2`}>
         {!hideCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={onCancel}
+            className="h-9 flex-1"
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
         )}
-        {cost && (
-          <Accordion type="single" collapsible>
-            <AccordionItem value="delete">
-              <AccordionTrigger>Delete cost?</AccordionTrigger>
-              <AccordionContent>
-                <LongPressButton
-                  variant="destructive"
-                  onLongPress={onDelete}
-                  disabled={isSubmitting}
-                  className="gap-2 w-full"
-                  duration={2000}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Hold to delete cost
-                </LongPressButton>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        )}
+        <Button 
+          type="submit" 
+          size="sm" 
+          disabled={isSubmitting || !name.trim() || !amount.trim()}
+          className={`h-9 ${hideCancel ? 'w-full' : 'flex-1'}`}
+        >
+          {cost ? 'Save changes' : 'Add cost'}
+        </Button>
       </div>
+
+      {cost && (
+        <Accordion type="single" collapsible>
+          <AccordionItem value="delete">
+            <AccordionTrigger className="py-2">Delete cost?</AccordionTrigger>
+            <AccordionContent>
+              <LongPressButton
+                variant="destructive"
+                onLongPress={onDelete}
+                disabled={isSubmitting}
+                className="gap-2 w-full"
+                duration={2000}
+              >
+                <Trash2 className="h-4 w-4" />
+                Hold to delete cost
+              </LongPressButton>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
     </form>
   );
 }
