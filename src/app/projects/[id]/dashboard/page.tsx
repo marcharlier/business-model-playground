@@ -378,6 +378,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Profit threshold</CardTitle>
+                <CardDescription>When your business becomes profitable</CardDescription>
               </CardHeader>
               <CardContent>
                 <ProfitabilityChart 
@@ -394,6 +395,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle>Revenue by product</CardTitle>
+              <CardDescription>How much revenue each product generates</CardDescription>
             </CardHeader>
             <CardContent>
               <RevenueBreakdownChart 
