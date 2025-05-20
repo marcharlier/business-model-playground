@@ -26,7 +26,7 @@ export function calculateProfitMargin(product: Product): number {
 export function getProfitMarginColorClass(margin: number): string {
   if (margin >= 50) return 'text-green-600';
   if (margin >= 25) return 'text-green-500';
-  if (margin >= 0) return 'text-yellow-500';
+  if (margin > 0) return 'text-yellow-500';
   return 'text-red-500';
 }
 

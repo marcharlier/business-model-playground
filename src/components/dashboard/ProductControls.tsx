@@ -275,7 +275,7 @@ export function ProductControls({
             <div>
               <p className="font-medium">{product.name}</p>
               <p className="text-sm text-muted-foreground">
-                {formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
+                {product.price === 0 ? 'Free' : formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
               </p>
             </div>
             <div className="flex items-center space-x-2">
