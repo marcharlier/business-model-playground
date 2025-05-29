@@ -26,22 +26,35 @@ export const projectStorage = {
     return projects.find(project => project.id === id) || null;
   },
   
-  createProject: (name: string, currency: Currency = 'GBP'): Project => {
+  createProject: (nameOrProject: string | Project, currency: Currency = 'GBP'): Project => {
     if (!isBrowser) {
       throw new Error('Cannot create project during server-side rendering');
     }
     
     const projects = projectStorage.getAllProjects();
     
-    const newProject: Project = {
-      id: generateUUID(),
-      name,
-      currency,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      fixedCosts: [],
-      products: []
-    };
+    let newProject: Project;
+    
+    if (typeof nameOrProject === 'string') {
+      // Create a new empty project
+      newProject = {
+        id: generateUUID(),
+        name: nameOrProject,
+        currency,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fixedCosts: [],
+        products: []
+      };
+    } else {
+      // Import an existing project
+      newProject = {
+        ...nameOrProject,
+        id: generateUUID(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
     
     const updatedProjects = [...projects, newProject];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));

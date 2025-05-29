@@ -14,6 +14,7 @@ export interface Project {
   fixedCosts: FixedCost[];
   products: Product[];
   productSales?: Record<string, ProductSales>;
+  sharedId?: string;
 }
 
 export interface FixedCost {

@@ -35,6 +35,7 @@ import {
 import { cn } from '@/lib/utils';
 import { LongPressButton } from '@/components/ui/long-press-button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ShareButton } from '@/components/project/ShareButton';
 
 function ProjectEditForm({ 
   className,
@@ -268,7 +269,7 @@ function ProjectLayoutContent({
 
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold">{project.name}</h1>
+            <h1 className="text-md sm:text-3xl font-bold">{project.name}</h1>
             <Badge variant="outline" className="font-mono">
               {project.currency}
             </Badge>
@@ -276,11 +277,12 @@ function ProjectLayoutContent({
               project={project}
               refreshProject={refreshProject}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                   <PencilIcon className="h-4 w-4" />
                 </Button>
               }
             />
+            <ShareButton project={project} />
           </div>
           {/* Back Button - Desktop */}
           <div className="hidden sm:block">
