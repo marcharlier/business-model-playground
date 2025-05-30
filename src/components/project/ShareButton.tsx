@@ -91,10 +91,10 @@ export function ShareButton({ project }: ShareButtonProps) {
       setIsSharing(true);
       const authorAvatar = await avatarStorage.getAvatar();
       
-      const sharedProject = await sharedProjectStorage.createSharedProject({
-        ...project,
-        author: authorAvatar,
-      }, authorAvatar);
+      const sharedProject = await sharedProjectStorage.createSharedProject(
+        project,
+        authorAvatar
+      );
       
       // Update local project with sharedId
       projectStorage.updateProject({
@@ -128,7 +128,6 @@ export function ShareButton({ project }: ShareButtonProps) {
 
     try {
       setIsUpdating(true);
-      const authorAvatar = await avatarStorage.getAvatar();
       
       // Get the latest project data
       const latestProject = projectStorage.getProjectById(project.id);
@@ -138,7 +137,6 @@ export function ShareButton({ project }: ShareButtonProps) {
       
       const sharedProject = await sharedProjectStorage.updateSharedProject(project.sharedId, {
         ...latestProject,
-        author: authorAvatar,
       });
       
       // Update shared info

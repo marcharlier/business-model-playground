@@ -12,9 +12,11 @@ import NextLink from 'next/link';
 import { Button } from '@/components/ui/button';
 
 interface SharedProject {
-  projectData: Project & { author: string };
+  id: string;
+  projectData: Project;
   authorAvatar: string;
   created_at: string;
+  updated_at: string;
 }
 
 export default function SharePage({ params }: { params: Promise<{ id: string }> }) {

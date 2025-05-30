@@ -27,7 +27,8 @@ import type { Project } from '@/lib/storage/types';
 
 interface SharedProjectImportDialogProps {
   sharedProject: {
-    projectData: Project & { author: string };
+    id: string;
+    projectData: Project;
     authorAvatar: string;
     created_at: string;
     updated_at: string;

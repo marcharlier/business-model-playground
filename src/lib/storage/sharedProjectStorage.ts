@@ -1,12 +1,8 @@
 import { supabase } from '../supabase/client';
 import type { Project } from './types';
 
-interface SharedProjectData extends Project {
-  author: string;
-}
-
 export const sharedProjectStorage = {
-  async createSharedProject(project: SharedProjectData, authorAvatar: string) {
+  async createSharedProject(project: Project, authorAvatar: string) {
     const { data, error } = await supabase
       .from('shared_projects')
       .insert({
@@ -22,7 +18,7 @@ export const sharedProjectStorage = {
 
     return {
       id: data.id,
-      projectData: data.project_data as SharedProjectData,
+      projectData: data.project_data as Project,
       authorAvatar: data.author_avatar as string,
       created_at: data.created_at,
       updated_at: data.updated_at,
@@ -45,14 +41,14 @@ export const sharedProjectStorage = {
 
     return {
       id: data.id,
-      projectData: data.project_data as SharedProjectData,
+      projectData: data.project_data as Project,
       authorAvatar: data.author_avatar as string,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
   },
 
-  async updateSharedProject(id: string, project: SharedProjectData) {
+  async updateSharedProject(id: string, project: Project) {
     console.log('Updating shared project:', {
       id,
       projectName: project.name,
@@ -104,7 +100,7 @@ export const sharedProjectStorage = {
 
     return {
       id: data.id,
-      projectData: data.project_data as SharedProjectData,
+      projectData: data.project_data as Project,
       authorAvatar: data.author_avatar as string,
       created_at: data.created_at,
       updated_at: data.updated_at,
