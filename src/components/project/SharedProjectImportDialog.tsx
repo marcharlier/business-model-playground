@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ interface SharedProjectImportDialogProps {
     projectData: Project & { author: string };
     authorAvatar: string;
     created_at: string;
+    updated_at: string;
   };
   onOpenChange: (open: boolean) => void;
 }
@@ -78,8 +80,12 @@ export function SharedProjectImportDialog({ sharedProject, onOpenChange }: Share
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>Author: {sharedProject.authorAvatar}</p>
                 <p>Currency: {sharedProject.projectData.currency}</p>
-                <p>Snapshot created on: {formatDate(sharedProject.created_at)}</p>
-                <p>Snapshot last updated: {formatDate(sharedProject.projectData.updatedAt)}</p>
+                <p title={formatDate(sharedProject.created_at)}>
+                  Snapshot created {formatDistanceToNow(new Date(sharedProject.created_at))} ago
+                </p>
+                <p title={formatDate(sharedProject.updated_at)}>
+                  Snapshot last updated {formatDistanceToNow(new Date(sharedProject.updated_at))} ago
+                </p>
               </div>
             </div>
           </div>
@@ -120,8 +126,12 @@ export function SharedProjectImportDialog({ sharedProject, onOpenChange }: Share
             <div className="text-sm text-muted-foreground space-y-1">
               <p>Author: {sharedProject.authorAvatar}</p>
               <p>Currency: {sharedProject.projectData.currency}</p>
-              <p>Snapshot created on: {formatDate(sharedProject.created_at)}</p>
-              <p>Snapshot last updated: {formatDate(sharedProject.projectData.updatedAt)}</p>
+              <p title={formatDate(sharedProject.created_at)}>
+                Snapshot created {formatDistanceToNow(new Date(sharedProject.created_at))} ago
+              </p>
+              <p title={formatDate(sharedProject.updated_at)}>
+                Snapshot last updated {formatDistanceToNow(new Date(sharedProject.updated_at))} ago
+              </p>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Trash2, Copy, Share } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -198,8 +199,12 @@ export function ShareButton({ project }: ShareButtonProps) {
         <div className="space-y-2 bg-muted p-4 rounded-md">
           <h3 className="font-medium">{sharedInfo?.name || project.name}</h3>
           <div className="text-sm text-muted-foreground space-y-1">
-              <p>Snapshot created on: {new Date(sharedInfo.created_at).toLocaleString()}</p>
-              <p>Snapshot last updated: {new Date(sharedInfo.updated_at).toLocaleString()}</p>
+              <p title={new Date(sharedInfo.created_at).toLocaleString()}>
+                Snapshot created {formatDistanceToNow(new Date(sharedInfo.created_at))} ago
+              </p>
+              <p title={new Date(sharedInfo.updated_at).toLocaleString()}>
+                Snapshot last updated {formatDistanceToNow(new Date(sharedInfo.updated_at))} ago
+              </p>
             </div>
           </div>
         )}
