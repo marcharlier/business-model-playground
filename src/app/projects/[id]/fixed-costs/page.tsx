@@ -5,8 +5,10 @@ import { useParams } from 'next/navigation';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { FIXED_COST_CATEGORIES } from '@/lib/constants/fixedCostCategories';
 import { CategoryCard } from '@/components/fixed-costs/CategoryCard';
+import { CostSuggestionsSheet } from '@/components/fixed-costs/CostSuggestionsSheet';
 import type { FixedCost } from '@/lib/storage/types';
 import type { FixedCostCategory } from '@/lib/constants/fixedCostCategories';
+import type { CostSuggestion } from '@/lib/constants/cost-suggestions';
 import { formatCurrency } from '@/lib/utils/currency';
 import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import { useProject } from '@/lib/context/ProjectContext';
@@ -17,6 +19,8 @@ export default function FixedCostsPage() {
   const { project, isLoading, refreshProject } = useProject();
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [totalMonthlyCost, setTotalMonthlyCost] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [preFilledName, setPreFilledName] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFixedCosts = async () => {
@@ -45,6 +49,7 @@ export default function FixedCostsPage() {
     setFixedCosts(costs);
     calculateTotalMonthlyCost(costs);
     refreshProject();
+    setPreFilledName(null);
   };
 
   const handleCostUpdated = () => {
@@ -61,6 +66,11 @@ export default function FixedCostsPage() {
     refreshProject();
   };
 
+  const handleSuggestionSelected = (suggestion: CostSuggestion) => {
+    setSelectedCategory(suggestion.categoryId);
+    setPreFilledName(suggestion.name);
+  };
+
   if (isLoading || !project) {
     return <div>Loading...</div>;
   }
@@ -73,12 +83,20 @@ export default function FixedCostsPage() {
         projectId={project.id}
         currentPage="fixed-costs"
       />
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Fixed Costs</h1>
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Fixed Costs</h1>
+        </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">Total Monthly Fixed Costs</p>
+          <p className="text-sm text-muted-foreground">Total Monthly</p>
           <p className="text-2xl font-bold">{formatCurrency(totalMonthlyCost, project.currency)}</p>
         </div>
+      </div>
+      <div className="mb-6">
+        <CostSuggestionsSheet 
+          onSelectSuggestion={handleSuggestionSelected} 
+          existingCosts={fixedCosts}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -94,6 +112,14 @@ export default function FixedCostsPage() {
               onCostAdded={handleCostAdded}
               onCostUpdated={handleCostUpdated}
               onCostDeleted={handleCostDeleted}
+              isSelected={selectedCategory === category.id}
+              onSelectionChange={(selected) => {
+                setSelectedCategory(selected ? category.id : null);
+                if (!selected) {
+                  setPreFilledName(null);
+                }
+              }}
+              preFilledName={selectedCategory === category.id ? preFilledName ?? undefined : undefined}
             />
           );
         })}

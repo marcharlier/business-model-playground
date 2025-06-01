@@ -45,7 +45,8 @@ function FixedCostForm({
   onCancel,
   onDelete,
   isSubmitting,
-  hideCancel
+  hideCancel,
+  preFilledName
 }: {
   className?: string;
   cost?: FixedCost;
@@ -55,8 +56,9 @@ function FixedCostForm({
   onDelete: () => void;
   isSubmitting: boolean;
   hideCancel?: boolean;
+  preFilledName?: string;
 }) {
-  const [name, setName] = useState(cost?.name ?? '');
+  const [name, setName] = useState(cost?.name ?? preFilledName ?? '');
   const [amount, setAmount] = useState(cost?.amount.toString() ?? '');
   const [frequency, setFrequency] = useState<'monthly' | 'annual'>(cost?.frequency ?? 'monthly');
 
@@ -163,6 +165,9 @@ interface CategoryCardProps {
   onCostAdded: () => void;
   onCostUpdated: () => void;
   onCostDeleted: () => void;
+  isSelected?: boolean;
+  onSelectionChange?: (selected: boolean) => void;
+  preFilledName?: string;
 }
 
 export function CategoryCard({
@@ -172,7 +177,10 @@ export function CategoryCard({
   currency,
   onCostAdded,
   onCostUpdated,
-  onCostDeleted
+  onCostDeleted,
+  isSelected = false,
+  onSelectionChange,
+  preFilledName
 }: CategoryCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
@@ -186,8 +194,15 @@ export function CategoryCard({
     }
   }, [costs.length]);
 
+  useEffect(() => {
+    if (isSelected && !isAdding && !editingCostId) {
+      setIsAdding(true);
+    }
+  }, [isSelected, isAdding, editingCostId]);
+
   const handleAddClick = () => {
     setIsAdding(true);
+    onSelectionChange?.(true);
   };
 
   const handleEditClick = (cost: FixedCost) => {
@@ -198,6 +213,7 @@ export function CategoryCard({
     setIsAdding(false);
     setEditingCostId(null);
     setIsSubmitting(false);
+    onSelectionChange?.(false);
   };
 
   const handleSave = async (name: string, amount: number, frequency: 'monthly' | 'annual') => {
@@ -257,6 +273,7 @@ export function CategoryCard({
         onDelete={() => editingCost && handleDelete(editingCost.id)}
         isSubmitting={isSubmitting}
         hideCancel={!isDesktop}
+        preFilledName={preFilledName}
       />
     );
 
