@@ -1,31 +1,35 @@
-import { supabase } from '../supabase/client';
+import { supabase, withUserContext } from '../supabase/client';
 import type { Project } from './types';
+import { avatarStorage } from './avatarStorage';
 
 export const sharedProjectStorage = {
   async createSharedProject(project: Project, authorAvatar: string) {
-    const { data, error } = await supabase
-      .from('shared_projects')
-      .insert({
-        project_data: project,
-        author_avatar: authorAvatar,
-      })
-      .select('*')
-      .single();
+    return withUserContext(async () => {
+      const { data, error } = await supabase
+        .from('shared_projects')
+        .insert({
+          project_data: project,
+          author_avatar: authorAvatar,
+        })
+        .select('*')
+        .single();
 
-    if (error) {
-      throw new Error('Failed to create shared project');
-    }
+      if (error) {
+        throw new Error('Failed to create shared project');
+      }
 
-    return {
-      id: data.id,
-      projectData: data.project_data as Project,
-      authorAvatar: data.author_avatar as string,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+      return {
+        id: data.id,
+        projectData: data.project_data as Project,
+        authorAvatar: data.author_avatar as string,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+    }, authorAvatar);
   },
 
   async getSharedProject(id: string) {
+    // For read operations, we don't need to set the user context
     const { data, error } = await supabase
       .from('shared_projects')
       .select('*')
@@ -49,74 +53,82 @@ export const sharedProjectStorage = {
   },
 
   async updateSharedProject(id: string, project: Project) {
-    console.log('Updating shared project:', {
-      id,
-      projectName: project.name,
-      projectData: project,
-    });
+    const authorAvatar = avatarStorage.getAvatar();
+    
+    return withUserContext(async () => {
+      console.log('Updating shared project:', {
+        id,
+        projectName: project.name,
+        projectData: project,
+      });
 
-    // First verify the project exists
-    const { data: existingProject, error: fetchError } = await supabase
-      .from('shared_projects')
-      .select('*')
-      .eq('id', id)
-      .single();
+      // First verify the project exists
+      const { data: existingProject, error: fetchError } = await supabase
+        .from('shared_projects')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (fetchError || !existingProject) {
-      console.error('Error fetching existing project:', fetchError);
-      throw new Error('Shared project not found');
-    }
+      if (fetchError || !existingProject) {
+        console.error('Error fetching existing project:', fetchError);
+        throw new Error('Shared project not found');
+      }
 
-    console.log('Found existing project:', {
-      id: existingProject.id,
-      currentName: existingProject.project_data.name,
-      currentData: existingProject.project_data,
-    });
+      console.log('Found existing project:', {
+        id: existingProject.id,
+        currentName: existingProject.project_data.name,
+        currentData: existingProject.project_data,
+      });
 
-    const now = new Date().toISOString();
+      const now = new Date().toISOString();
 
-    // Then update the existing project
-    const { data, error } = await supabase
-      .from('shared_projects')
-      .update({
-        project_data: project, // Update the entire project data
-        updated_at: now,
-      })
-      .eq('id', id)
-      .select()
-      .single();
+      // Then update the existing project
+      const { data, error } = await supabase
+        .from('shared_projects')
+        .update({
+          project_data: project,
+          updated_at: now,
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error updating shared project:', error);
-      throw new Error('Failed to update shared project');
-    }
+      if (error) {
+        console.error('Error updating shared project:', error);
+        throw new Error('Failed to update shared project');
+      }
 
-    console.log('Successfully updated shared project:', {
-      id: data.id,
-      newName: data.project_data.name,
-      updated_at: data.updated_at,
-      projectData: data.project_data,
-    });
+      console.log('Successfully updated shared project:', {
+        id: data.id,
+        newName: data.project_data.name,
+        updated_at: data.updated_at,
+        projectData: data.project_data,
+      });
 
-    return {
-      id: data.id,
-      projectData: data.project_data as Project,
-      authorAvatar: data.author_avatar as string,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+      return {
+        id: data.id,
+        projectData: data.project_data as Project,
+        authorAvatar: data.author_avatar as string,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+    }, authorAvatar);
   },
 
   async deleteSharedProject(id: string) {
-    const { error } = await supabase
-      .from('shared_projects')
-      .delete()
-      .eq('id', id)
-      .select();
+    const authorAvatar = avatarStorage.getAvatar();
+    
+    return withUserContext(async () => {
+      const { error } = await supabase
+        .from('shared_projects')
+        .delete()
+        .eq('id', id)
+        .select();
 
-    if (error) {
-      console.error('Error deleting shared project:', error);
-      throw new Error('Failed to delete shared project');
-    }
+      if (error) {
+        console.error('Error deleting shared project:', error);
+        throw new Error('Failed to delete shared project');
+      }
+    }, authorAvatar);
   },
 }; 
