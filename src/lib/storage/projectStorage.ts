@@ -5,6 +5,13 @@ const STORAGE_KEY = 'business-model-playground-projects';
 
 const isBrowser = typeof window !== 'undefined';
 
+// Helper function to dispatch project change event
+const notifyProjectChange = () => {
+  if (isBrowser) {
+    window.dispatchEvent(new Event('projectChange'));
+  }
+};
+
 export const projectStorage = {
   getAllProjects: (): Project[] => {
     if (!isBrowser) return [];
@@ -58,6 +65,7 @@ export const projectStorage = {
     
     const updatedProjects = [...projects, newProject];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+    notifyProjectChange();
     
     return newProject;
   },
@@ -75,6 +83,7 @@ export const projectStorage = {
     );
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+    notifyProjectChange();
     return { ...project, updatedAt: new Date().toISOString() };
   },
   
@@ -86,5 +95,6 @@ export const projectStorage = {
     const projects = projectStorage.getAllProjects();
     const filteredProjects = projects.filter(project => project.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredProjects));
+    notifyProjectChange();
   }
 }; 
