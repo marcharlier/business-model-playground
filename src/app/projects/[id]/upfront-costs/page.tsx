@@ -87,7 +87,7 @@ function UpfrontCostForm({
       {cost && (
         <Accordion type="single" collapsible>
           <AccordionItem value="delete">
-            <AccordionTrigger className="py-2 text-destructive">Delete this up front cost?</AccordionTrigger>
+            <AccordionTrigger className="py-2 text-destructive">Delete this upfront cost?</AccordionTrigger>
             <AccordionContent>
               <LongPressButton
                 variant="destructive"
@@ -166,7 +166,7 @@ export default function UpfrontCostsPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>{editingCost ? 'Edit up front cost' : 'Add up front cost'}</DialogTitle>
+              <DialogTitle>{editingCost ? 'Edit upfront cost' : 'Add upfront cost'}</DialogTitle>
               <DialogDescription>One-off purchases or setup costs.</DialogDescription>
             </DialogHeader>
             {children}
@@ -178,7 +178,7 @@ export default function UpfrontCostsPage() {
       <Drawer open={open} onOpenChange={setOpen} repositionInputs={false}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>{editingCost ? 'Edit up front cost' : 'Add up front cost'}</DrawerTitle>
+            <DrawerTitle>{editingCost ? 'Edit upfront cost' : 'Add upfront cost'}</DrawerTitle>
             <DrawerDescription>One-off purchases or setup costs.</DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-4">{children}</div>
@@ -197,7 +197,7 @@ export default function UpfrontCostsPage() {
       />
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Up front costs</h1>
+          <h1 className="text-2xl font-bold">Upfront costs</h1>
           <Button size="sm" variant="outline" onClick={handleOpenAdd}>
             <Plus className="h-4 w-4 mr-1" />
             Add Upfront Cost

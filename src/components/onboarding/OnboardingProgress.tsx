@@ -40,7 +40,7 @@ export function OnboardingProgress({
 	return (
 		<div className={cn("w-full space-y-4 mb-8", className)}>
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-				{/* Step 1: Up front Costs */}
+				{/* Step 1: Upfront Costs */}
 				<Link 
 					href={`/projects/${projectId}/upfront-costs`}
 					className={cn(
@@ -59,10 +59,10 @@ export function OnboardingProgress({
 							upfrontCostsSet ? "text-white" : "text-muted-foreground"
 						)} />
 					</div>
-					<h3 className="pl-2 font-medium text-sm sm:text-base">Up front costs</h3>
+					<h3 className="pl-2 font-medium text-sm sm:text-base">Upfront costs</h3>
           </div>
 					<p className="hidden sm:block text-sm text-muted-foreground mt-1">
-						{upfrontCostsSet ? `${formatCurrency(upfrontTotal, project.currency)} up front costs.` : 'Add your up front costs.'}
+						{upfrontCostsSet ? `${formatCurrency(upfrontTotal, project.currency)} upfront costs.` : 'Add your upfront costs.'}
 					</p>
 				</Link>
 
