@@ -12,6 +12,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   fixedCosts: FixedCost[];
+  upfrontCosts?: UpfrontCost[];
   products: Product[];
   productSales?: Record<string, ProductSales>;
   sharedId?: string;
@@ -21,8 +22,15 @@ export interface FixedCost {
   id: string;
   name: string;
   amount: number;
-  frequency: 'monthly' | 'annual';
+  frequency: 'monthly' | 'annual' | 'upfront';
   category: string;
+  projectId: string;
+}
+
+export interface UpfrontCost {
+  id: string;
+  name: string;
+  amount: number;
   projectId: string;
 }
 

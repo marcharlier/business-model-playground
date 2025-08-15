@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { PlusIcon, XIcon } from 'lucide-react';
+import { PlusIcon, Trash2, XIcon } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { LongPressButton } from '@/components/ui/long-press-button';
 import type { Product, AssociatedCost, Currency } from '@/lib/storage/types';
 import { CurrencyInput } from '@/components/ui/currency-input';
 
@@ -15,6 +17,7 @@ interface ProductFormProps {
   onCancel: () => void;
   isSubmitting: boolean;
   hideCancel?: boolean;
+  onDelete?: () => void;
 }
 
 export function ProductForm({
@@ -24,7 +27,8 @@ export function ProductForm({
   onSave,
   onCancel,
   isSubmitting,
-  hideCancel
+  hideCancel,
+  onDelete
 }: ProductFormProps) {
   const [name, setName] = useState(product?.name ?? '');
   const [price, setPrice] = useState(product?.price === 0 ? '' : product?.price.toString() ?? '');
@@ -129,7 +133,7 @@ export function ProductForm({
         
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label>Associated Costs</Label>
+            <Label>COGS (Cost of Goods Sold)</Label>
           </div>
           
           {associatedCosts.length > 0 && (
@@ -216,7 +220,7 @@ export function ProductForm({
             className="h-8 w-full"
           >
             <PlusIcon className="h-4 w-4 mr-1" />
-            Add Cost
+            Add COGS Item
           </Button>
         </div>
         
@@ -243,6 +247,26 @@ export function ProductForm({
             {product ? 'Save changes' : 'Add product'}
           </Button>
         </div>
+
+        {product && (
+          <Accordion type="single" collapsible>
+            <AccordionItem value="delete">
+              <AccordionTrigger className="py-2 text-destructive">Delete this product?</AccordionTrigger>
+              <AccordionContent>
+                <LongPressButton
+                  variant="destructive"
+                  onLongPress={() => onDelete?.()}
+                  disabled={isSubmitting}
+                  className="gap-2 w-full"
+                  duration={2000}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Long press to delete
+                </LongPressButton>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
       </div>
     </form>
   );

@@ -26,6 +26,7 @@ interface ProductDialogProps {
   currency: Currency;
   onSave: (name: string, price: number, associatedCosts: AssociatedCost[]) => void;
   isSubmitting: boolean;
+  onDelete?: () => void;
 }
 
 export function ProductDialog({
@@ -34,7 +35,8 @@ export function ProductDialog({
   product,
   currency,
   onSave,
-  isSubmitting
+  isSubmitting,
+  onDelete
 }: ProductDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -56,6 +58,7 @@ export function ProductDialog({
             onSave={onSave}
             onCancel={() => onOpenChange(false)}
             isSubmitting={isSubmitting}
+            onDelete={onDelete}
           />
         </DialogContent>
       </Dialog>
@@ -81,6 +84,7 @@ export function ProductDialog({
             onCancel={() => onOpenChange(false)}
             isSubmitting={isSubmitting}
             hideCancel
+            onDelete={onDelete}
           />
         </div>
         <DrawerFooter className="pt-2">

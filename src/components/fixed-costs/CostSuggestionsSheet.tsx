@@ -25,9 +25,7 @@ export function CostSuggestionsSheet({ onSelectSuggestion, existingCosts }: Cost
         <SheetHeader className="pb-2 border-b">
           <SheetTitle>Cost Suggestions</SheetTitle>
           <SheetDescription>
-            <p>
-              Suggestions to help you get started.
-            </p>
+            Suggestions to help you get started.
           </SheetDescription>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-6rem)] sm:pr-4">

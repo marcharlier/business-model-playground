@@ -85,14 +85,15 @@ export default function FixedCostsPage() {
       />
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Fixed Costs</h1>
+          <h1 className="text-2xl font-bold">Operating costs</h1>
         </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">Total Monthly</p>
+          <p className="text-sm text-muted-foreground">Total monthly operating costs</p>
           <p className="text-2xl font-bold">{formatCurrency(totalMonthlyCost, project.currency)}</p>
         </div>
       </div>
-      <div className="mb-6">
+      <div className="mb-6 flex flex items-center gap-2">
+        <p>Your ongoing costs for your business, like rent, insurance, and salaries.</p>
         <CostSuggestionsSheet 
           onSelectSuggestion={handleSuggestionSelected} 
           existingCosts={fixedCosts}

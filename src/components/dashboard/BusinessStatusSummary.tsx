@@ -10,13 +10,10 @@ interface BusinessStatusSummaryProps {
 }
 
 export function BusinessStatusSummary({ project, productSales, showTitle = false }: BusinessStatusSummaryProps) {
-  // Calculate total monthly fixed costs
+  // Calculate total monthly operating costs
   const totalMonthlyFixedCosts = project.fixedCosts.reduce((total, cost) => {
-    const monthlyAmount = cost.frequency === 'monthly' 
-      ? cost.amount 
-      : cost.frequency === 'annual' 
-        ? cost.amount / 12 
-        : cost.amount * 12;
+    if (cost.frequency === 'upfront') return total; // upfront does not affect monthly running costs
+    const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
     return total + monthlyAmount;
   }, 0);
 
@@ -48,9 +45,9 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
     if (totalMonthlyProfit < 0) {
       return {
         icon: <AlertCircle className="h-5 w-5 text-red-500" />,
-        title: "Not profitable",
+        title: "Not operating profitably",
         color: "text-red-500",
-        message: "Increase sales, raise prices, or reduce costs to achieve profitability.",
+        message: "Increase sales, raise prices, or reduce costs to achieve operating profitability.",
         bgColor: "bg-red-500/10"
       };
     }
@@ -58,9 +55,9 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
     if (profitMargin < 10) {
       return {
         icon: <TrendingUp className="h-5 w-5 text-yellow-500" />,
-        title: "Just about profitable",
+        title: "Your operations are just about profitable",
         color: "text-yellow-600 dark:text-yellow-500",
-        message: "Your business is profitable but margins are tight (below 10%).",
+        message: "Your operations are profitable but margins are tight (below 10%).",
         bgColor: "bg-yellow-500/10"
       };
     }
@@ -68,18 +65,18 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
     if (profitMargin < 25) {
       return {
         icon: <TrendingUp className="h-5 w-5 text-green-500" />,
-        title: "Good profitability",
+        title: "Good operating profit",
         color: "text-green-600 dark:text-green-500",
-        message: `Your business is profitable and margins are good (~${Math.round(profitMargin)}%).`,
+        message: `Your operations are profitable and margins are good (~${Math.round(profitMargin)}%).`,
         bgColor: "bg-green-500/10"
       };
     }
     
     return {
       icon: <CircleDollarSign className="h-5 w-5 text-green-500" />,
-      title: "Firmly profitable",
+      title: "Great operating profit!",
       color: "text-green-600 dark:text-green-500",
-      message: "Well done! Your business is showing healthy profitability. (Above 25%)",
+      message: "Well done! Your business operations are showing healthy profitability. (Above 25%)",
       bgColor: "bg-green-500/20"
     };
   };

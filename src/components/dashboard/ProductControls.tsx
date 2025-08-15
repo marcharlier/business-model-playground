@@ -43,6 +43,7 @@ interface ProductControlFormProps {
   onSalesVolumeChange: (productId: string, value: number) => void;
   onSalesPeriodChange: (productId: string, period: 'monthly' | 'daily') => void;
   calculateBreakEven: (product: Product, period: 'monthly' | 'daily') => number;
+  upfrontRecoupText?: string;
 }
 
 function ProductControlForm({
@@ -52,7 +53,8 @@ function ProductControlForm({
   onPriceChange,
   onSalesVolumeChange,
   onSalesPeriodChange,
-  calculateBreakEven
+  calculateBreakEven,
+  upfrontRecoupText
 }: ProductControlFormProps) {
   const [inputValue, setInputValue] = useState<string>(product.price === 0 ? '' : product.price.toString());
 
@@ -161,8 +163,9 @@ function ProductControlForm({
         <p>
           {calculateBreakEven(product, sales.period) === Number.POSITIVE_INFINITY 
             ? "Cannot break even at current price (price is less than or equal to variable cost)" 
-            : `Selling ${calculateBreakEven(product, sales.period)} units ${sales.period === 'monthly' ? 'per month' : 'per day'} would cover fixed costs`}
+            : `Selling ${calculateBreakEven(product, sales.period)} units ${sales.period === 'monthly' ? 'per month' : 'per day'} would cover monthly operating costs (excludes up-front)`}
         </p>
+        {upfrontRecoupText ? <p>{upfrontRecoupText}</p> : null}
       </div>
     </div>
   );
@@ -262,6 +265,42 @@ export function ProductControls({
 
   const marginStatus = getMarginStatus();
 
+  // Compute upfront recoup text at the scenario level
+  const upfrontTotals = project.fixedCosts.reduce((acc: { upfront: number; monthlyFixed: number }, cost) => {
+    if (cost.frequency === 'upfront') {
+      acc.upfront += cost.amount;
+    } else if (cost.frequency === 'annual') {
+      acc.monthlyFixed += cost.amount / 12;
+    } else {
+      acc.monthlyFixed += cost.amount;
+    }
+    return acc;
+  }, { upfront: 0, monthlyFixed: 0 });
+
+  const totalMonthlyRevenueAll = products.reduce((total, product) => {
+    const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    return total + product.price * monthlyVolume;
+  }, 0);
+
+  const totalMonthlyVariableAll = products.reduce((total, product) => {
+    const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    const unitCost = calculateProductTotalCost(product);
+    return total + unitCost * monthlyVolume;
+  }, 0);
+
+  const monthlyProfitAll = totalMonthlyRevenueAll - upfrontTotals.monthlyFixed - totalMonthlyVariableAll;
+  let upfrontRecoupText: string | undefined;
+  if (upfrontTotals.upfront > 0) {
+    if (monthlyProfitAll <= 0) {
+      upfrontRecoupText = `At current scenario, up-front costs of ${formatCurrency(upfrontTotals.upfront, currency)} would not be recouped.`;
+    } else {
+      const months = Math.ceil(upfrontTotals.upfront / monthlyProfitAll);
+      upfrontRecoupText = `Up-front costs of ${formatCurrency(upfrontTotals.upfront, currency)} would be recouped in ~${months} months.`;
+    }
+  }
+
   const renderProductCard = (product: Product, sales: ProductSales) => {
     const revenue = product.price * sales.volume;
     const costs = calculateProductTotalCost(product) * sales.volume;
@@ -298,6 +337,7 @@ export function ProductControls({
                     onSalesVolumeChange={onSalesVolumeChange}
                     onSalesPeriodChange={onSalesPeriodChange}
                     calculateBreakEven={calculateBreakEven}
+                    upfrontRecoupText={upfrontRecoupText}
                   />
                 </PopoverContent>
               </Popover>

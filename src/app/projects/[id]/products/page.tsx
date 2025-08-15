@@ -13,7 +13,7 @@ import {
   calculateProductTotalCost
 } from '@/lib/utils/financial';
 import { productStorage } from '@/lib/storage/productStorage';
-import { PencilIcon, CopyIcon, TrashIcon, Plus } from 'lucide-react';
+import { PencilIcon, CopyIcon, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import { useProject } from '@/lib/context/ProjectContext';
@@ -184,9 +184,9 @@ export default function ProductsPage() {
         projectId={project.id}
         currentPage="products"
       />
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Products</h1>
+          <h1 className="text-2xl font-bold">Products & COGS</h1>
           <div className="hidden sm:block">
             <Button variant="outline" size="sm" onClick={handleAddNewProduct}>
               <Plus className="h-4 w-4 mr-1" />
@@ -205,17 +205,9 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
+      <div><p>Your products and services along with their cost of goods.</p></div>
 
-      {products.length === 0 && !isAddingNewProduct && !isDuplicating ? (
-        <div className="text-center py-10 border rounded-lg">
-          <p className="text-lg mb-4">No products or services added yet</p>
-          <p className="text-muted-foreground mb-4">
-            Products and services are what you sell to your customers
-          </p>
-          <Button onClick={handleAddNewProduct}>Add Your First Product</Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
           {/* Mobile Add Product Button */}
           <div className="sm:hidden">
             <Button 
@@ -237,6 +229,11 @@ export default function ProductsPage() {
             currency={project.currency}
             onSave={handleSave}
             isSubmitting={isSubmitting}
+            onDelete={() => {
+              if (!editingProductId) return;
+              handleDelete(editingProductId);
+              handleCancel();
+            }}
           />
 
           {/* Existing Products */}
@@ -287,23 +284,7 @@ export default function ProductsPage() {
                         </Tooltip>
                       </TooltipProvider>
                       
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive" 
-                              onClick={() => handleDelete(product.id)}
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Delete</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      
                     </div>
                   </div>
                 </CardHeader>
@@ -327,7 +308,7 @@ export default function ProductsPage() {
                   
                   {product.associatedCosts.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">Associated Costs</p>
+                      <p className="text-sm text-muted-foreground mb-2">COGS (Cost of Goods Sold)</p>
                       <ul className="space-y-1">
                         {product.associatedCosts.map(cost => (
                           <li key={cost.id} className="flex justify-between text-sm">
@@ -343,7 +324,6 @@ export default function ProductsPage() {
             );
           })}
         </div>
-      )}
     </div>
   );
 } 

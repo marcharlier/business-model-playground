@@ -221,6 +221,7 @@ function ProjectLayoutContent({
   // Determine the active tab based on the current path
   const getActiveTab = () => {
     if (pathname.includes('/fixed-costs')) return 'fixed-costs';
+    if (pathname.includes('/upfront-costs')) return 'upfront-costs';
     if (pathname.includes('/products')) return 'products';
     return 'dashboard';
   };
@@ -235,6 +236,9 @@ function ProjectLayoutContent({
         break;
       case 'fixed-costs':
         router.push(`/projects/${projectId}/fixed-costs`);
+        break;
+      case 'upfront-costs':
+        router.push(`/projects/${projectId}/upfront-costs`);
         break;
       case 'products':
         router.push(`/projects/${projectId}/products`);
@@ -299,7 +303,8 @@ function ProjectLayoutContent({
       <div className="mb-6 overflow-x-auto hidden">
         <Tabs value={getActiveTab()} onValueChange={handleTabChange}>
           <TabsList className="w-full sm:w-fit">
-            <TabsTrigger value="fixed-costs" className="flex-1 sm:flex-none">Fixed Costs</TabsTrigger>
+            <TabsTrigger value="fixed-costs" className="flex-1 sm:flex-none">Operating Costs</TabsTrigger>
+            <TabsTrigger value="upfront-costs" className="flex-1 sm:flex-none">Up front Costs</TabsTrigger>
             <TabsTrigger value="products" className="flex-1 sm:flex-none">Products</TabsTrigger>
             <TabsTrigger value="dashboard" className="flex-1 sm:flex-none">Results Dashboard</TabsTrigger>
           </TabsList>

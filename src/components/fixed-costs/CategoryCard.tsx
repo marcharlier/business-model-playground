@@ -36,6 +36,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { LongPressButton } from '@/components/ui/long-press-button';
 import { Toggle } from '@/components/ui/toggle';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 function FixedCostForm({ 
   className,
@@ -60,7 +61,7 @@ function FixedCostForm({
 }) {
   const [name, setName] = useState(cost?.name ?? preFilledName ?? '');
   const [amount, setAmount] = useState(cost?.amount.toString() ?? '');
-  const [frequency, setFrequency] = useState<'monthly' | 'annual'>(cost?.frequency ?? 'monthly');
+  const [frequency, setFrequency] = useState<'monthly' | 'annual'>(cost?.frequency === 'annual' ? 'annual' : 'monthly');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +105,7 @@ function FixedCostForm({
             <SelectContent>
               <SelectItem value="monthly">Monthly</SelectItem>
               <SelectItem value="annual">Annual</SelectItem>
+              
             </SelectContent>
           </Select>
         </div>
@@ -137,7 +139,7 @@ function FixedCostForm({
       {cost && (
         <Accordion type="single" collapsible>
           <AccordionItem value="delete">
-            <AccordionTrigger className="py-2">Delete cost?</AccordionTrigger>
+            <AccordionTrigger className="py-2 text-destructive">Delete this cost?</AccordionTrigger>
             <AccordionContent>
               <LongPressButton
                 variant="destructive"
@@ -147,7 +149,7 @@ function FixedCostForm({
                 duration={2000}
               >
                 <Trash2 className="h-4 w-4" />
-                Hold to delete cost
+                Long press to delete
               </LongPressButton>
             </AccordionContent>
           </AccordionItem>
@@ -366,17 +368,26 @@ export function CategoryCard({
                       <p className="font-small text-sm">{formatCurrency(cost.amount, currency)}</p>
                       <p className="text-xs text-muted-foreground">{cost.frequency}</p>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditClick(cost);
-                      }}
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(cost);
+                              }}
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                   </div>
                 </div>
               ))}

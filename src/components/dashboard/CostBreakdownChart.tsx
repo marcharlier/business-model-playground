@@ -12,14 +12,14 @@ interface CostBreakdownChartProps {
 
 // Using theme chart colors that work in both light and dark modes
 const COLORS = [
-  'hsl(var(--chart-1))', // Primary blue for fixed costs
-  'hsl(var(--chart-2))', // Secondary blue for variable costs
+  'hsl(var(--chart-1))', // Primary for operating costs
+  'hsl(var(--chart-2))', // Secondary for COGS
 ];
 
 export function CostBreakdownChart({ fixedCosts, variableCosts, currency }: CostBreakdownChartProps) {
   const data = [
-    { name: 'Fixed Costs', value: fixedCosts, id: 'fixed', color: COLORS[0] },
-    { name: 'Variable Costs', value: variableCosts, id: 'variable', color: COLORS[1] },
+    { name: 'Operating Costs', value: fixedCosts, id: 'operating', color: COLORS[0] },
+    { name: 'COGS', value: variableCosts, id: 'cogs', color: COLORS[1] },
   ];
 
   const totalCosts = fixedCosts + variableCosts;
@@ -60,7 +60,7 @@ export function CostBreakdownChart({ fixedCosts, variableCosts, currency }: Cost
                   y="55%"
                   className="fill-muted-foreground text-xs"
                 >
-                  Total Costs
+                   Total Running Costs
                 </tspan>
               </text>
             )}

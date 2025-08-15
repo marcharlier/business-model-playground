@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useProjects } from "@/lib/hooks/use-projects"
 import {
   Select,
@@ -29,6 +29,7 @@ export function AppBar() {
   const [avatarEmoji, setAvatarEmoji] = useState<string>("")
   const [selectedProject, setSelectedProject] = useState("")
   const router = useRouter()
+  const pathname = usePathname()
   const projects = useProjects()
 
   useEffect(() => {
@@ -52,7 +53,12 @@ export function AppBar() {
     if (value === 'all') {
       router.push('/projects')
     } else {
-      router.push(`/projects/${value}/dashboard`)
+      // Keep the user on the same sub-page within /projects when switching projects
+      // Example: /projects/oldId/products -> /projects/newId/products
+      // If no sub-path present, default to dashboard
+      const match = pathname?.match(/^\/projects\/(?:[^/]+)(?:\/(.*))?$/)
+      const restPath = match && match[1] ? match[1] : 'dashboard'
+      router.push(`/projects/${value}/${restPath}`)
     }
     // Reset the select after a short delay to ensure navigation has started
     setTimeout(() => setSelectedProject(""), 100)
