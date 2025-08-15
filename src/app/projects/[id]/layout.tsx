@@ -304,7 +304,7 @@ function ProjectLayoutContent({
         <Tabs value={getActiveTab()} onValueChange={handleTabChange}>
           <TabsList className="w-full sm:w-fit">
             <TabsTrigger value="fixed-costs" className="flex-1 sm:flex-none">Operating Costs</TabsTrigger>
-            <TabsTrigger value="upfront-costs" className="flex-1 sm:flex-none">Up front Costs</TabsTrigger>
+            <TabsTrigger value="upfront-costs" className="flex-1 sm:flex-none">Upfront Costs</TabsTrigger>
             <TabsTrigger value="products" className="flex-1 sm:flex-none">Products</TabsTrigger>
             <TabsTrigger value="dashboard" className="flex-1 sm:flex-none">Results Dashboard</TabsTrigger>
           </TabsList>

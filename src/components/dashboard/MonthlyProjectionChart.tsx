@@ -115,7 +115,7 @@ export function MonthlyProjectionChart({
               <p className="text-xs font-medium">Cumulative Costs</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="h-2 w-2 rounded-full" style={{ background: 'hsl(var(--destructive) / 0.15)' }} />
-                <p className="text-xs">Up front: {formatCurrency(data.upfront, currency)}</p>
+                <p className="text-xs">Upfront: {formatCurrency(data.upfront, currency)}</p>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="h-2 w-2 rounded-full" style={{ background: 'hsl(var(--destructive) / 0.30)' }} />
@@ -175,7 +175,7 @@ export function MonthlyProjectionChart({
             iconSize={8}
             wrapperStyle={{ paddingTop: '20px', fontSize: '0.75rem' }}
           />
-          <Area type="monotone" dataKey="upfront" name="Up front (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.15} />
+          <Area type="monotone" dataKey="upfront" name="Upfront (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.15} />
           <Area type="monotone" dataKey="operating" name="Operating (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.3} />
           <Area type="monotone" dataKey="cogs" name="COGS (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.5} />
           <Line 
