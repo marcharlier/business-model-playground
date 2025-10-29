@@ -1,11 +1,21 @@
 import type { Project } from "../storage/types";
 
 export const coffeeShopExample: Project = {
+  version: 1,
   id: "example-coffee-shop",
   name: "☕️ Coffee Shop Example",
+  description: "A coffee shop selling artisan coffee specialities as well as a selection of pastries and baked goods.",
   currency: "GBP",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  upfrontCosts: [
+    {
+      id: "coffee-machine",
+      name: "Coffee Machine",
+      amount: 16000,
+      projectId: "example-coffee-shop"
+    }
+  ],
   productSales: {
     "espresso": {
       volume: 40,

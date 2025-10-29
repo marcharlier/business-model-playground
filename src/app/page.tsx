@@ -42,6 +42,11 @@ export default function Home() {
     // Update the project with example data
     const updatedProject = {
       ...newProject,
+      description: coffeeShopExample.description,
+      upfrontCosts: (coffeeShopExample.upfrontCosts || []).map(cost => ({
+        ...cost,
+        projectId: newProject.id
+      })),
       fixedCosts: coffeeShopExample.fixedCosts.map(cost => ({
         ...cost,
         projectId: newProject.id

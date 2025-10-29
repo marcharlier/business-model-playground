@@ -58,14 +58,15 @@ class ProductStorage {
       return null;
     }
 
+    const newId = generateUUID();
     const newProduct: Product = {
-      id: generateUUID(),
+      id: newId,
       name: `${product.name} (Copy)`,
       price: product.price,
       associatedCosts: product.associatedCosts.map(cost => ({
         ...cost,
         id: generateUUID(),
-        productId: '', // Will be set when the product is created
+        productId: newId,
         projectId
       })),
       projectId

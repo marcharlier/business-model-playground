@@ -12,7 +12,6 @@ interface BusinessStatusSummaryProps {
 export function BusinessStatusSummary({ project, productSales, showTitle = false }: BusinessStatusSummaryProps) {
   // Calculate total monthly operating costs
   const totalMonthlyFixedCosts = project.fixedCosts.reduce((total, cost) => {
-    if (cost.frequency === 'upfront') return total; // upfront does not affect monthly running costs
     const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
     return total + monthlyAmount;
   }, 0);

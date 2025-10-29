@@ -208,13 +208,9 @@ export function ProductControls({
 
   const averageMargin = calculateAverageMargin();
   const getMarginStatus = () => {
-    // Calculate total monthly fixed costs
+    // Calculate total monthly fixed costs (monthly + annual amortized)
     const totalMonthlyFixedCosts = project.fixedCosts.reduce((total: number, cost: { frequency: string; amount: number }) => {
-      const monthlyAmount = cost.frequency === 'monthly' 
-        ? cost.amount 
-        : cost.frequency === 'annual' 
-          ? cost.amount / 12 
-          : cost.amount * 12;
+      const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
       return total + monthlyAmount;
     }, 0);
 
@@ -266,16 +262,10 @@ export function ProductControls({
   const marginStatus = getMarginStatus();
 
   // Compute upfront recoup text at the scenario level
-  const upfrontTotals = project.fixedCosts.reduce((acc: { upfront: number; monthlyFixed: number }, cost) => {
-    if (cost.frequency === 'upfront') {
-      acc.upfront += cost.amount;
-    } else if (cost.frequency === 'annual') {
-      acc.monthlyFixed += cost.amount / 12;
-    } else {
-      acc.monthlyFixed += cost.amount;
-    }
-    return acc;
-  }, { upfront: 0, monthlyFixed: 0 });
+  const upfrontTotals = {
+    upfront: (project.upfrontCosts || []).reduce((sum, c) => sum + c.amount, 0),
+    monthlyFixed: project.fixedCosts.reduce((sum, cost) => sum + (cost.frequency === 'annual' ? cost.amount / 12 : cost.amount), 0),
+  };
 
   const totalMonthlyRevenueAll = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 0, period: 'monthly' };

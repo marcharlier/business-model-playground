@@ -19,7 +19,7 @@ export const fixedCostStorage = {
     projectId: string, 
     name: string, 
     amount: number, 
-    frequency: 'monthly' | 'annual' | 'upfront',
+    frequency: FixedCost['frequency'],
     category: string
   ): FixedCost => {
     const project = projectStorage.getProjectById(projectId);

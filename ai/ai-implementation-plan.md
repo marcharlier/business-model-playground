@@ -1,147 +1,131 @@
-# AI Implementation Plan for Business Model Playground
+### LLM Integration: First Test Plan (Vercel AI SDK + OpenAI)
 
-## Overview
-This plan outlines the steps to implement AI features in the Business Model Playground app using the Vercel AI SDK. The main feature will be generating suggested business costs to help users think of costs they might want to account for in their projects.
+This plan introduces a minimal, safe, and testable LLM feature using the Vercel AI SDK with OpenAI. It adds a new project-level page where a user can input a business idea, click a button to “Get ideas for costs,” and see structured, streamed responses rendered as simple cards.
 
-## Prerequisites
+References:
+- AI SDK overview: [ai-sdk.dev/docs/introduction](https://ai-sdk.dev/docs/introduction)
+- Object generation UI: [ai-sdk.dev/docs/ai-sdk-ui/object-generation](https://ai-sdk.dev/docs/ai-sdk-ui/object-generation)
 
-### 1. API Keys Setup
-- [ ] Sign up for an OpenAI account at https://platform.openai.com
-- [ ] Generate an API key from the OpenAI dashboard
-- [ ] Store the API key securely (we'll use environment variables)
+### Decisions Confirmed
+- Model: `openai('gpt-5-nano')`.
+- Page route: `projects/[id]/ai-lab`.
+- API route: global `api/ai/cost-ideas`.
+- Currency: default `USD` for first test.
+- Constraints: none for now; keep `maxDuration = 30s` for streaming.
 
-### 2. Dependencies Installation
-```bash
-npm install ai openai
-```
+### Scope (First Test)
+- Client page at `projects/[id]/ai-lab` with:
+  - A textarea for freeform business idea input.
+  - A “Get ideas for costs” button.
+  - A simple list of cards rendering the streamed, structured response.
+- Server API endpoint using AI SDK’s `streamObject` to return strongly-typed JSON via a `zod` schema.
+- Minimal prompt that asks the model to produce plausible cost ideas for a business.
+- Basic loading/error states; no persistence, auth changes, or navigation changes.
 
-## Implementation Steps
+### Architecture Overview
+- Client: React component uses AI SDK UI `useObject` (experimental) to stream structured object output that is validated with `zod` on the server.
+- Server: Next.js App Router API route calls OpenAI via AI SDK Core `streamObject`, returning a streamed text response (AI SDK’s text stream response protocol).
+- Schema: Shared `zod` schema in a co-located file so both client and server import the same types.
 
-### 1. Environment Setup
-- [ ] Create a `.env.local` file in the root directory
-- [ ] Add the OpenAI API key:
-  ```
-  OPENAI_API_KEY=your_api_key_here
-  ```
-- [ ] Add `.env.local` to `.gitignore` if not already there
+### Data Contract (Zod Schema)
+Server schema module (imported by both client and server):
+- `CostIdea` fields (initial version):
+  - `title: string` — short, human-readable name.
+  - `category: string` — e.g., “software”, “rent”, “marketing”, “equipment.”
+  - `kind: 'one-time' | 'monthly'` — cost type.
+  - `estimate: { amount: number; currency: string }` — rough estimate; currency initially fixed to `USD`.
+  - `description: string` — one or two sentences rationale.
+  - `confidence: 'low' | 'medium' | 'high'` — optional model confidence.
+- Root shape:
+  - `{ costIdeas: CostIdea[] }`
 
-### 2. AI Service Setup
-- [ ] Create a new file `lib/ai.ts` to handle AI-related functionality
-- [ ] Implement the OpenAI client configuration
-- [ ] Create type definitions for the structured data we'll generate
+This shape is deliberately simple so we can quickly render cards. We can later map categories to the app’s `fixedCostCategories` or enrich with product context.
 
-### 3. Cost Generation Feature
-- [ ] Create a new component `components/CostGenerator.tsx`
-- [ ] Implement a form to collect:
-  - Business type/industry
-  - Business size
-  - Location (optional)
-- [ ] Create a function to generate structured cost suggestions using the Vercel AI SDK
-- [ ] Implement error handling and loading states
+### File/Module Additions
+Packages to add:
+- `ai` (Vercel AI SDK Core)
+- `@ai-sdk/react` (AI SDK UI)
+- `@ai-sdk/openai` (OpenAI provider)
+- `zod`
 
-### 4. Integration with Existing App
-- [ ] Add the CostGenerator component to the fixed costs section
-- [ ] Create a "Generate Suggestions" button
-- [ ] Implement the logic to add generated costs to the project
-- [ ] Add proper TypeScript types for the generated data
+Environment:
+- Add `OPENAI_API_KEY` to `.env.local` (do not prefix with `NEXT_PUBLIC_`). No other config required for first test.
 
-### 5. UI/UX Enhancements
-- [ ] Add loading states during generation
-- [ ] Implement error handling UI
-- [ ] Add a way to edit generated costs before adding them
-- [ ] Add a way to save favorite generated costs
+New files:
+- `src/app/api/ai/cost-ideas/schema.ts`
+  - Exports `costIdeasSchema` (root) and `costIdeaSchema` (item) using `zod`.
+- `src/app/api/ai/cost-ideas/route.ts`
+  - Exposes `POST` handler.
+  - Uses `streamObject` with `openai(modelName)` to produce a validated streamed object matching `costIdeasSchema`.
+  - Accepts JSON body: `{ idea: string }` and optional `{ currency?: string }`.
+  - Returns `result.toTextStreamResponse()` (per AI SDK pattern).
+  - `export const maxDuration = 30` to allow streaming.
+- `src/app/projects/[id]/ai-lab/page.tsx`
+  - Client component using `experimental_useObject as useObject` from `@ai-sdk/react`.
+  - Imports `costIdeasSchema` from the API schema module.
+  - Renders: textarea, button, and streamed `object?.costIdeas` as cards using existing `src/components/ui/card.tsx`.
+  - Handles `isLoading`, `error`, and `stop()` (optional) per docs.
 
-## Code Structure
+### Prompting (Initial)
+System/Instructions (in server route):
+- “You generate plausible startup cost ideas. Output must strictly match the provided JSON schema. Do not include extra fields. If unsure, leave short descriptions but keep the structure valid.”
 
-### Example AI Service Setup (`lib/ai.ts`)
-```typescript
-import OpenAI from 'openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
+User content:
+- Business idea text from the form.
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+Guidance:
+- Ask for 6–12 items with a mix of one-time and monthly costs.
+- Keep descriptions concise; constrain amounts to be reasonable ranges.
 
-const costSchema = z.object({
-  costs: z.array(z.object({
-    name: z.string(),
-    category: z.string(),
-    estimatedAmount: z.number(),
-    frequency: z.enum(['monthly', 'annual']),
-    description: z.string(),
-  })),
-});
+### UX Flow
+1) User navigates to `projects/[id]/ai-lab`.
+2) Enters a business idea (textarea).
+3) Clicks “Get ideas for costs.”
+4) The client triggers `useObject.submit(idea)` to `POST /api/ai/cost-ideas`.
+5) Cards render progressively as `object.costIdeas` streams in.
+6) On completion, the user sees the full set; they can adjust the idea and retry.
 
-export async function generateCostSuggestions(params: {
-  businessType: string;
-  businessSize: string;
-  location?: string;
-}) {
-  const { object } = await generateObject({
-    model: openai('gpt-4'),
-    schema: costSchema,
-    prompt: `Generate a list of common business costs for a ${params.businessSize} ${params.businessType} business${params.location ? ` in ${params.location}` : ''}. Include both fixed and variable costs.`,
-  });
+### Error, Loading, and Cancel
+- Display a single generic error message. Avoid leaking server details.
+- Disable the button while loading; show a simple loading indicator.
+- Optional “Stop” button that calls `stop()` to cancel streaming (supported by `useObject`).
 
-  return object;
-}
-```
+### Model Choice & Settings (Initial)
+- Default: `openai('gpt-5-nano')` per preference.
+- Temperature: ~0.7 to encourage variety.
+- Max output tokens: modest, since schema constrains size.
 
-### Example Component Usage
-```typescript
-// components/CostGenerator.tsx
-'use client';
+### Security & Safety
+- No PII expected; still avoid echoing secrets.
+- Server validates output via `zod`; if validation fails, return a generic error.
+- Enforce reasonable `maxDuration` (30s) and consider minimal input length checks.
+- Client never calls OpenAI directly; it only calls the internal `/api/ai/cost-ideas` endpoint.
+- The API route runs exclusively server-side; `OPENAI_API_KEY` lives only in server env and is never sent to the client.
+- Do not use `NEXT_PUBLIC_` for secrets; keep them unprefixed so Next.js does not bundle them.
+- Sanitize errors returned to the client; log minimal metadata server-side (e.g., timestamps, request ids) without provider responses.
+- Keep prompts free of secrets; do not inject any secret or internal config values into model prompts.
+- Consider simple rate limiting and auth checks in future iterations; default same-origin helps restrict access during testing.
 
-import { useState } from 'react';
-import { generateCostSuggestions } from '@/lib/ai';
+### Test Plan
+- Local run with `.env.local` containing `OPENAI_API_KEY`.
+- Try several ideas (e.g., coffee shop, SaaS tool, food truck) and verify:
+  - Streamed cards appear progressively.
+  - All fields match schema and render without undefined errors.
+  - Error path: simulate network failure and confirm generic error renders.
 
-export function CostGenerator() {
-  const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState(null);
+### Future Enhancements (Post-Pilot)
+- Map `category` to `lib/constants/fixedCostCategories` to standardize.
+- Add CTA to convert selected cost ideas into actual fixed costs via existing storage.
+- Add project context (e.g., known products, location) to the prompt.
+- Persist the last response on a per-project basis.
+- Add telemetry and rate limiting.
 
-  const handleGenerate = async (formData: FormData) => {
-    setLoading(true);
-    try {
-      const result = await generateCostSuggestions({
-        businessType: formData.get('businessType') as string,
-        businessSize: formData.get('businessSize') as string,
-        location: formData.get('location') as string,
-      });
-      setSuggestions(result);
-    } catch (error) {
-      console.error('Failed to generate suggestions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+### Implementation Steps Checklist
+1) Install deps: `ai`, `@ai-sdk/react`, `@ai-sdk/openai`, `zod`.
+2) Add `OPENAI_API_KEY` to `.env.local`.
+3) Create `schema.ts` under `api/ai/cost-ideas` with the `zod` schemas.
+4) Create `route.ts` using AI SDK `streamObject` with OpenAI provider.
+5) Create `projects/[id]/ai-lab/page.tsx` using `useObject` and render cards.
+6) Manual test locally and iterate on the schema/prompt for quality.
 
-  // Component JSX here
-}
-```
 
-## Future Enhancements
-1. Add more context to cost generation (e.g., industry-specific costs)
-2. Implement cost optimization suggestions
-3. Add the ability to generate product/service suggestions
-4. Implement cost trend analysis
-5. Add the ability to generate business model comparisons
-
-## Security Considerations
-- Never expose API keys in client-side code
-- Implement rate limiting for API calls
-- Add proper error handling for API failures
-- Consider implementing a caching layer for common requests
-
-## Testing Plan
-1. Unit tests for the AI service functions
-2. Integration tests for the CostGenerator component
-3. End-to-end tests for the complete flow
-4. Load testing for the AI integration
-5. Error handling tests
-
-## Deployment Considerations
-- Ensure environment variables are properly set in Vercel
-- Monitor API usage and costs
-- Set up proper error tracking
-- Implement fallback UI for when AI features are unavailable 

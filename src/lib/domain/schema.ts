@@ -1,0 +1,61 @@
+import { z } from 'zod';
+
+export const Currency = z.enum(['GBP', 'USD', 'EUR']);
+
+export const AssociatedCost = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.number().nonnegative(),
+  productId: z.string(),
+  projectId: z.string(),
+});
+
+export const ProductSales = z.object({
+  volume: z.number().nonnegative(),
+  period: z.enum(['monthly', 'daily']),
+});
+
+export const Product = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number().nonnegative(),
+  associatedCosts: z.array(AssociatedCost),
+  projectId: z.string(),
+});
+
+// Note: 'upfront' is intentionally not part of FixedCost.frequency in the unified model
+export const FixedCost = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.number().nonnegative(),
+  frequency: z.enum(['monthly', 'annual']),
+  category: z.string(),
+  projectId: z.string(),
+});
+
+export const UpfrontCost = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.number().nonnegative(),
+  projectId: z.string(),
+});
+
+export const Project = z.object({
+  version: z.literal(1),
+  id: z.string(),
+  name: z.string(),
+  // Optional short description of the business. Capped to ~2 paragraphs.
+  description: z.string().max(600).optional(),
+  currency: Currency,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  fixedCosts: z.array(FixedCost),
+  upfrontCosts: z.array(UpfrontCost).default([]),
+  products: z.array(Product),
+  productSales: z.record(z.string(), ProductSales).default({}),
+  sharedId: z.string().optional(),
+});
+
+export const ProjectsArray = z.array(Project);
+
+

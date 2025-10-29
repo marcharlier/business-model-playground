@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
-import type { Currency, Project, UpfrontCost } from '@/lib/storage/types';
+import type { Currency, UpfrontCost } from '@/lib/storage/types';
 import { formatCurrency } from '@/lib/utils/currency';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -19,32 +19,9 @@ import { PencilIcon, Plus, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LongPressButton } from '@/components/ui/long-press-button';
+import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
 
-// Simple local storage API for upfront costs, stored within project.upfrontCosts
-function getUpfrontCosts(projectId: string): UpfrontCost[] {
-  const raw = localStorage.getItem('business-model-playground-projects');
-  if (!raw) return [];
-  try {
-    const all = JSON.parse(raw) as Project[];
-    const proj = all.find(p => p.id === projectId);
-    return proj?.upfrontCosts || [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUpfrontCosts(projectId: string, costs: UpfrontCost[]) {
-  const raw = localStorage.getItem('business-model-playground-projects');
-  if (!raw) return;
-  const all = JSON.parse(raw) as Project[];
-  const idx = all.findIndex(p => p.id === projectId);
-  if (idx === -1) return;
-  all[idx] = {
-    ...all[idx],
-    upfrontCosts: costs,
-  };
-  localStorage.setItem('business-model-playground-projects', JSON.stringify(all));
-}
+// Upfront costs are managed via storage helper
 
 function UpfrontCostForm({
   currency,
@@ -53,6 +30,8 @@ function UpfrontCostForm({
   onCancel,
   isSubmitting,
   onDelete,
+  prefillName,
+  prefillAmount,
 }: {
   currency: Currency;
   cost?: UpfrontCost;
@@ -60,9 +39,13 @@ function UpfrontCostForm({
   onCancel: () => void;
   isSubmitting: boolean;
   onDelete?: () => void;
+  prefillName?: string;
+  prefillAmount?: string;
 }) {
-  const [name, setName] = useState(cost?.name ?? '');
-  const [amount, setAmount] = useState(cost?.amount ? String(cost.amount) : '');
+  const [name, setName] = useState(cost?.name ?? prefillName ?? '');
+  const [amount, setAmount] = useState(
+    cost?.amount ? String(cost.amount) : prefillAmount ?? ''
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,17 +93,29 @@ function UpfrontCostForm({
 export default function UpfrontCostsPage() {
   const params = useParams();
   const projectId = params.id as string;
+  const searchParams = useSearchParams();
   const { project, isLoading, refreshProject } = useProject();
   const [costs, setCosts] = useState<UpfrontCost[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCost, setEditingCost] = useState<UpfrontCost | undefined>();
   const [open, setOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const [prefillName, setPrefillName] = useState<string | undefined>();
+  const [prefillAmount, setPrefillAmount] = useState<string | undefined>();
 
   useEffect(() => {
     if (!projectId) return;
-    setCosts(getUpfrontCosts(projectId));
-  }, [projectId]);
+    setCosts(upfrontCostStorage.getUpfrontCostsByProjectId(projectId));
+    const shouldOpen = searchParams.get('open') === 'true';
+    const pName = searchParams.get('prefillName') || undefined;
+    const pAmount = searchParams.get('prefillAmount') || undefined;
+    if (shouldOpen) {
+      setEditingCost(undefined);
+      setPrefillName(pName);
+      setPrefillAmount(pAmount);
+      setOpen(true);
+    }
+  }, [projectId, searchParams]);
 
   if (isLoading || !project) {
     return <div>Loading...</div>;
@@ -136,14 +131,13 @@ export default function UpfrontCostsPage() {
   const handleSave = (name: string, amount: number) => {
     setIsSubmitting(true);
     try {
-      let updated: UpfrontCost[];
       if (editingCost) {
-        updated = costs.map(c => c.id === editingCost.id ? { ...c, name, amount } : c);
+        const updatedCost: UpfrontCost = { ...editingCost, name, amount };
+        upfrontCostStorage.updateUpfrontCost(projectId, updatedCost);
       } else {
-        updated = [{ id: crypto.randomUUID(), name, amount, projectId }, ...costs];
+        upfrontCostStorage.createUpfrontCost(projectId, name, amount);
       }
-      setCosts(updated);
-      saveUpfrontCosts(projectId, updated);
+      setCosts(upfrontCostStorage.getUpfrontCostsByProjectId(projectId));
       refreshProject();
       setOpen(false);
     } finally {
@@ -152,9 +146,8 @@ export default function UpfrontCostsPage() {
   };
 
   const handleDelete = (id: string) => {
-    const updated = costs.filter(c => c.id !== id);
-    setCosts(updated);
-    saveUpfrontCosts(projectId, updated);
+    upfrontCostStorage.deleteUpfrontCost(projectId, id);
+    setCosts(upfrontCostStorage.getUpfrontCostsByProjectId(projectId));
     refreshProject();
   };
 
@@ -255,6 +248,8 @@ export default function UpfrontCostsPage() {
             handleDelete(editingCost.id);
             setOpen(false);
           }}
+          prefillName={prefillName}
+          prefillAmount={prefillAmount}
         />
       </FormWrapper>
     </div>

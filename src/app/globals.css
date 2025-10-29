@@ -1,7 +1,9 @@
 @tailwind base;
+
+@custom-variant dark (&:is(.dark *));
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -30,7 +32,7 @@
     --chart-4: 210 98% 78%;
     --chart-5: 212 97% 87%;
   }
- 
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -58,7 +60,7 @@
     --chart-5: 212 97% 87%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
@@ -87,5 +89,14 @@
   to {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

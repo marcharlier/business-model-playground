@@ -1,4 +1,6 @@
 import type { Project, Currency } from './types';
+import { Project as ProjectSchema } from '../domain/schema';
+import { migrateProject } from '../domain/migrations';
 import { generateUUID } from '@/lib/utils';
 
 const STORAGE_KEY = 'business-model-playground-projects';
@@ -20,7 +22,17 @@ export const projectStorage = {
     if (!projectsJson) return [];
     
     try {
-      return JSON.parse(projectsJson);
+      const raw = JSON.parse(projectsJson);
+      const arr: unknown[] = Array.isArray(raw) ? raw : [];
+      const migrated: Project[] = [];
+      for (const item of arr) {
+        try {
+          migrated.push(migrateProject(item));
+        } catch {
+          // skip invalid item
+        }
+      }
+      return migrated;
     } catch (error) {
       console.error('Error parsing projects from localStorage:', error);
       return [];
@@ -45,29 +57,35 @@ export const projectStorage = {
     if (typeof nameOrProject === 'string') {
       // Create a new empty project
       newProject = {
+        version: 1,
         id: generateUUID(),
         name: nameOrProject,
         currency,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         fixedCosts: [],
-        products: []
-      };
+        upfrontCosts: [],
+        products: [],
+        productSales: {},
+      } as Project;
     } else {
       // Import an existing project
+      const migrated = migrateProject(nameOrProject);
       newProject = {
-        ...nameOrProject,
+        ...migrated,
         id: generateUUID(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
+      } as Project;
     }
     
-    const updatedProjects = [...projects, newProject];
+    // validate before persisting
+    const validated = ProjectSchema.parse(newProject);
+    const updatedProjects = [...projects, validated];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
     notifyProjectChange();
     
-    return newProject;
+    return validated;
   },
   
   updateProject: (project: Project): Project => {
@@ -76,15 +94,14 @@ export const projectStorage = {
     }
     
     const projects = projectStorage.getAllProjects();
-    const updatedProjects = projects.map(p => 
-      p.id === project.id 
-        ? { ...project, updatedAt: new Date().toISOString() } 
-        : p
-    );
+    const now = new Date().toISOString();
+    const normalized = migrateProject({ ...project, updatedAt: now });
+    const validated = ProjectSchema.parse(normalized);
+    const updatedProjects = projects.map(p => p.id === project.id ? validated : p);
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
     notifyProjectChange();
-    return { ...project, updatedAt: new Date().toISOString() };
+    return validated;
   },
   
   deleteProject: (id: string): void => {

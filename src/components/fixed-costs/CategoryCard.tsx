@@ -47,7 +47,9 @@ function FixedCostForm({
   onDelete,
   isSubmitting,
   hideCancel,
-  preFilledName
+  preFilledName,
+  preFilledAmount,
+  preFilledFrequency
 }: {
   className?: string;
   cost?: FixedCost;
@@ -58,10 +60,16 @@ function FixedCostForm({
   isSubmitting: boolean;
   hideCancel?: boolean;
   preFilledName?: string;
+  preFilledAmount?: number;
+  preFilledFrequency?: 'monthly' | 'annual';
 }) {
   const [name, setName] = useState(cost?.name ?? preFilledName ?? '');
-  const [amount, setAmount] = useState(cost?.amount.toString() ?? '');
-  const [frequency, setFrequency] = useState<'monthly' | 'annual'>(cost?.frequency === 'annual' ? 'annual' : 'monthly');
+  const [amount, setAmount] = useState(
+    cost?.amount !== undefined ? cost.amount.toString() : preFilledAmount !== undefined ? String(preFilledAmount) : ''
+  );
+  const [frequency, setFrequency] = useState<'monthly' | 'annual'>(
+    cost?.frequency === 'annual' ? 'annual' : preFilledFrequency ?? 'monthly'
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +178,8 @@ interface CategoryCardProps {
   isSelected?: boolean;
   onSelectionChange?: (selected: boolean) => void;
   preFilledName?: string;
+  preFilledAmount?: number;
+  preFilledFrequency?: 'monthly' | 'annual';
 }
 
 export function CategoryCard({
@@ -182,7 +192,9 @@ export function CategoryCard({
   onCostDeleted,
   isSelected = false,
   onSelectionChange,
-  preFilledName
+  preFilledName,
+  preFilledAmount,
+  preFilledFrequency
 }: CategoryCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
@@ -276,6 +288,8 @@ export function CategoryCard({
         isSubmitting={isSubmitting}
         hideCancel={!isDesktop}
         preFilledName={preFilledName}
+        preFilledAmount={preFilledAmount}
+        preFilledFrequency={preFilledFrequency}
       />
     );
 

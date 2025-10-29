@@ -137,7 +137,6 @@ export default function DashboardPage() {
   
   // Calculate total monthly running costs (for display purposes - includes annual amortized)
   const totalMonthlyRunningCosts = project.fixedCosts.reduce((total, cost) => {
-    if (cost.frequency === 'upfront') return total; // upfront not part of monthly running costs
     const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
     return total + monthlyAmount;
   }, 0);
@@ -151,10 +150,8 @@ export default function DashboardPage() {
     return total;
   }, 0);
 
-  // Up-front costs come from dedicated array; include any legacy 'upfront' fixed costs for backward compatibility
-  const totalUpfrontFixedCosts = (
-    ((project as unknown as { upfrontCosts?: Array<{ amount: number }> }).upfrontCosts || []).reduce((sum, c) => sum + (c?.amount || 0), 0)
-  ) + project.fixedCosts.reduce((total, cost) => total + (cost.frequency === 'upfront' ? cost.amount : 0), 0);
+  // Up-front costs come from dedicated array
+  const totalUpfrontFixedCosts = (project.upfrontCosts || []).reduce((sum, c) => sum + (c?.amount || 0), 0);
 
 
 

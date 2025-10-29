@@ -6,6 +6,7 @@ import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { FIXED_COST_CATEGORIES } from '@/lib/constants/fixedCostCategories';
 import { CategoryCard } from '@/components/fixed-costs/CategoryCard';
 import { CostSuggestionsSheet } from '@/components/fixed-costs/CostSuggestionsSheet';
+import { AISuggestionsSheet } from '@/components/fixed-costs/AISuggestionsSheet';
 import type { FixedCost } from '@/lib/storage/types';
 import type { FixedCostCategory } from '@/lib/constants/fixedCostCategories';
 import type { CostSuggestion } from '@/lib/constants/cost-suggestions';
@@ -21,6 +22,8 @@ export default function FixedCostsPage() {
   const [totalMonthlyCost, setTotalMonthlyCost] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [preFilledName, setPreFilledName] = useState<string | null>(null);
+  const [preFilledAmount, setPreFilledAmount] = useState<number | null>(null);
+  const [preFilledFrequency, setPreFilledFrequency] = useState<'monthly' | 'annual' | null>(null);
 
   useEffect(() => {
     const loadFixedCosts = async () => {
@@ -50,6 +53,8 @@ export default function FixedCostsPage() {
     calculateTotalMonthlyCost(costs);
     refreshProject();
     setPreFilledName(null);
+    setPreFilledAmount(null);
+    setPreFilledFrequency(null);
   };
 
   const handleCostUpdated = () => {
@@ -69,6 +74,8 @@ export default function FixedCostsPage() {
   const handleSuggestionSelected = (suggestion: CostSuggestion) => {
     setSelectedCategory(suggestion.categoryId);
     setPreFilledName(suggestion.name);
+    setPreFilledAmount(null);
+    setPreFilledFrequency(null);
   };
 
   if (isLoading || !project) {
@@ -98,6 +105,14 @@ export default function FixedCostsPage() {
           onSelectSuggestion={handleSuggestionSelected} 
           existingCosts={fixedCosts}
         />
+        <AISuggestionsSheet
+          onAddFixedCost={({ name, categoryId, amount, frequency }) => {
+            setSelectedCategory(categoryId);
+            setPreFilledName(name);
+            setPreFilledAmount(amount ?? null);
+            setPreFilledFrequency(frequency ?? 'monthly');
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -118,9 +133,13 @@ export default function FixedCostsPage() {
                 setSelectedCategory(selected ? category.id : null);
                 if (!selected) {
                   setPreFilledName(null);
+                    setPreFilledAmount(null);
+                    setPreFilledFrequency(null);
                 }
               }}
-              preFilledName={selectedCategory === category.id ? preFilledName ?? undefined : undefined}
+                preFilledName={selectedCategory === category.id ? preFilledName ?? undefined : undefined}
+                preFilledAmount={selectedCategory === category.id ? preFilledAmount ?? undefined : undefined}
+                preFilledFrequency={selectedCategory === category.id ? preFilledFrequency ?? undefined : undefined}
             />
           );
         })}

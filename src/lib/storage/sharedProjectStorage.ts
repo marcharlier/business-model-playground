@@ -1,14 +1,16 @@
 import { supabase, withUserContext } from '../supabase/client';
 import type { Project } from './types';
+import { migrateProject } from '../domain/migrations';
 import { avatarStorage } from './avatarStorage';
 
 export const sharedProjectStorage = {
   async createSharedProject(project: Project, authorAvatar: string) {
     return withUserContext(async () => {
+      const normalized = migrateProject(project);
       const { data, error } = await supabase
         .from('shared_projects')
         .insert({
-          project_data: project,
+          project_data: normalized,
           author_avatar: authorAvatar,
         })
         .select('*')
@@ -20,7 +22,7 @@ export const sharedProjectStorage = {
 
       return {
         id: data.id,
-        projectData: data.project_data as Project,
+        projectData: migrateProject(data.project_data) as Project,
         authorAvatar: data.author_avatar as string,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -43,9 +45,10 @@ export const sharedProjectStorage = {
       throw new Error('Failed to fetch shared project');
     }
 
+    const normalized = migrateProject(data.project_data);
     return {
       id: data.id,
-      projectData: data.project_data as Project,
+      projectData: normalized as Project,
       authorAvatar: data.author_avatar as string,
       created_at: data.created_at,
       updated_at: data.updated_at,
@@ -86,7 +89,7 @@ export const sharedProjectStorage = {
       const { data, error } = await supabase
         .from('shared_projects')
         .update({
-          project_data: project,
+          project_data: migrateProject(project),
           updated_at: now,
         })
         .eq('id', id)
@@ -107,7 +110,7 @@ export const sharedProjectStorage = {
 
       return {
         id: data.id,
-        projectData: data.project_data as Project,
+        projectData: migrateProject(data.project_data) as Project,
         authorAvatar: data.author_avatar as string,
         created_at: data.created_at,
         updated_at: data.updated_at,

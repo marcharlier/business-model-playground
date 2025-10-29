@@ -36,6 +36,9 @@ import { cn } from '@/lib/utils';
 import { LongPressButton } from '@/components/ui/long-press-button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ShareButton } from '@/components/project/ShareButton';
+import { Textarea } from '@/components/ui/textarea';
+
+const MAX_DESCRIPTION_LENGTH = 600;
 
 function ProjectEditForm({ 
   className,
@@ -46,17 +49,18 @@ function ProjectEditForm({
 }: {
   className?: string;
   project: Project;
-  onSave: (name: string, currency: Currency) => void;
+  onSave: (name: string, currency: Currency, description: string) => void;
   onDelete: () => void;
   isSubmitting: boolean;
 }) {
   const [name, setName] = useState(project.name);
   const [currency, setCurrency] = useState<Currency>(project.currency);
+  const [description, setDescription] = useState(project.description ?? "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSave(name.trim(), currency);
+      onSave(name.trim(), currency, description.trim());
     }
   };
 
@@ -87,6 +91,19 @@ function ProjectEditForm({
             <SelectItem value="EUR">EUR (€)</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="business-description">Business description</Label>
+        <Textarea
+          id="business-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={MAX_DESCRIPTION_LENGTH}
+          disabled={isSubmitting}
+        />
+        <div className="text-xs text-muted-foreground text-right">
+          {description.length}/{MAX_DESCRIPTION_LENGTH}
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         <Button type="submit" disabled={isSubmitting || !name.trim()}>
@@ -128,13 +145,14 @@ function ProjectEditDialog({
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const handleSave = async (name: string, currency: Currency) => {
+  const handleSave = async (name: string, currency: Currency, description: string) => {
     setIsSubmitting(true);
     try {
       projectStorage.updateProject({
         ...project,
         name,
-        currency
+        currency,
+        description
       });
       refreshProject();
       setOpen(false);
