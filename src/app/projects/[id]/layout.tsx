@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectProvider, useProject } from '@/lib/context/ProjectContext';
-import { PencilIcon, Trash2, List } from 'lucide-react';
+import { PencilIcon, Trash2, List, LayoutPanelTop } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -236,6 +236,8 @@ function ProjectLayoutContent({
   const projectId = params?.id as string;
   const { project, isLoading, refreshProject } = useProject();
 
+  const isCanvasView = pathname.includes('/canvas-view');
+
   // Determine the active tab based on the current path
   const getActiveTab = () => {
     if (pathname.includes('/fixed-costs')) return 'fixed-costs';
@@ -305,6 +307,17 @@ function ProjectLayoutContent({
               }
             />
             <ShareButton project={project} />
+            <Button
+              asChild
+              variant={isCanvasView ? 'default' : 'ghost'}
+              size="sm"
+              className="gap-2"
+            >
+              <Link href={`/projects/${projectId}/canvas-view`}>
+                <LayoutPanelTop className="h-4 w-4" />
+                Canvas view (beta)
+              </Link>
+            </Button>
           </div>
           {/* Back Button - Desktop */}
           <div className="hidden sm:block">

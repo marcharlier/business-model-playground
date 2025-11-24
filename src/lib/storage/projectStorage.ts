@@ -55,18 +55,28 @@ export const projectStorage = {
     let newProject: Project;
     
     if (typeof nameOrProject === 'string') {
-      // Create a new empty project
+      // Create a new empty project (version 2 structure)
       newProject = {
-        version: 1,
+        version: 2,
         id: generateUUID(),
         name: nameOrProject,
         currency,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        fixedCosts: [],
-        upfrontCosts: [],
-        products: [],
-        productSales: {},
+        costStructure: {
+          fixedRunningCosts: [],
+          upfrontCosts: [],
+        },
+        revenueStreams: {
+          products: [],
+        },
+        partnerships: [],
+        activities: [],
+        valueProposition: [],
+        customerRelationships: [],
+        customerSegments: [],
+        resources: [],
+        channels: [],
       } as Project;
     } else {
       // Import an existing project

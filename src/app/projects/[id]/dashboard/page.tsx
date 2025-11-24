@@ -41,28 +41,37 @@ export default function DashboardPage() {
       // Initialize product sales from project data or defaults
       const initialSales: Record<string, ProductSales> = {};
       
-      for (const product of project.products) {
-        // Use stored values if available, otherwise default to 1 unit monthly
-        initialSales[product.id] = project.productSales?.[product.id] || {
+      for (const product of project.revenueStreams.products) {
+        // Use stored values if available (from embedded sales or productSales), otherwise default to 1 unit monthly
+        initialSales[product.id] = product.sales || {
           volume: 1,
           period: 'monthly'
         };
       }
       
       // Only update if we have products to initialize and we haven't initialized yet
-      if (project.products.length > 0 && !initialized) {
+      if (project.revenueStreams.products.length > 0 && !initialized) {
         setProductSales(initialSales);
         setInitialized(true);
       }
     }
   }, [project, initialized]);
 
-  // Save sales volumes to localStorage when they change
+  // Save sales volumes to products when they change
   useEffect(() => {
     if (project && initialized && Object.keys(productSales).length > 0) {
+      // Update sales in products
+      const updatedProducts = project.revenueStreams.products.map(product => {
+        const sales = productSales[product.id];
+        return sales ? { ...product, sales } : product;
+      });
+      
       const updatedProject = {
         ...project,
-        productSales
+        revenueStreams: {
+          ...project.revenueStreams,
+          products: updatedProducts
+        }
       };
       projectStorage.updateProject(updatedProject);
     }
@@ -93,7 +102,7 @@ export default function DashboardPage() {
     if (!project) return;
     
     // Find the product to update
-    const productToUpdate = project.products.find(p => p.id === productId);
+    const productToUpdate = project.revenueStreams.products.find(p => p.id === productId);
     if (!productToUpdate) return;
 
     // If the value is empty or only whitespace, set price to 0
@@ -126,23 +135,23 @@ export default function DashboardPage() {
   }
 
   // Check if there are any products or fixed costs
-  const hasProducts = project.products.length > 0;
-  const hasFixedCosts = project.fixedCosts.length > 0;
+  const hasProducts = project.revenueStreams.products.length > 0;
+  const hasFixedCosts = project.costStructure.fixedRunningCosts.length > 0;
   const hasData = hasProducts || hasFixedCosts;
 
   // Calculate total monthly fixed costs (only true monthly costs, not annual)
-  const totalMonthlyFixedCosts = project.fixedCosts.reduce((total, cost) => {
+  const totalMonthlyFixedCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
     return cost.frequency === 'monthly' ? total + cost.amount : total;
   }, 0);
   
   // Calculate total monthly running costs (for display purposes - includes annual amortized)
-  const totalMonthlyRunningCosts = project.fixedCosts.reduce((total, cost) => {
+  const totalMonthlyRunningCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
     const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
     return total + monthlyAmount;
   }, 0);
 
   // Calculate total annual fixed costs
-  const totalAnnualFixedCosts = project.fixedCosts.reduce((total, cost) => {
+  const totalAnnualFixedCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
     // Only include costs that are specifically marked as annual
     if (cost.frequency === 'annual') {
       return total + cost.amount;
@@ -151,21 +160,21 @@ export default function DashboardPage() {
   }, 0);
 
   // Up-front costs come from dedicated array
-  const totalUpfrontFixedCosts = (project.upfrontCosts || []).reduce((sum, c) => sum + (c?.amount || 0), 0);
+  const totalUpfrontFixedCosts = (project.costStructure.upfrontCosts || []).reduce((sum, c) => sum + (c?.amount || 0), 0);
 
 
 
   // Calculate total monthly variable costs
-  const totalMonthlyVariableCosts = project.products.reduce((total, product) => {
+  const totalMonthlyVariableCosts = project.revenueStreams.products.reduce((total, product) => {
     const productCost = calculateProductTotalCost(product);
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+    const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (productCost * monthlyVolume);
   }, 0);
 
   // Calculate total monthly revenue
-  const totalMonthlyRevenue = project.products.reduce((total, product) => {
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+  const totalMonthlyRevenue = project.revenueStreams.products.reduce((total, product) => {
+    const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (product.price * monthlyVolume);
   }, 0);
@@ -183,8 +192,8 @@ export default function DashboardPage() {
     return (
       <div>
         <OnboardingProgress 
-          hasCosts={project.fixedCosts.length > 0}
-          hasProducts={project.products.length > 0}
+          hasCosts={project.costStructure.fixedRunningCosts.length > 0}
+          hasProducts={project.revenueStreams.products.length > 0}
           projectId={project.id}
           currentPage="dashboard"
         />
@@ -256,8 +265,8 @@ export default function DashboardPage() {
   return (
     <div>
       <OnboardingProgress 
-        hasCosts={project.fixedCosts.length > 0}
-        hasProducts={project.products.length > 0}
+        hasCosts={project.costStructure.fixedRunningCosts.length > 0}
+        hasProducts={project.revenueStreams.products.length > 0}
         projectId={project.id}
         currentPage="dashboard"
       />
@@ -269,10 +278,10 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground px-4">How long will it take to recoup your upfront costs?</p>
           </div>
           <BreakEvenStatement
-            products={project.products}
+            products={project.revenueStreams.products}
             productSales={productSales}
-            fixedCosts={project.fixedCosts}
-            upfrontCosts={project.upfrontCosts || []}
+            fixedCosts={project.costStructure.fixedRunningCosts}
+            upfrontCosts={project.costStructure.upfrontCosts || []}
           />
           {/* Monthly Projection Chart */}
           <Card>
@@ -298,7 +307,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <MonthlyProjectionChart 
-                products={project.products}
+                products={project.revenueStreams.products}
                 productSales={productSales}
                 fixedCosts={{
                   monthly: totalMonthlyFixedCosts,
@@ -378,7 +387,7 @@ export default function DashboardPage() {
               {/* Product Controls */}
               <div className="px-6">
                 <ProductControls 
-                  products={project.products}
+                  products={project.revenueStreams.products}
                   productSales={productSales}
                   currency={project.currency}
                   onSalesVolumeChange={handleSalesVolumeChange}
@@ -443,7 +452,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <ProfitabilityChart 
-                  products={project.products}
+                  products={project.revenueStreams.products}
                   productSales={productSales}
                   fixedCosts={totalMonthlyRunningCosts}
                   currency={project.currency}
@@ -460,7 +469,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <RevenueBreakdownChart 
-                products={project.products}
+                products={project.revenueStreams.products}
                 productSales={productSales}
                 currency={project.currency}
               />

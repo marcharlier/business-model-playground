@@ -11,7 +11,10 @@ class ProductStorage {
 
     const updatedProject = {
       ...project,
-      products: [...project.products, product]
+      revenueStreams: {
+        ...project.revenueStreams,
+        products: [...project.revenueStreams.products, product]
+      }
     };
 
     projectStorage.updateProject(updatedProject);
@@ -23,13 +26,16 @@ class ProductStorage {
       throw new Error(`Project with ID ${projectId} not found`);
     }
 
-    const updatedProducts = project.products.map(p => 
+    const updatedProducts = project.revenueStreams.products.map(p => 
       p.id === product.id ? product : p
     );
 
     const updatedProject = {
       ...project,
-      products: updatedProducts
+      revenueStreams: {
+        ...project.revenueStreams,
+        products: updatedProducts
+      }
     };
 
     projectStorage.updateProject(updatedProject);
@@ -41,7 +47,7 @@ class ProductStorage {
       console.error('Project not found:', projectId);
       return [];
     }
-    return project.products || [];
+    return project.revenueStreams.products || [];
   }
 
   duplicateProduct(productId: string, projectId: string): Product | null {
@@ -52,7 +58,7 @@ class ProductStorage {
       return null;
     }
 
-    const product = (project.products || []).find(p => p.id === productId);
+    const product = (project.revenueStreams.products || []).find(p => p.id === productId);
     if (!product) {
       console.log('Product not found:', productId);
       return null;
@@ -69,12 +75,16 @@ class ProductStorage {
         productId: newId,
         projectId
       })),
-      projectId
+      projectId,
+      sales: product.sales
     };
 
     const updatedProject = {
       ...project,
-      products: [...(project.products || []), newProduct]
+      revenueStreams: {
+        ...project.revenueStreams,
+        products: [...(project.revenueStreams.products || []), newProduct]
+      }
     };
     projectStorage.updateProject(updatedProject);
     console.log('Product duplicated and project updated');
@@ -90,10 +100,13 @@ class ProductStorage {
       return false;
     }
 
-    const updatedProducts = (project.products || []).filter(p => p.id !== productId);
+    const updatedProducts = (project.revenueStreams.products || []).filter(p => p.id !== productId);
     const updatedProject = {
       ...project,
-      products: updatedProducts
+      revenueStreams: {
+        ...project.revenueStreams,
+        products: updatedProducts
+      }
     };
     projectStorage.updateProject(updatedProject);
     console.log('Product deleted and project updated');

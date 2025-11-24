@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Product, AssociatedCost } from '@/lib/storage/types';
+import type { Product, AssociatedCost, ProductSales } from '@/lib/storage/types';
 import { formatCurrency } from '@/lib/utils/currency';
 import { 
   calculateProfitMargin, 
@@ -49,7 +49,7 @@ export default function ProductsPage() {
   const handleDuplicate = (productId: string) => {
     try {
       // Find the product to duplicate
-      const productToDuplicate = project?.products.find(p => p.id === productId);
+      const productToDuplicate = project?.revenueStreams.products.find(p => p.id === productId);
       if (!productToDuplicate) return;
       
       // Create a copy of the product with "(Copy)" appended to the name
@@ -101,7 +101,7 @@ export default function ProductsPage() {
     setIsAddingNewProduct(true);
   };
 
-  const handleSave = async (name: string, price: number, associatedCosts: AssociatedCost[]) => {
+  const handleSave = async (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => {
     if (!project) return;
 
     setIsSubmitting(true);
@@ -118,7 +118,8 @@ export default function ProductsPage() {
             productId: '', // Will be set when the product is created
             projectId: project.id
           })),
-          projectId: project.id
+          projectId: project.id,
+          sales
         };
 
         // Add the product to storage
@@ -143,7 +144,8 @@ export default function ProductsPage() {
           ...productToUpdate,
           name,
           price,
-          associatedCosts
+          associatedCosts,
+          sales
         };
 
         // Update the product in storage
@@ -179,7 +181,7 @@ export default function ProductsPage() {
   return (
     <div>
       <OnboardingProgress 
-        hasCosts={project.fixedCosts.length > 0}
+        hasCosts={project.costStructure.fixedRunningCosts.length > 0}
         hasProducts={products.length > 0}
         projectId={project.id}
         currentPage="products"

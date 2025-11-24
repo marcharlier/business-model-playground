@@ -11,22 +11,22 @@ interface BusinessStatusSummaryProps {
 
 export function BusinessStatusSummary({ project, productSales, showTitle = false }: BusinessStatusSummaryProps) {
   // Calculate total monthly operating costs
-  const totalMonthlyFixedCosts = project.fixedCosts.reduce((total, cost) => {
+  const totalMonthlyFixedCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
     const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
     return total + monthlyAmount;
   }, 0);
 
   // Calculate total monthly variable costs
-  const totalMonthlyVariableCosts = project.products.reduce((total, product) => {
+  const totalMonthlyVariableCosts = project.revenueStreams.products.reduce((total, product) => {
     const productCost = calculateProductTotalCost(product);
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+    const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (productCost * monthlyVolume);
   }, 0);
 
   // Calculate total monthly revenue
-  const totalMonthlyRevenue = project.products.reduce((total, product) => {
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+  const totalMonthlyRevenue = project.revenueStreams.products.reduce((total, product) => {
+    const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (product.price * monthlyVolume);
   }, 0);

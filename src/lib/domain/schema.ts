@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 export const Currency = z.enum(['GBP', 'USD', 'EUR']);
 
+export const CanvasItem = z.object({
+  id: z.string(),
+  text: z.string(),
+});
+
 export const AssociatedCost = z.object({
   id: z.string(),
   name: z.string(),
@@ -21,6 +26,7 @@ export const Product = z.object({
   price: z.number().nonnegative(),
   associatedCosts: z.array(AssociatedCost),
   projectId: z.string(),
+  sales: ProductSales.optional(),
 });
 
 // Note: 'upfront' is intentionally not part of FixedCost.frequency in the unified model
@@ -40,8 +46,17 @@ export const UpfrontCost = z.object({
   projectId: z.string(),
 });
 
+export const CostStructure = z.object({
+  fixedRunningCosts: z.array(FixedCost),
+  upfrontCosts: z.array(UpfrontCost).default([]),
+});
+
+export const RevenueStreams = z.object({
+  products: z.array(Product),
+});
+
 export const Project = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   id: z.string(),
   name: z.string(),
   // Optional short description of the business. Capped to ~2 paragraphs.
@@ -49,10 +64,15 @@ export const Project = z.object({
   currency: Currency,
   createdAt: z.string(),
   updatedAt: z.string(),
-  fixedCosts: z.array(FixedCost),
-  upfrontCosts: z.array(UpfrontCost).default([]),
-  products: z.array(Product),
-  productSales: z.record(z.string(), ProductSales).default({}),
+  costStructure: CostStructure,
+  revenueStreams: RevenueStreams,
+  partnerships: z.array(CanvasItem).default([]),
+  activities: z.array(CanvasItem).default([]),
+  valueProposition: z.array(CanvasItem).default([]),
+  customerRelationships: z.array(CanvasItem).default([]),
+  customerSegments: z.array(CanvasItem).default([]),
+  resources: z.array(CanvasItem).default([]),
+  channels: z.array(CanvasItem).default([]),
   sharedId: z.string().optional(),
 });
 

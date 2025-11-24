@@ -32,14 +32,14 @@ export function AISuggestionsSheet({ onAddFixedCost }: AISuggestionsSheetProps) 
       name: project.name,
       description: project.description ?? "",
       currency: project.currency,
-      fixedCosts: project.fixedCosts.map((c) => ({
+      fixedCosts: project.costStructure.fixedRunningCosts.map((c) => ({
         name: c.name,
         amount: c.amount,
         frequency: c.frequency,
         category: c.category,
       })),
-      upfrontCosts: project.upfrontCosts.map((c) => ({ name: c.name, amount: c.amount })),
-      products: project.products.map((p) => ({ name: p.name, price: p.price })),
+      upfrontCosts: project.costStructure.upfrontCosts.map((c) => ({ name: c.name, amount: c.amount })),
+      products: project.revenueStreams.products.map((p) => ({ name: p.name, price: p.price })),
     };
   }
 

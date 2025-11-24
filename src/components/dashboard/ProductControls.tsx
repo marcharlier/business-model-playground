@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus, Settings2 } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
 import { formatProfitMargin } from '@/lib/utils/financial';
 import { calculateProductTotalCost } from '@/lib/utils/financial';
 import type { Product, Currency, ProductSales, Project } from '@/lib/storage/types';
-import { Switch } from '@/components/ui/switch';
-import { Skeleton } from '@/components/ui/skeleton';
 import { CardTitle } from '@/components/ui/card';
 import {
   Drawer,
@@ -20,9 +16,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import React from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { ProductPriceControl } from '@/components/products/controls/ProductPriceControl';
+import { ProductSalesControl } from '@/components/products/controls/ProductSalesControl';
 
 interface ProductControlsProps {
   products: Product[];
@@ -62,101 +58,31 @@ function ProductControlForm({
     setInputValue(product.price === 0 ? '' : product.price.toString());
   }, [product.price]);
 
+  const handlePriceChange = useCallback(
+    (nextValue: string) => {
+      setInputValue(nextValue);
+      onPriceChange(product.id, nextValue);
+    },
+    [onPriceChange, product.id]
+  );
+
   return (
     <div className="space-y-4">
-      <div>
-        <Label htmlFor={`price-${product.id}`} className="text-sm">Change price</Label>
-        <div className="flex items-center space-x-2 mt-1 justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 text-muted-foreground"
-            onClick={() => {
-              const newValue = (product.price * 0.95).toFixed(2);
-              setInputValue(newValue);
-              onPriceChange(product.id, newValue);
-            }}
-          >
-            <span className="text-sm">-5%</span>
-          </Button>
-          <div className="flex-1 flex items-center space-x-1 max-w-36">
-            <CurrencyInput
-              id={`price-${product.id}`}
-              currency={currency}
-              value={inputValue}
-              onChange={(e) => {
-                setInputValue(e.target.value);
-                onPriceChange(product.id, e.target.value);
-              }}
-              showFree
-              className="h-10 text-base"
-            />
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 text-muted-foreground"
-            onClick={() => {
-              const newValue = (product.price * 1.05).toFixed(2);
-              setInputValue(newValue);
-              onPriceChange(product.id, newValue);
-            }}
-          >
-            <span className="text-sm">+5%</span>
-          </Button>
-        </div>
-      </div>
+      <ProductPriceControl
+        id={`price-${product.id}`}
+        currency={currency}
+        label="Change price"
+        value={inputValue}
+        onChange={handlePriceChange}
+      />
 
-      <div>
-        <Label htmlFor={`sales-${product.id}`} className="text-sm">
-          {sales.period === 'monthly' ? 'Monthly' : 'Daily'} Sales
-        </Label>
-        <div className="flex items-center space-x-2 mt-1 justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 text-muted-foreground hover:text-foreground"
-            onClick={() => onSalesVolumeChange(product.id, Math.max(0, sales.volume - 1))}
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-          <Input
-            id={`sales-${product.id}`}
-            type="number"
-            min="0"
-            step="1"
-            value={sales.volume === 0 ? '' : sales.volume}
-            placeholder="0"
-            onChange={(e) => {
-              const value = e.target.value === '' ? 0 : Math.max(0, Number.parseInt(e.target.value));
-              onSalesVolumeChange(product.id, value);
-            }}
-            className="h-10 text-base flex-1 max-w-36"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 text-muted-foreground hover:text-foreground"
-            onClick={() => onSalesVolumeChange(product.id, sales.volume + 1)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex items-center space-x-2 mt-4 justify-center">
-          <span className="text-sm">Daily</span>
-          {sales ? (
-            <Switch
-              id={`period-${product.id}`}
-              checked={sales.period === 'monthly'}
-              onCheckedChange={(checked: boolean) => onSalesPeriodChange(product.id, checked ? 'monthly' : 'daily')}
-              className="h-6 w-11"
-            />
-          ) : (
-            <Skeleton className="h-6 w-11 rounded-full" />
-          )}
-          <span className="text-sm">Monthly</span>
-        </div>
-      </div>
+      <ProductSalesControl
+        id={`sales-${product.id}`}
+        label="Expected sales"
+        sales={sales}
+        onVolumeChange={(value) => onSalesVolumeChange(product.id, value)}
+        onPeriodChange={(period) => onSalesPeriodChange(product.id, period)}
+      />
 
       <div className="text-sm p-2 bg-muted rounded">
         <p className="font-medium">Break-Even Analysis</p>
@@ -209,7 +135,7 @@ export function ProductControls({
   const averageMargin = calculateAverageMargin();
   const getMarginStatus = () => {
     // Calculate total monthly fixed costs (monthly + annual amortized)
-    const totalMonthlyFixedCosts = project.fixedCosts.reduce((total: number, cost: { frequency: string; amount: number }) => {
+    const totalMonthlyFixedCosts = project.costStructure.fixedRunningCosts.reduce((total: number, cost: { frequency: string; amount: number }) => {
       const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
       return total + monthlyAmount;
     }, 0);
@@ -263,8 +189,8 @@ export function ProductControls({
 
   // Compute upfront recoup text at the scenario level
   const upfrontTotals = {
-    upfront: (project.upfrontCosts || []).reduce((sum, c) => sum + c.amount, 0),
-    monthlyFixed: project.fixedCosts.reduce((sum, cost) => sum + (cost.frequency === 'annual' ? cost.amount / 12 : cost.amount), 0),
+    upfront: (project.costStructure.upfrontCosts || []).reduce((sum, c) => sum + c.amount, 0),
+    monthlyFixed: project.costStructure.fixedRunningCosts.reduce((sum, cost) => sum + (cost.frequency === 'annual' ? cost.amount / 12 : cost.amount), 0),
   };
 
   const totalMonthlyRevenueAll = products.reduce((total, product) => {

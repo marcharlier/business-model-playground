@@ -31,11 +31,11 @@ export function OnboardingProgress({
 		return null;
 	}
 
-	const operatingCostsSet = (hasOperatingCosts ?? hasCosts) ?? (project.fixedCosts.length > 0);
-	const upfrontList = (project as unknown as { upfrontCosts?: Array<{ amount: number }> }).upfrontCosts ?? [];
+	const operatingCostsSet = (hasOperatingCosts ?? hasCosts) ?? (project.costStructure.fixedRunningCosts.length > 0);
+	const upfrontList = project.costStructure.upfrontCosts ?? [];
 	const upfrontCostsSet = hasUpfrontCosts ?? (upfrontList.length > 0);
 	const upfrontTotal = upfrontList.reduce((sum: number, c: { amount: number }) => sum + (c?.amount || 0), 0);
-	const monthlyOperatingTotal = project.fixedCosts.reduce((acc, cost) => acc + (cost.frequency === 'annual' ? cost.amount / 12 : cost.amount), 0);
+	const monthlyOperatingTotal = project.costStructure.fixedRunningCosts.reduce((acc, cost) => acc + (cost.frequency === 'annual' ? cost.amount / 12 : cost.amount), 0);
 
 	return (
 		<div className={cn("w-full space-y-4 mb-8", className)}>
@@ -114,7 +114,7 @@ export function OnboardingProgress({
 					<h3 className="pl-2 font-medium text-sm sm:text-base">Products & COGS</h3>
           </div>
 					<p className="hidden sm:block text-sm text-muted-foreground mt-1">
-						{hasProducts ? `${project.products.length} product${project.products.length > 1 ? 's' : ''} added.` : 'Add your products and services.'}
+						{hasProducts ? `${project.revenueStreams.products.length} product${project.revenueStreams.products.length > 1 ? 's' : ''} added.` : 'Add your products and services.'}
 					</p>
 				</Link>
 

@@ -17,14 +17,14 @@ import {
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { ProductForm } from './ProductForm';
-import type { Product, AssociatedCost, Currency } from '@/lib/storage/types';
+import type { Product, AssociatedCost, Currency, ProductSales } from '@/lib/storage/types';
 
 interface ProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product?: Product;
   currency: Currency;
-  onSave: (name: string, price: number, associatedCosts: AssociatedCost[]) => void;
+  onSave: (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => void;
   isSubmitting: boolean;
   onDelete?: () => void;
 }

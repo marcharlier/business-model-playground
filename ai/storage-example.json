@@ -37,7 +37,11 @@
               "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
             }
           ],
-          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d",
+          "sales": {
+            "volume": 10,
+            "period": "monthly"
+          }
         },
         {
           "id": "80f2f792-15da-483d-a0d9-da9f929614f6",
@@ -59,19 +63,14 @@
               "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
             }
           ],
-          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d"
+          "projectId": "d59e7152-116a-48e5-83a9-f0dd0b96ce0d",
+          "sales": {
+            "volume": 5,
+            "period": "monthly"
+          }
         }
       ],
-      "productSales": {
-        "552a38b7-dc2b-4e1c-88ca-8ae60f86b5d3": {
-          "volume": 10,
-          "period": "monthly"
-        },
-        "80f2f792-15da-483d-a0d9-da9f929614f6": {
-          "volume": 5,
-          "period": "monthly"
-        }
-      }
+      "productSales": {}
     },
     {
       "id": "7de275d3-8737-4dc2-80fa-165964e2289d",

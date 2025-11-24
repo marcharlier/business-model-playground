@@ -6,14 +6,16 @@ import { Separator } from '@/components/ui/separator';
 import { PlusIcon, Trash2, XIcon } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LongPressButton } from '@/components/ui/long-press-button';
-import type { Product, AssociatedCost, Currency } from '@/lib/storage/types';
+import type { Product, AssociatedCost, Currency, ProductSales } from '@/lib/storage/types';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { ProductPriceControl } from '@/components/products/controls/ProductPriceControl';
+import { ProductSalesControl } from '@/components/products/controls/ProductSalesControl';
 
 interface ProductFormProps {
   className?: string;
   product?: Product;
   currency: Currency;
-  onSave: (name: string, price: number, associatedCosts: AssociatedCost[]) => void;
+  onSave: (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => void;
   onCancel: () => void;
   isSubmitting: boolean;
   hideCancel?: boolean;
@@ -34,6 +36,7 @@ export function ProductForm({
   const [price, setPrice] = useState(product?.price === 0 ? '' : product?.price.toString() ?? '');
   const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>(product?.associatedCosts ?? []);
   const [newCostRows, setNewCostRows] = useState<{id: string, name: string, amount: string}[]>([]);
+  const [sales, setSales] = useState<ProductSales>(product?.sales ?? { volume: 1, period: 'monthly' });
 
   const handleAddCostRow = () => {
     const newRow = {
@@ -105,7 +108,7 @@ export function ProductForm({
       amount: Number.parseFloat(cost.amount.toString()) || 0
     }));
 
-    onSave(name.trim(), priceValue, finalAssociatedCosts);
+    onSave(name.trim(), priceValue, finalAssociatedCosts, sales);
   };
 
   return (
@@ -122,13 +125,20 @@ export function ProductForm({
           />
         </div>
         
-        <CurrencyInput
+        <ProductPriceControl
           id="product-price"
           label="Price"
           currency={currency}
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          showFree
+          onChange={(value) => setPrice(value)}
+        />
+
+        <ProductSalesControl
+          id="product-sales"
+          label="Expected sales"
+          sales={sales}
+          onVolumeChange={(value) => setSales((prev) => ({ ...prev, volume: value }))}
+          onPeriodChange={(period) => setSales((prev) => ({ ...prev, period }))}
         />
         
         <div className="space-y-2">

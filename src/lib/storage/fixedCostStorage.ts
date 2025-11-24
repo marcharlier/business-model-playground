@@ -5,14 +5,14 @@ import { generateUUID } from '@/lib/utils';
 export const fixedCostStorage = {
   getFixedCostsByProjectId: (projectId: string): FixedCost[] => {
     const project = projectStorage.getProjectById(projectId);
-    return project?.fixedCosts || [];
+    return project?.costStructure.fixedRunningCosts || [];
   },
   
   getFixedCostById: (projectId: string, costId: string): FixedCost | null => {
     const project = projectStorage.getProjectById(projectId);
     if (!project) return null;
     
-    return project.fixedCosts.find(cost => cost.id === costId) || null;
+    return project.costStructure.fixedRunningCosts.find(cost => cost.id === costId) || null;
   },
   
   createFixedCost: (
@@ -38,7 +38,10 @@ export const fixedCostStorage = {
     
     const updatedProject: Project = {
       ...project,
-      fixedCosts: [...project.fixedCosts, newFixedCost]
+      costStructure: {
+        ...project.costStructure,
+        fixedRunningCosts: [...project.costStructure.fixedRunningCosts, newFixedCost]
+      }
     };
     
     projectStorage.updateProject(updatedProject);
@@ -51,13 +54,16 @@ export const fixedCostStorage = {
       throw new Error(`Project with ID ${projectId} not found`);
     }
     
-    const updatedFixedCosts = project.fixedCosts.map(cost => 
+    const updatedFixedCosts = project.costStructure.fixedRunningCosts.map(cost => 
       cost.id === fixedCost.id ? fixedCost : cost
     );
     
     const updatedProject: Project = {
       ...project,
-      fixedCosts: updatedFixedCosts
+      costStructure: {
+        ...project.costStructure,
+        fixedRunningCosts: updatedFixedCosts
+      }
     };
     
     projectStorage.updateProject(updatedProject);
@@ -70,11 +76,14 @@ export const fixedCostStorage = {
       throw new Error(`Project with ID ${projectId} not found`);
     }
     
-    const updatedFixedCosts = project.fixedCosts.filter(cost => cost.id !== costId);
+    const updatedFixedCosts = project.costStructure.fixedRunningCosts.filter(cost => cost.id !== costId);
     
     const updatedProject: Project = {
       ...project,
-      fixedCosts: updatedFixedCosts
+      costStructure: {
+        ...project.costStructure,
+        fixedRunningCosts: updatedFixedCosts
+      }
     };
     
     projectStorage.updateProject(updatedProject);

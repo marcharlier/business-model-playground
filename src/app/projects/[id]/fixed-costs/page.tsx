@@ -86,7 +86,7 @@ export default function FixedCostsPage() {
     <div>
       <OnboardingProgress 
         hasCosts={fixedCosts.length > 0}
-        hasProducts={project.products.length > 0}
+        hasProducts={project.revenueStreams.products.length > 0}
         projectId={project.id}
         currentPage="fixed-costs"
       />

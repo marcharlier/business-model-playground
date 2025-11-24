@@ -79,31 +79,31 @@ export default function ProjectsList() {
     );
     
     // Update the project with the example data
+    const productsWithSales = coffeeShopExample.revenueStreams.products.map(product => ({
+      ...product,
+      projectId: newProject.id,
+      associatedCosts: product.associatedCosts.map(cost => ({
+        ...cost,
+        projectId: newProject.id
+      }))
+    }));
+    
     const updatedProject = {
       ...newProject,
       description: coffeeShopExample.description,
-      upfrontCosts: (coffeeShopExample.upfrontCosts || []).map(cost => ({
-        ...cost,
-        projectId: newProject.id
-      })),
-      fixedCosts: coffeeShopExample.fixedCosts.map(cost => ({
-        ...cost,
-        projectId: newProject.id
-      })),
-      products: coffeeShopExample.products.map(product => ({
-        ...product,
-        projectId: newProject.id,
-        associatedCosts: product.associatedCosts.map(cost => ({
+      costStructure: {
+        fixedRunningCosts: coffeeShopExample.costStructure.fixedRunningCosts.map(cost => ({
+          ...cost,
+          projectId: newProject.id
+        })),
+        upfrontCosts: coffeeShopExample.costStructure.upfrontCosts.map(cost => ({
           ...cost,
           projectId: newProject.id
         }))
-      })),
-      productSales: Object.fromEntries(
-        Object.entries(coffeeShopExample.productSales || {}).map(([productId, volume]) => [
-          productId,
-          volume
-        ])
-      )
+      },
+      revenueStreams: {
+        products: productsWithSales
+      }
     };
     
     // Save the updated project
@@ -179,7 +179,7 @@ export default function ProjectsList() {
                   {project.currency}
                 </Badge>
                 <span className="text-muted-foreground">
-                  {project.fixedCosts.length} fixed costs, {project.products.length} products
+                  {project.costStructure.fixedRunningCosts.length} fixed costs, {project.revenueStreams.products.length} products
                 </span>
               </div>
               {hoveredProjectId === project.id && showDeleteButton && (

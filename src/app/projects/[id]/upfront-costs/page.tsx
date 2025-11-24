@@ -183,8 +183,8 @@ export default function UpfrontCostsPage() {
   return (
     <div>
       <OnboardingProgress
-        hasCosts={(project.fixedCosts?.length || 0) > 0}
-        hasProducts={project.products.length > 0}
+        hasCosts={(project.costStructure.fixedRunningCosts?.length || 0) > 0}
+        hasProducts={project.revenueStreams.products.length > 0}
         projectId={project.id}
         currentPage="upfront-costs"
       />
