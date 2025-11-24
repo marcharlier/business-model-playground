@@ -16,8 +16,9 @@ import {
   Pencil,
 } from 'lucide-react';
 
-import { useProject } from '@/lib/context/ProjectContext';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils/currency';
+import { useProject } from '@/lib/context/ProjectContext';
 import {
   Card,
   CardContent,
@@ -28,6 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type CanvasSection = {
   id: string;
@@ -71,21 +73,26 @@ function CanvasSectionCard({ section, className }: CanvasSectionCardProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-2 px-2 pt-0">
-        {section.items.map((item, index) => (
-          <div
-            key={`${section.id}-${index}`}
-            className="flex items-center justify-between rounded-lg bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground"
-          >
-            <span className="truncate">{item}</span>
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+      <CardContent className="flex flex-1 min-h-0 flex-col px-2 pt-0">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="flex flex-col gap-2 pr-2">
+            {section.items.length > 0 ? (
+              section.items.map((item, index) => (
+                <div
+                  key={`${section.id}-${index}`}
+                  className="flex items-center justify-between rounded-lg bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground"
+                >
+                  <span className="truncate">{item}</span>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              ))
+            ) : (
+              <div className="rounded-lg border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
+                Nothing captured yet
+              </div>
+            )}
           </div>
-        ))}
-        {section.items.length === 0 && (
-          <div className="rounded-lg border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
-            Nothing captured yet
-          </div>
-        )}
+        </ScrollArea>
       </CardContent>
       <CardFooter className="mt-auto flex w-full flex-col gap-2 px-2 pb-2 pt-0">
         <Separator className="bg-border/70" />
@@ -104,11 +111,35 @@ function CanvasSectionCard({ section, className }: CanvasSectionCardProps) {
 export default function CanvasViewPage() {
   const router = useRouter();
   const params = useParams();
-  const { project } = useProject();
   const projectId = params?.id as string | undefined;
+  const { project } = useProject();
 
-  const placeholder = project?.name?.trim() || 'Coffee roaster';
-  const sections = useMemo(() => createCanvasSections(placeholder), [placeholder]);
+  const placeholder = 'Coming soon...';
+  const costStructureItems = useMemo(() => {
+    if (!project) return [];
+
+    const { costStructure, currency } = project;
+    const operatingCosts = costStructure.fixedRunningCosts.map((cost) => {
+      const cadence = cost.frequency === 'monthly' ? 'per month' : 'per year';
+      return `${cost.name} - ${formatCurrency(cost.amount, currency)} ${cadence}`;
+    });
+    const upfrontCosts = (costStructure.upfrontCosts ?? []).map(
+      (cost) => `${cost.name} - ${formatCurrency(cost.amount, currency)} upfront`,
+    );
+
+    return [...operatingCosts, ...upfrontCosts];
+  }, [project]);
+
+  const sections = useMemo(() => {
+    const baseSections = createCanvasSections(placeholder);
+    if (!project) {
+      return baseSections;
+    }
+
+    return baseSections.map((section) =>
+      section.id === 'cost-structure' ? { ...section, items: costStructureItems } : section,
+    );
+  }, [placeholder, project, costStructureItems]);
   const sectionMap = useMemo(() => {
     return sections.reduce<Record<string, CanvasSection>>((acc, section) => {
       acc[section.id] = section;
@@ -156,8 +187,8 @@ export default function CanvasViewPage() {
                     <CanvasSectionCard section={sectionMap['customer-segments']!} className="h-full" />
                   </div>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2 h-48">
-                  <CanvasSectionCard section={sectionMap['cost-structure']!} />
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-72" />
                   <CanvasSectionCard section={sectionMap['revenue-streams']!} />
                 </div>
               </div>
