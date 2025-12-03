@@ -142,7 +142,9 @@ export function ProductForm({
         {product && (
           <Accordion type="single" collapsible>
             <AccordionItem value="delete">
-              <AccordionTrigger className="py-2 text-destructive">Delete this product?</AccordionTrigger>
+              <AccordionTrigger className="text-sm text-muted-foreground hover:text-destructive py-2">
+                Delete this product?
+              </AccordionTrigger>
               <AccordionContent>
                 <LongPressButton
                   variant="destructive"

@@ -113,7 +113,9 @@ function ProjectEditForm({
         </Button>
         <Accordion type="single" collapsible>
           <AccordionItem value="delete">
-            <AccordionTrigger className="py-2">Delete project?</AccordionTrigger>
+            <AccordionTrigger className="text-sm text-muted-foreground hover:text-destructive py-2">
+              Delete this project?
+            </AccordionTrigger>
             <AccordionContent>
               <LongPressButton
                 variant="destructive"

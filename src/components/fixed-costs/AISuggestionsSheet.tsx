@@ -9,16 +9,20 @@ import { TextShimmer } from "@/components/ui/text-shimmer";
 import { useProject } from "@/lib/context/ProjectContext";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { costIdeasSchema, type CostIdea } from "@/app/api/ai/cost-ideas/schema";
-import { useRouter } from "next/navigation";
 import { useDailyRateLimit } from "@/hooks/use-daily-rate-limit";
 
 interface AISuggestionsSheetProps {
-  onAddFixedCost?: (data: { name: string; categoryId: string; amount?: number; frequency?: "monthly" | "annual" }) => void;
+  onAddCost?: (data: {
+    name: string;
+    costType: 'upfront' | 'operating';
+    categoryId?: string;
+    amount?: number;
+    frequency?: "monthly" | "annual";
+  }) => void;
 }
 
-export function AISuggestionsSheet({ onAddFixedCost }: AISuggestionsSheetProps) {
+export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
   const { project, isLoading: isProjectLoading } = useProject();
-  const router = useRouter();
   const usage = useDailyRateLimit("ai-cost-ideas", 10);
 
   const { object, submit, isLoading, error, stop } = useObject({
@@ -117,38 +121,28 @@ export function AISuggestionsSheet({ onAddFixedCost }: AISuggestionsSheetProps) 
                   <CardContent className="p-2">
                     <div className="text-sm leading-relaxed mb-2">{ci?.description ?? ""}</div>
                     <div className="flex gap-2">
-                      {ci?.kind === "monthly" ? (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (!onAddFixedCost) return;
-                            const name = (ci?.title ?? "").toString();
-                            const amount = typeof ci?.estimate?.amount === "number" ? ci.estimate.amount : undefined;
-                            const categoryId = (ci?.category ?? "other").toString();
-                            onAddFixedCost({ name, categoryId, amount, frequency: "monthly" });
-                          }}
-                          disabled={isProjectLoading}
-                        >
-                          Add as operating cost
-                        </Button>
-                      ) : null}
-                      {ci?.kind === "one-time" ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (!project) return;
-                            const name = encodeURIComponent((ci?.title ?? "").toString());
-                            const amount = encodeURIComponent(
-                              typeof ci?.estimate?.amount === "number" ? String(ci.estimate.amount) : ""
-                            );
-                            router.push(`/projects/${project.id}/upfront-costs?open=true&prefillName=${name}&prefillAmount=${amount}`);
-                          }}
-                          disabled={isProjectLoading}
-                        >
-                          Add as upfront cost
-                        </Button>
-                      ) : null}
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (!onAddCost) return;
+                          const name = (ci?.title ?? "").toString();
+                          const amount = typeof ci?.estimate?.amount === "number" ? ci.estimate.amount : undefined;
+                          const categoryId = (ci?.category ?? "other").toString();
+                          const costType = ci?.kind === "monthly" ? "operating" : "upfront";
+                          const frequency = ci?.kind === "monthly" ? "monthly" : undefined;
+
+                          onAddCost({
+                            name,
+                            costType,
+                            categoryId: costType === "operating" ? categoryId : undefined,
+                            amount,
+                            frequency: frequency as "monthly" | "annual" | undefined,
+                          });
+                        }}
+                        disabled={isProjectLoading}
+                      >
+                        {ci?.kind === "monthly" ? "Add as operating cost" : "Add as upfront cost"}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

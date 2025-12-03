@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -32,8 +32,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CanvasSectionEditableCard } from '@/components/canvas/CanvasSectionEditableCard';
+import { CostStructureCard } from '@/components/canvas/CostStructureCard';
+import { CostDialog } from '@/components/costs/CostDialog';
 import { projectStorage } from '@/lib/storage/projectStorage';
+import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
+import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
 import type { CanvasItem } from '@/lib/domain/types';
+import type { FixedCost, UpfrontCost } from '@/lib/storage/types';
+import type { CostFormData } from '@/components/costs/CostForm';
 
 type CanvasSection = {
   id: string;
@@ -118,6 +124,12 @@ export default function CanvasViewPage() {
   const projectId = params?.id as string | undefined;
   const { project, refreshProject } = useProject();
 
+  // Cost dialog state
+  const [costDialogOpen, setCostDialogOpen] = useState(false);
+  const [editingCost, setEditingCost] = useState<FixedCost | UpfrontCost | undefined>();
+  const [costDialogType, setCostDialogType] = useState<'upfront' | 'operating'>('operating');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const placeholder = 'Coming soon...';
   const costStructureItems = useMemo(() => {
     if (!project) return [];
@@ -198,6 +210,100 @@ export default function CanvasViewPage() {
     };
     projectStorage.updateProject(updatedProject);
     refreshProject();
+  };
+
+  // Cost handlers
+  const handleAddCost = () => {
+    setEditingCost(undefined);
+    setCostDialogType('operating');
+    setCostDialogOpen(true);
+  };
+
+  const handleEditCost = (cost: FixedCost | UpfrontCost, type: 'upfront' | 'operating') => {
+    setEditingCost(cost);
+    setCostDialogType(type);
+    setCostDialogOpen(true);
+  };
+
+  const handleSaveCost = (data: CostFormData) => {
+    if (!projectId) return;
+
+    setIsSubmitting(true);
+    try {
+      const isEditMode = !!editingCost;
+      const wasUpfront = editingCost && !('category' in editingCost);
+      const isUpfront = data.costType === 'upfront';
+
+      if (isEditMode && wasUpfront !== isUpfront) {
+        // Cost type changed - delete from old, create in new
+        if (wasUpfront && !isUpfront) {
+          upfrontCostStorage.deleteUpfrontCost(projectId, editingCost.id);
+          fixedCostStorage.createFixedCost(
+            projectId,
+            data.name,
+            data.amount,
+            data.frequency!,
+            data.category!
+          );
+        } else {
+          fixedCostStorage.deleteFixedCost(projectId, editingCost.id);
+          upfrontCostStorage.createUpfrontCost(projectId, data.name, data.amount);
+        }
+      } else if (isEditMode) {
+        // Same type - update
+        if (isUpfront) {
+          const updatedCost: UpfrontCost = {
+            ...editingCost as UpfrontCost,
+            name: data.name,
+            amount: data.amount,
+          };
+          upfrontCostStorage.updateUpfrontCost(projectId, updatedCost);
+        } else {
+          const updatedCost: FixedCost = {
+            ...editingCost as FixedCost,
+            name: data.name,
+            amount: data.amount,
+            frequency: data.frequency!,
+            category: data.category!,
+          };
+          fixedCostStorage.updateFixedCost(projectId, updatedCost);
+        }
+      } else {
+        // Create new
+        if (isUpfront) {
+          upfrontCostStorage.createUpfrontCost(projectId, data.name, data.amount);
+        } else {
+          fixedCostStorage.createFixedCost(
+            projectId,
+            data.name,
+            data.amount,
+            data.frequency!,
+            data.category!
+          );
+        }
+      }
+
+      refreshProject();
+      setCostDialogOpen(false);
+      setEditingCost(undefined);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteCost = () => {
+    if (!editingCost || !projectId) return;
+
+    const isUpfront = !('category' in editingCost);
+    if (isUpfront) {
+      upfrontCostStorage.deleteUpfrontCost(projectId, editingCost.id);
+    } else {
+      fixedCostStorage.deleteFixedCost(projectId, editingCost.id);
+    }
+
+    refreshProject();
+    setCostDialogOpen(false);
+    setEditingCost(undefined);
   };
 
   return (
@@ -312,7 +418,18 @@ export default function CanvasViewPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-72" />
+                  {project ? (
+                    <CostStructureCard
+                      className="h-72"
+                      operatingCosts={project.costStructure.fixedRunningCosts}
+                      upfrontCosts={project.costStructure.upfrontCosts ?? []}
+                      currency={project.currency}
+                      onEditCost={handleEditCost}
+                      onAddCost={handleAddCost}
+                    />
+                  ) : (
+                    <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-72" />
+                  )}
                   <CanvasSectionCard section={sectionMap['revenue-streams']!} />
                 </div>
               </div>
@@ -320,6 +437,21 @@ export default function CanvasViewPage() {
           </Tabs>
         </div>
       </div>
+
+      {/* Cost Dialog */}
+      {project && (
+        <CostDialog
+          open={costDialogOpen}
+          onOpenChange={setCostDialogOpen}
+          cost={editingCost}
+          costType={costDialogType}
+          currency={project.currency}
+          onSave={handleSaveCost}
+          isSubmitting={isSubmitting}
+          onDelete={editingCost ? handleDeleteCost : undefined}
+          toggleEnabled={true}
+        />
+      )}
     </section>
   );
 }

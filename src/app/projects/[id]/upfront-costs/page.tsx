@@ -5,90 +5,14 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import type { Currency, UpfrontCost } from '@/lib/storage/types';
 import { formatCurrency } from '@/lib/utils/currency';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useProject } from '@/lib/context/ProjectContext';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { Separator } from '@/components/ui/separator';
-import { PencilIcon, Plus, Trash2 } from 'lucide-react';
+import { PencilIcon, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { LongPressButton } from '@/components/ui/long-press-button';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
-
-// Upfront costs are managed via storage helper
-
-function UpfrontCostForm({
-  currency,
-  cost,
-  onSave,
-  onCancel,
-  isSubmitting,
-  onDelete,
-  prefillName,
-  prefillAmount,
-}: {
-  currency: Currency;
-  cost?: UpfrontCost;
-  onSave: (name: string, amount: number) => void;
-  onCancel: () => void;
-  isSubmitting: boolean;
-  onDelete?: () => void;
-  prefillName?: string;
-  prefillAmount?: string;
-}) {
-  const [name, setName] = useState(cost?.name ?? prefillName ?? '');
-  const [amount, setAmount] = useState(
-    cost?.amount ? String(cost.amount) : prefillAmount ?? ''
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    const parsed = amount.trim() ? Number.parseFloat(amount) : 0;
-    onSave(name.trim(), Number.isFinite(parsed) && parsed >= 0 ? parsed : 0);
-  };
-
-  return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="space-y-2">
-        <Label htmlFor="upfront-name">Name</Label>
-        <Input id="upfront-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Espresso machine" disabled={isSubmitting} />
-      </div>
-      <CurrencyInput id="upfront-amount" label="Amount" currency={currency} value={amount} onChange={(e) => setAmount(e.target.value)} disabled={isSubmitting} />
-      <Separator className="my-2" />
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
-        <Button type="submit" className="flex-1" disabled={isSubmitting || !name.trim()}>Save</Button>
-      </div>
-
-      {cost && (
-        <Accordion type="single" collapsible>
-          <AccordionItem value="delete">
-            <AccordionTrigger className="py-2 text-destructive">Delete this upfront cost?</AccordionTrigger>
-            <AccordionContent>
-              <LongPressButton
-                variant="destructive"
-                onLongPress={() => onDelete?.()}
-                disabled={isSubmitting}
-                className="gap-2 w-full"
-                duration={2000}
-              >
-                <Trash2 className="h-4 w-4" />
-                Long press to delete
-              </LongPressButton>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      )}
-    </form>
-  );
-}
+import { CostDialog } from '@/components/costs/CostDialog';
+import type { CostFormData } from '@/components/costs/CostForm';
 
 export default function UpfrontCostsPage() {
   const params = useParams();
@@ -99,7 +23,6 @@ export default function UpfrontCostsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCost, setEditingCost] = useState<UpfrontCost | undefined>();
   const [open, setOpen] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 768px)');
   const [prefillName, setPrefillName] = useState<string | undefined>();
   const [prefillAmount, setPrefillAmount] = useState<string | undefined>();
 
@@ -125,60 +48,39 @@ export default function UpfrontCostsPage() {
 
   const handleOpenAdd = () => {
     setEditingCost(undefined);
+    setPrefillName(undefined);
+    setPrefillAmount(undefined);
     setOpen(true);
   };
 
-  const handleSave = (name: string, amount: number) => {
+  const handleSave = (data: CostFormData) => {
     setIsSubmitting(true);
     try {
       if (editingCost) {
-        const updatedCost: UpfrontCost = { ...editingCost, name, amount };
+        const updatedCost: UpfrontCost = { ...editingCost, name: data.name, amount: data.amount };
         upfrontCostStorage.updateUpfrontCost(projectId, updatedCost);
       } else {
-        upfrontCostStorage.createUpfrontCost(projectId, name, amount);
+        upfrontCostStorage.createUpfrontCost(projectId, data.name, data.amount);
       }
       setCosts(upfrontCostStorage.getUpfrontCostsByProjectId(projectId));
       refreshProject();
       setOpen(false);
+      setPrefillName(undefined);
+      setPrefillAmount(undefined);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    upfrontCostStorage.deleteUpfrontCost(projectId, id);
+  const handleDelete = () => {
+    if (!editingCost) return;
+    upfrontCostStorage.deleteUpfrontCost(projectId, editingCost.id);
     setCosts(upfrontCostStorage.getUpfrontCostsByProjectId(projectId));
     refreshProject();
+    setOpen(false);
   };
 
   const total = costs.reduce((sum, c) => sum + c.amount, 0);
-
-  const FormWrapper = ({ children }: { children: React.ReactNode }) => {
-    if (isDesktop) {
-      return (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{editingCost ? 'Edit upfront cost' : 'Add upfront cost'}</DialogTitle>
-              <DialogDescription>One-off purchases or setup costs.</DialogDescription>
-            </DialogHeader>
-            {children}
-          </DialogContent>
-        </Dialog>
-      );
-    }
-    return (
-      <Drawer open={open} onOpenChange={setOpen} repositionInputs={false}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{editingCost ? 'Edit upfront cost' : 'Add upfront cost'}</DrawerTitle>
-            <DrawerDescription>One-off purchases or setup costs.</DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-4">{children}</div>
-        </DrawerContent>
-      </Drawer>
-    );
-  };
 
   return (
     <div>
@@ -236,22 +138,19 @@ export default function UpfrontCostsPage() {
         ))}
       </div>
 
-      <FormWrapper>
-        <UpfrontCostForm 
-          currency={currency} 
-          cost={editingCost} 
-          isSubmitting={isSubmitting} 
-          onSave={handleSave} 
-          onCancel={() => setOpen(false)}
-          onDelete={() => {
-            if (!editingCost) return;
-            handleDelete(editingCost.id);
-            setOpen(false);
-          }}
-          prefillName={prefillName}
-          prefillAmount={prefillAmount}
-        />
-      </FormWrapper>
+      <CostDialog
+        open={open}
+        onOpenChange={setOpen}
+        cost={editingCost}
+        costType="upfront"
+        currency={currency}
+        onSave={handleSave}
+        isSubmitting={isSubmitting}
+        onDelete={editingCost ? handleDelete : undefined}
+        toggleEnabled={false}
+        prefillName={prefillName}
+        prefillAmount={prefillAmount}
+      />
     </div>
   );
 }
