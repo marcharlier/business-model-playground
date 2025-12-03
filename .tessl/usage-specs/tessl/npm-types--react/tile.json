@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-types--react",
+  "version": "18.3.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/%40types/react@18.3.12",
+  "summary": "TypeScript definitions for React, enabling developers to use React components, hooks, and APIs with full type safety and intellisense support"
+}

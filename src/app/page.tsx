@@ -65,7 +65,15 @@ export default function Home() {
       },
       revenueStreams: {
         products: productsWithSales
-      }
+      },
+      // Include all canvas sections
+      partnerships: coffeeShopExample.partnerships ?? [],
+      activities: coffeeShopExample.activities ?? [],
+      valueProposition: coffeeShopExample.valueProposition ?? [],
+      customerRelationships: coffeeShopExample.customerRelationships ?? [],
+      customerSegments: coffeeShopExample.customerSegments ?? [],
+      resources: coffeeShopExample.resources ?? [],
+      channels: coffeeShopExample.channels ?? []
     };
     
     projectStorage.updateProject(updatedProject);
@@ -76,9 +84,9 @@ export default function Home() {
     <div className="flex-1 flex flex-col">
       <div className="container mx-auto px-4 md:px-8 py-8 sm:py-16 flex-1">
         <div className="max-w-4xl mx-auto text-center mb-8 sm:mb-16">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4 sm:mb-6">Business Model Playground</h1>
-          <p className="text-lg sm:text-xl mb-6 sm:mb-8 text-muted-foreground">
-            Build and analyze your business models with ease. Create financial projections, test scenarios, and visualize your path to profitability.
+          <h1 className="font-hero text-blue-700 text-4xl sm:text-4xl font-bold mb-4 sm:mb-6">Create, explore and share your business models.</h1>
+          <p className="text-lg sm:text-lg mb-6 sm:mb-8 text-muted-foreground">
+            Use the <a href="https://www.strategyzer.com/library/the-business-model-canvas" target="_blank" className="link">Business Model Canvas</a> with built in calculators, projections and visualisations.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             {isLoading ? (

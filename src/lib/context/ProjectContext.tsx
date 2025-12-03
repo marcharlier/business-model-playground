@@ -37,6 +37,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     loadProject();
   }, [loadProject]);
 
+  // Listen for project changes (including cloud sync updates)
+  useEffect(() => {
+    const handleProjectChange = () => {
+      loadProject();
+    };
+
+    window.addEventListener('projectChange', handleProjectChange);
+    return () => {
+      window.removeEventListener('projectChange', handleProjectChange);
+    };
+  }, [loadProject]);
+
   // Memoize refreshProject to prevent it from changing on every render
   const refreshProject = useCallback(() => {
     setIsLoading(true);

@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-next",
+  "version": "15.5.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/next@15.5.2",
+  "summary": "The React Framework for production - full-stack web applications with server-side rendering, static site generation, and modern web development features"
+}

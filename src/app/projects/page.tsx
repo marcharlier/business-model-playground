@@ -103,7 +103,14 @@ export default function ProjectsList() {
       },
       revenueStreams: {
         products: productsWithSales
-      }
+      },
+      partnerships: coffeeShopExample.partnerships,
+      activities: coffeeShopExample.activities,
+      valueProposition: coffeeShopExample.valueProposition,
+      customerRelationships: coffeeShopExample.customerRelationships,
+      customerSegments: coffeeShopExample.customerSegments,
+      resources: coffeeShopExample.resources,
+      channels: coffeeShopExample.channels
     };
     
     // Save the updated project

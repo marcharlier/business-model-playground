@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-eslint--eslintrc",
+  "version": "3.3.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/%40eslint/eslintrc@3.3.1",
+  "summary": "The legacy ESLintRC config file format for ESLint with flat config compatibility layer"
+}

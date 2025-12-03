@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-react-dom",
+  "version": "18.3.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/react-dom@18.3.1",
+  "summary": "React package for working with the DOM."
+}

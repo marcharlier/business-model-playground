@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useProject } from '@/lib/context/ProjectContext';
@@ -27,6 +27,11 @@ export default function DashboardPage() {
   const [productSales, setProductSales] = useState<Record<string, ProductSales>>({});
   const [initialized, setInitialized] = useState(false);
   const [projectionMonths, setProjectionMonths] = useState<number>(12);
+  
+  // Ref to track if we triggered the last project change (to prevent update loops)
+  const isUpdatingRef = useRef(false);
+  // Ref to store the last saved sales data to prevent unnecessary saves
+  const lastSavedSalesRef = useRef<string>('');
 
   // Load project data when component mounts or id changes
   useEffect(() => {
@@ -37,7 +42,7 @@ export default function DashboardPage() {
 
   // Initialize product sales when project is loaded or changes
   useEffect(() => {
-    if (project) {
+    if (project && !isUpdatingRef.current) {
       // Initialize product sales from project data or defaults
       const initialSales: Record<string, ProductSales> = {};
       
@@ -53,6 +58,8 @@ export default function DashboardPage() {
       if (project.revenueStreams.products.length > 0 && !initialized) {
         setProductSales(initialSales);
         setInitialized(true);
+        // Store the initial state so we don't immediately save it back
+        lastSavedSalesRef.current = JSON.stringify(initialSales);
       }
     }
   }, [project, initialized]);
@@ -60,6 +67,12 @@ export default function DashboardPage() {
   // Save sales volumes to products when they change
   useEffect(() => {
     if (project && initialized && Object.keys(productSales).length > 0) {
+      // Check if sales data actually changed to prevent unnecessary saves
+      const currentSalesJson = JSON.stringify(productSales);
+      if (currentSalesJson === lastSavedSalesRef.current) {
+        return; // No actual change, skip save
+      }
+      
       // Update sales in products
       const updatedProducts = project.revenueStreams.products.map(product => {
         const sales = productSales[product.id];
@@ -73,7 +86,16 @@ export default function DashboardPage() {
           products: updatedProducts
         }
       };
+      
+      // Mark that we're updating to prevent re-initialization loops
+      isUpdatingRef.current = true;
+      lastSavedSalesRef.current = currentSalesJson;
       projectStorage.updateProject(updatedProject);
+      
+      // Reset the flag after a short delay to allow for the update to propagate
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 100);
     }
   }, [productSales, project, initialized]);
 

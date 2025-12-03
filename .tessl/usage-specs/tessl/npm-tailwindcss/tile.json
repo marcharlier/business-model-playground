@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-tailwindcss",
+  "version": "3.4.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/tailwindcss@3.4.17",
+  "summary": "A utility-first CSS framework for rapidly building custom user interfaces."
+}

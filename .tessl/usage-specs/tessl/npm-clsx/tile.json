@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-clsx",
+  "version": "2.1.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/clsx@2.1.1",
+  "summary": "A tiny (239B) utility for constructing className strings conditionally."
+}

@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-motion",
+  "version": "12.23.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/motion@12.23.12",
+  "summary": "A comprehensive animation library for JavaScript, React, and Vue providing GPU-accelerated animations with a hybrid engine that blends JavaScript flexibility with native browser APIs."
+}

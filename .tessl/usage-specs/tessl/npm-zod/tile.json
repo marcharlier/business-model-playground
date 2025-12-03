@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-zod",
+  "version": "4.1.1",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/zod@4.1.12",
+  "summary": "TypeScript-first schema declaration and validation library with static type inference"
+}

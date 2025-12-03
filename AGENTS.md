@@ -11,3 +11,7 @@
 # Knowledge Index <!-- tessl-managed -->
 
 Documentation for dependencies and processes can be found in the [Knowledge Index](./KNOWLEDGE.md)
+
+# Agent Rules <!-- tessl-managed -->
+
+@.tessl/RULES.md follow the [instructions](.tessl/RULES.md)

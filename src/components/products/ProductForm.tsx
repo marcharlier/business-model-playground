@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { PlusIcon, Trash2, XIcon } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LongPressButton } from '@/components/ui/long-press-button';
 import type { Product, AssociatedCost, Currency, ProductSales } from '@/lib/storage/types';
-import { CurrencyInput } from '@/components/ui/currency-input';
 import { ProductPriceControl } from '@/components/products/controls/ProductPriceControl';
 import { ProductSalesControl } from '@/components/products/controls/ProductSalesControl';
+import { ProductCogsControl, type CostRow } from '@/components/products/controls/ProductCogsControl';
 
 interface ProductFormProps {
   className?: string;
@@ -35,43 +35,8 @@ export function ProductForm({
   const [name, setName] = useState(product?.name ?? '');
   const [price, setPrice] = useState(product?.price === 0 ? '' : product?.price.toString() ?? '');
   const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>(product?.associatedCosts ?? []);
-  const [newCostRows, setNewCostRows] = useState<{id: string, name: string, amount: string}[]>([]);
+  const [newCostRows, setNewCostRows] = useState<CostRow[]>([]);
   const [sales, setSales] = useState<ProductSales>(product?.sales ?? { volume: 1, period: 'monthly' });
-
-  const handleAddCostRow = () => {
-    const newRow = {
-      id: crypto.randomUUID(),
-      name: '',
-      amount: ''
-    };
-    setNewCostRows([...newCostRows, newRow]);
-  };
-
-  const handleRemoveCostRow = (rowId: string) => {
-    setNewCostRows(newCostRows.filter(row => row.id !== rowId));
-  };
-
-  const handleUpdateCostRow = (rowId: string, field: 'name' | 'amount', value: string) => {
-    setNewCostRows(newCostRows.map(row => 
-      row.id === rowId ? { 
-        ...row, 
-        [field]: value 
-      } : row
-    ));
-  };
-
-  const handleRemoveCost = (costId: string) => {
-    setAssociatedCosts(associatedCosts.filter(cost => cost.id !== costId));
-  };
-
-  const handleUpdateCost = (costId: string, field: keyof AssociatedCost, value: string | number) => {
-    setAssociatedCosts(associatedCosts.map(cost => 
-      cost.id === costId ? { 
-        ...cost, 
-        [field]: value 
-      } : cost
-    ));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,98 +106,14 @@ export function ProductForm({
           onPeriodChange={(period) => setSales((prev) => ({ ...prev, period }))}
         />
         
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label>COGS (Cost of Goods Sold)</Label>
-          </div>
-          
-          {associatedCosts.length > 0 && (
-            <div className="space-y-2">
-              {associatedCosts.map(cost => (
-                <div key={cost.id} className="flex items-center gap-2">
-                  <div className="flex-[2]">
-                    <Input
-                      id={`cost-name-${cost.id}`}
-                      value={cost.name}
-                      onChange={(e) => handleUpdateCost(cost.id, 'name', e.target.value)}
-                      className="h-8 text-sm"
-                      placeholder="Enter cost name"
-                      required
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <CurrencyInput
-                      id={`cost-amount-${cost.id}`}
-                      currency={currency}
-                      value={cost.amount === 0 ? '' : cost.amount.toString()}
-                      onChange={(e) => handleUpdateCost(cost.id, 'amount', e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleRemoveCost(cost.id)}
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* New cost rows */}
-          {newCostRows.length > 0 && (
-            <div className="space-y-2">
-              {newCostRows.map(row => (
-                <div key={row.id} className="flex items-center gap-2">
-                  <div className="flex-[2]">
-                    <Input
-                      id={`new-cost-name-${row.id}`}
-                      value={row.name}
-                      onChange={(e) => handleUpdateCostRow(row.id, 'name', e.target.value)}
-                      placeholder="Enter cost name"
-                      className="h-8 text-sm"
-                      required
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <CurrencyInput
-                      id={`new-cost-amount-${row.id}`}
-                      currency={currency}
-                      value={row.amount}
-                      onChange={(e) => handleUpdateCostRow(row.id, 'amount', e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleRemoveCostRow(row.id)}
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Add Cost button */}
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={handleAddCostRow}
-            className="h-8 w-full"
-          >
-            <PlusIcon className="h-4 w-4 mr-1" />
-            Add COGS Item
-          </Button>
-        </div>
+        <ProductCogsControl
+          label="Cost of goods (COGS)"
+          associatedCosts={associatedCosts}
+          newCostRows={newCostRows}
+          currency={currency}
+          onCostsChange={setAssociatedCosts}
+          onNewCostRowsChange={setNewCostRows}
+        />
         
         <Separator className="my-4" />
         

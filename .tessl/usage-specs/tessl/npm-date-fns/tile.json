@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-date-fns",
+  "version": "4.1.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/date-fns@4.1.0",
+  "summary": "Modern JavaScript date utility library providing 200+ modular functions for date manipulation, formatting, parsing, and calculations"
+}

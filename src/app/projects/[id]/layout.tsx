@@ -36,7 +36,9 @@ import { cn } from '@/lib/utils';
 import { LongPressButton } from '@/components/ui/long-press-button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ShareButton } from '@/components/project/ShareButton';
+import { CloudSyncStatus } from '@/components/project/CloudSyncStatus';
 import { Textarea } from '@/components/ui/textarea';
+import { useCloudSync } from '@/hooks/use-cloud-sync';
 
 const MAX_DESCRIPTION_LENGTH = 600;
 
@@ -235,6 +237,7 @@ function ProjectLayoutContent({
   const params = useParams();
   const projectId = params?.id as string;
   const { project, isLoading, refreshProject } = useProject();
+  const { status: cloudSyncStatus, error: cloudSyncError, lastSyncedAt, retry: cloudSyncRetry } = useCloudSync({ projectId });
 
   const isCanvasView = pathname.includes('/canvas-view');
 
@@ -305,6 +308,12 @@ function ProjectLayoutContent({
                   <PencilIcon className="h-4 w-4" />
                 </Button>
               }
+            />
+            <CloudSyncStatus
+              status={cloudSyncStatus}
+              error={cloudSyncError}
+              lastSyncedAt={lastSyncedAt}
+              onRetry={cloudSyncRetry}
             />
             <ShareButton project={project} />
             <Button

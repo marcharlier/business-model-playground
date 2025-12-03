@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-ai-sdk--react",
+  "version": "2.0.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/%40ai-sdk/react@2.0.80",
+  "summary": "React hooks for building AI-powered chat, completion, and structured object streaming interfaces"
+}

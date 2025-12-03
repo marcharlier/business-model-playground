@@ -18,6 +18,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils/currency';
+import { calculateProfitMargin, formatProfitMargin } from '@/lib/utils/financial';
 import { useProject } from '@/lib/context/ProjectContext';
 import {
   Card,
@@ -30,6 +31,9 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CanvasSectionEditableCard } from '@/components/canvas/CanvasSectionEditableCard';
+import { projectStorage } from '@/lib/storage/projectStorage';
+import type { CanvasItem } from '@/lib/domain/types';
 
 type CanvasSection = {
   id: string;
@@ -112,7 +116,7 @@ export default function CanvasViewPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params?.id as string | undefined;
-  const { project } = useProject();
+  const { project, refreshProject } = useProject();
 
   const placeholder = 'Coming soon...';
   const costStructureItems = useMemo(() => {
@@ -130,16 +134,38 @@ export default function CanvasViewPage() {
     return [...operatingCosts, ...upfrontCosts];
   }, [project]);
 
+  const revenueStreamsItems = useMemo(() => {
+    if (!project) return [];
+
+    const { revenueStreams, currency } = project;
+
+    return revenueStreams.products.map((product) => {
+      const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
+      const salesText = product.sales
+        ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'} sales`
+        : 'No sales data';
+      const margin = formatProfitMargin(calculateProfitMargin(product));
+
+      return `${product.name} • ${priceText} • ${salesText} • ${margin} margin`;
+    });
+  }, [project]);
+
   const sections = useMemo(() => {
     const baseSections = createCanvasSections(placeholder);
     if (!project) {
       return baseSections;
     }
 
-    return baseSections.map((section) =>
-      section.id === 'cost-structure' ? { ...section, items: costStructureItems } : section,
-    );
-  }, [placeholder, project, costStructureItems]);
+    return baseSections.map((section) => {
+      if (section.id === 'cost-structure') {
+        return { ...section, items: costStructureItems };
+      }
+      if (section.id === 'revenue-streams') {
+        return { ...section, items: revenueStreamsItems };
+      }
+      return section;
+    });
+  }, [placeholder, project, costStructureItems, revenueStreamsItems]);
   const sectionMap = useMemo(() => {
     return sections.reduce<Record<string, CanvasSection>>((acc, section) => {
       acc[section.id] = section;
@@ -153,11 +179,32 @@ export default function CanvasViewPage() {
     }
   };
 
+  const handleUpdateSection = (
+    sectionId:
+      | 'partnerships'
+      | 'activities'
+      | 'resources'
+      | 'valueProposition'
+      | 'customerRelationships'
+      | 'channels'
+      | 'customerSegments',
+    items: CanvasItem[],
+  ) => {
+    if (!project) return;
+
+    const updatedProject = {
+      ...project,
+      [sectionId]: items,
+    };
+    projectStorage.updateProject(updatedProject);
+    refreshProject();
+  };
+
   return (
     <section className="relative">
       <div className="rounded-sm border border-border/60 bg-secondary px-4 py-6 shadow-sm sm:px-6 lg:px-10">
         <div className="mx-auto flex w-full flex-col gap-6">
-          <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center">
+          <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full">
             <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
               <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
                 Business Model
@@ -166,28 +213,105 @@ export default function CanvasViewPage() {
                 Profitability Playground
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="business-model" className="mt-6 outline-none">
+            <TabsContent value="business-model" className="mt-6 outline-none w-full">
                 <div className="space-y-4">
-                 <div className="grid gap-4 lg:h-96 lg:grid-cols-5 lg:auto-rows-[minmax(0,1fr)]">
+                 <div className="grid grid-cols-1 gap-4 lg:h-96 lg:grid-cols-5 lg:auto-rows-[minmax(0,1fr)]">
                   <div className="row-span-2 h-full">
-                    <CanvasSectionCard section={sectionMap['partnerships']!} className="h-full" />
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Partnerships"
+                        icon={Link}
+                        items={project.partnerships ?? []}
+                        onUpdate={(items) => handleUpdateSection('partnerships', items)}
+                        className="h-full"
+                        itemLabel="partnership"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['partnerships']!} className="h-full" />
+                    )}
                   </div>
                   <div className="flex lg:h-96 flex-col gap-4">
-                    <CanvasSectionCard section={sectionMap['activities']!} className="flex-1 min-h-0" />
-                    <CanvasSectionCard section={sectionMap['resources']!} className="flex-1 min-h-0" />
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Activities"
+                        icon={Zap}
+                        items={project.activities ?? []}
+                        onUpdate={(items) => handleUpdateSection('activities', items)}
+                        className="flex-1 min-h-0"
+                        itemLabel="activity"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['activities']!} className="flex-1 min-h-0" />
+                    )}
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Resources"
+                        icon={Factory}
+                        items={project.resources ?? []}
+                        onUpdate={(items) => handleUpdateSection('resources', items)}
+                        className="flex-1 min-h-0"
+                        itemLabel="resource"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['resources']!} className="flex-1 min-h-0" />
+                    )}
                   </div>
                   <div className="row-span-2 h-full">
-                    <CanvasSectionCard section={sectionMap['value-proposition']!} className="h-full" />
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Value Proposition"
+                        icon={Gift}
+                        items={project.valueProposition ?? []}
+                        onUpdate={(items) => handleUpdateSection('valueProposition', items)}
+                        className="h-full"
+                        itemLabel="value proposition"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['value-proposition']!} className="h-full" />
+                    )}
                   </div>
                   <div className="flex h-96 flex-col gap-4">
-                    <CanvasSectionCard section={sectionMap['customer-relationships']!} className="flex-1 min-h-0" />
-                    <CanvasSectionCard section={sectionMap['channels']!} className="flex-1 min-h-0" />
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Customer Relationships"
+                        icon={Heart}
+                        items={project.customerRelationships ?? []}
+                        onUpdate={(items) => handleUpdateSection('customerRelationships', items)}
+                        className="flex-1 min-h-0"
+                        itemLabel="customer relationship"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['customer-relationships']!} className="flex-1 min-h-0" />
+                    )}
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Channels"
+                        icon={Truck}
+                        items={project.channels ?? []}
+                        onUpdate={(items) => handleUpdateSection('channels', items)}
+                        className="flex-1 min-h-0"
+                        itemLabel="channel"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['channels']!} className="flex-1 min-h-0" />
+                    )}
                   </div>
                   <div className="row-span-2 h-full">
-                    <CanvasSectionCard section={sectionMap['customer-segments']!} className="h-full" />
+                    {project ? (
+                      <CanvasSectionEditableCard
+                        title="Customer Segments"
+                        icon={SquareUserRound}
+                        items={project.customerSegments ?? []}
+                        onUpdate={(items) => handleUpdateSection('customerSegments', items)}
+                        className="h-full"
+                        itemLabel="customer segment"
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['customer-segments']!} className="h-full" />
+                    )}
                   </div>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-72" />
                   <CanvasSectionCard section={sectionMap['revenue-streams']!} />
                 </div>

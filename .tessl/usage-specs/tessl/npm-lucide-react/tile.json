@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-lucide-react",
+  "version": "0.542.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/lucide-react@0.542.0",
+  "summary": "A Lucide icon library package for React applications providing comprehensive SVG icons as tree-shakable React components."
+}

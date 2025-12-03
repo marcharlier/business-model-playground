@@ -59,7 +59,7 @@ export function CurrencyInput({
           value={displayValue}
           onChange={handleChange}
           placeholder={placeholder}
-          className={cn("pl-6", error && "border-destructive", className)}
+          className={cn("pl-6 bg-background", error && "border-destructive", className)}
           {...props}
         />
         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

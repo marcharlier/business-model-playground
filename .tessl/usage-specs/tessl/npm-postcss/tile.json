@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-postcss",
+  "version": "8.5.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/postcss@8.5.3",
+  "summary": "Tool for transforming styles with JS plugins"
+}

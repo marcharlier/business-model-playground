@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Minus, Plus } from 'lucide-react';
 import type { ProductSales } from '@/lib/storage/types';
 import { useMemo } from 'react';
-
+import { Slider } from '@/components/ui/slider';
 interface ProductSalesControlProps {
   id: string;
   label?: string;
@@ -37,7 +37,7 @@ export function ProductSalesControl({
   };
 
   return (
-    <div className="space-y-2 w-full">
+    <div className="bg-muted rounded-md p-3 space-y-4 w-full">
       <Label htmlFor={id}>{label}</Label>
       <Tabs
         value={sales.period}
@@ -53,9 +53,17 @@ export function ProductSalesControl({
           </TabsTrigger>
         </TabsList>
       </Tabs>
+      <Slider
+        value={[sales.volume]}
+        onValueChange={(value) => onVolumeChange(value[0])}
+        min={minVolume}
+        max={1000}
+        step={1}
+        className="w-full"
+      />
       <div className="grid grid-cols-4 gap-2 mt-1 items-center">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           className="h-10 w-full text-muted-foreground"
           type="button"
@@ -76,12 +84,12 @@ export function ProductSalesControl({
               const value = e.target.value === '' ? 0 : Math.max(minVolume, Number.parseInt(e.target.value, 10) || 0);
               onVolumeChange(value);
             }}
-            className="h-10 text-base w-full"
+            className="h-10 text-base w-full bg-background text-center md:pl-[26px]"
             disabled={disabled}
           />
         </div>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           className="h-10 w-full text-muted-foreground"
           type="button"

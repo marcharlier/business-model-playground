@@ -65,17 +65,17 @@ export function AppBar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-blue-700 backdrop-blur">
       <div className="container px-4 md:px-8 flex h-14 items-center">
         <div className="mr-4 flex">
           <Link className="flex items-center space-x-2" href="/">
             <Image className="h-8 w-8" src="/favicon.svg" alt="Logo" width={32} height={32} />
-            <span className="font-bold text-xs sm:text-base">Business Model Playground</span>
+            <span className="font-hero text-md font-medium tracking-tighter sm:text-base text-background">Business Model Playground</span>
           </Link>
           {projects.length > 0 && (
             <div className="hidden sm:block">
               <Select value={selectedProject} onValueChange={handleProjectSelect}>
-                <SelectTrigger className="w-[200px] ml-4">
+                <SelectTrigger className="ml-4 bg-background">
                   <SelectValue placeholder="Jump to project..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -115,13 +115,13 @@ export function AppBar() {
               <div className="space-y-2">
                 <h4 className="font-medium leading-none">How your data is stored</h4>
                 <p className="text-sm text-muted-foreground">
-                  This application uses local browser storage to save your data. Here&apos;s what you need to know:
+                  This application uses cloud storage to save your data. Here&apos;s what you need to know:
                 </p>
                 <ul className="list-disc pl-4 text-sm text-muted-foreground">
                   <li>No login required </li>
-                  <li>All data stored locally in your browser</li>
-                  <li>Clearing browser data resets the application</li>
-                  <li>{avatarEmoji} is a random avatar assigned to you</li>
+                  <li>A unique user id is generated for you</li>
+                  <li>Clearing browser data resets your user id</li>
+                  <li>{avatarEmoji} is your random avatar</li>
                 </ul>
               </div>
             </PopoverContent>

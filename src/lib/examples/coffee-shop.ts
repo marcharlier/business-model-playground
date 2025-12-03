@@ -157,11 +157,86 @@ export const coffeeShopExample: Project = {
       }
     ]
   },
-  partnerships: [],
-  activities: [],
-  valueProposition: [],
-  customerRelationships: [],
-  customerSegments: [],
-  resources: [],
-  channels: []
+  partnerships: [
+    {
+      id: "partnership-local-roasters",
+      text: "Local artisan roasters for seasonal bean supply"
+    },
+    {
+      id: "partnership-pastry-bakery",
+      text: "Neighbourhood bakery providing fresh pastries daily"
+    }
+  ],
+  activities: [
+    {
+      id: "activity-training",
+      text: "Barista training & menu experimentation"
+    },
+    {
+      id: "activity-community-events",
+      text: "Host weekly cupping & community events"
+    }
+  ],
+  valueProposition: [
+    {
+      id: "value-premium-coffee",
+      text: "Premium single-origin coffee with fast friendly service"
+    },
+    {
+      id: "value-cozy-space",
+      text: "Cozy third-space with reliable Wi-Fi for remote work"
+    }
+  ],
+  customerRelationships: [
+    {
+      id: "relationship-loyalty",
+      text: "Stamp-based loyalty program & birthday perks"
+    },
+    {
+      id: "relationship-social",
+      text: "Active Instagram updates & DM support"
+    }
+  ],
+  customerSegments: [
+    {
+      id: "segment-commuters",
+      text: "Morning commuters needing quick takeaway"
+    },
+    {
+      id: "segment-remote-workers",
+      text: "Remote workers and students camping for Wi-Fi"
+    },
+    {
+      id: "segment-weekend-families",
+      text: "Weekend families looking for treats"
+    }
+  ],
+  resources: [
+    {
+      id: "resource-baristas",
+      text: "Experienced barista team"
+    },
+    {
+      id: "resource-equipment",
+      text: "High-end espresso equipment & grinders"
+    },
+    {
+      id: "resource-location",
+      text: "Corner unit with indoor/outdoor seating"
+    }
+  ],
+  channels: [
+    {
+      id: "channel-walkins",
+      text: "Walk-in foot traffic from high street"
+    },
+    {
+      id: "channel-online",
+      text: "Instagram & Google Maps updates"
+    },
+    {
+      id: "channel-catering",
+      text: "Office catering for nearby startups"
+    }
+  ]
 }; 

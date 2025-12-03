@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-vaul",
+  "version": "1.1.0",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/vaul@1.1.2",
+  "summary": "Drawer component for React."
+}

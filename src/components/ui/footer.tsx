@@ -8,7 +8,7 @@ export function Footer() {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">About</h3>
             <p className="text-sm text-muted-foreground">
-              🧘‍♂️ This app has been &quot;vibe coded&quot; by{' '}
+              🧘‍♂️ This is a vibe coding project by{' '}
               <a
                 href="https://www.linkedin.com/in/martincharlier/"
                 target="_blank"
@@ -40,7 +40,7 @@ export function Footer() {
                 </a>
               </p>
               <p className="text-sm text-muted-foreground">
-                ☕ Useful for your business?{' '}
+                ☕ Useful to you?{' '}
                 <a
                   href="https://buymeacoffee.com/martincharlier" 
                   target="_blank"

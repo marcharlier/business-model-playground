@@ -1,0 +1,7 @@
+{
+  "name": "tessl/npm-ai",
+  "version": "5.0.1",
+  "docs": "docs/index.md",
+  "describes": "pkg:npm/ai@5.0.80",
+  "summary": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript"
+}
