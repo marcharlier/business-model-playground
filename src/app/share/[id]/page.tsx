@@ -51,7 +51,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
           <AlertDescription>{error}</AlertDescription>
         </Alert>
         <Button variant="default" className="mt-4 w-full" asChild>
-          <NextLink href="/projects">Go to projects</NextLink>
+          <NextLink href="/">Go home</NextLink>
         </Button>
       </div>
     );
@@ -64,7 +64,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
         sharedProject={sharedProject}
         onOpenChange={(open) => {
           if (!open) {
-            router.push('/projects');
+            router.push('/');
           }
         }}
       />

@@ -72,7 +72,7 @@ function ProjectLayoutContent({
     
     try {
       await deleteProject(project.id);
-      router.push('/projects');
+      router.push('/');
     } catch (error) {
       console.error('Error deleting project:', error);
     }

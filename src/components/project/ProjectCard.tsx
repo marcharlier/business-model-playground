@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,30 +21,30 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle hover state with delay for delete button
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+    timeoutRef.current = setTimeout(() => {
+      setShowDeleteButton(true);
+    }, 500);
+  }, []);
 
-    if (isHovered) {
-      timeoutId = setTimeout(() => {
-        setShowDeleteButton(true);
-      }, 500);
-    } else {
-      setShowDeleteButton(false);
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    setShowDeleteButton(false);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [isHovered]);
+  }, []);
 
   return (
     <Link
       href={`/projects/${project.id}/canvas-view`}
       className="block p-4 border border-border rounded-lg hover:border-primary transition-colors relative bg-card"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <h2 className="text-lg font-semibold mb-2">{project.name}</h2>
       <p className="text-sm text-muted-foreground mb-3 sm:mb-4">

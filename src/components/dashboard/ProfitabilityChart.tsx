@@ -57,7 +57,7 @@ export function ProfitabilityChart({
 
   // Memoize the CustomTooltip component to prevent unnecessary re-renders
   const CustomTooltip = useMemo(() => {
-    const TooltipComponent = ({ active, payload }: CustomTooltipProps) => {
+    return function CustomTooltipContent({ active, payload }: CustomTooltipProps) {
       if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
@@ -83,8 +83,6 @@ export function ProfitabilityChart({
       }
       return null;
     };
-    TooltipComponent.displayName = 'CustomTooltip';
-    return TooltipComponent;
   }, [currency]);
 
   return (

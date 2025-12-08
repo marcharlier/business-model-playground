@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,11 +36,15 @@ export default function PlaygroundPage() {
   const projectId = params?.id as string | undefined;
   const { project, refreshProject } = useProject();
 
-  // Product sales state for calculations
-  const [productSales, setProductSales] = useState<Record<string, ProductSales>>({});
-  const [initialized, setInitialized] = useState(false);
-  const isUpdatingRef = useRef(false);
-  const lastSavedSalesRef = useRef<string>('');
+  // Derive product sales directly from project - automatically stays in sync
+  const productSales = useMemo(() => {
+    if (!project) return {};
+    const sales: Record<string, ProductSales> = {};
+    for (const product of project.revenueStreams.products) {
+      sales[product.id] = product.sales || { volume: 1, period: 'monthly' };
+    }
+    return sales;
+  }, [project]);
 
   // Cost dialog state
   const [costDialogOpen, setCostDialogOpen] = useState(false);
@@ -55,21 +59,6 @@ export default function PlaygroundPage() {
 
   // Chart projection state
   const [projectionMonths, setProjectionMonths] = useState<number>(12);
-
-  // Initialize product sales when project is loaded
-  useEffect(() => {
-    if (project && !isUpdatingRef.current) {
-      const initialSales: Record<string, ProductSales> = {};
-      for (const product of project.revenueStreams.products) {
-        initialSales[product.id] = product.sales || { volume: 1, period: 'monthly' };
-      }
-      if (project.revenueStreams.products.length > 0 && !initialized) {
-        setProductSales(initialSales);
-        setInitialized(true);
-        lastSavedSalesRef.current = JSON.stringify(initialSales);
-      }
-    }
-  }, [project, initialized]);
 
   // Calculate metrics
   const metrics = useMemo(() => {

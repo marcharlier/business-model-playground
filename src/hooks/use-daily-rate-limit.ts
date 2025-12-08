@@ -29,29 +29,34 @@ function formatResetIn(target: Date): string {
   return `in ${hours}h ${minutes}m`;
 }
 
+// Synchronous storage read function for lazy initialization
+function readStorageSync(key: string): UsageRecord {
+  const today = formatLocalDateYYYYMMDD(new Date());
+  if (typeof window === "undefined") return { date: today, count: 0 };
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return { date: today, count: 0 };
+    const parsed = JSON.parse(raw) as UsageRecord;
+    if (!parsed || typeof parsed.date !== "string" || typeof parsed.count !== "number") {
+      return { date: today, count: 0 };
+    }
+    // Normalize to today if stored date is stale
+    return parsed.date === today ? parsed : { date: today, count: 0 };
+  } catch {
+    return { date: today, count: 0 };
+  }
+}
+
 export function useDailyRateLimit(featureKey: string, dailyLimit: number) {
   const storageKey = useMemo(() => `bmpl:usage:${featureKey}`, [featureKey]);
-  const [count, setCount] = useState(0);
-  const [dateStr, setDateStr] = useState<string | null>(null);
+
+  // Lazy initialization from localStorage - runs synchronously on first render
+  const [usage, setUsage] = useState<UsageRecord>(() => readStorageSync(`bmpl:usage:${featureKey}`));
   const [resetAt, setResetAt] = useState<Date>(() => computeNextLocalMidnight(new Date()));
-  const [resetIn, setResetIn] = useState<string>(formatResetIn(resetAt));
+  const [resetIn, setResetIn] = useState<string>(() => formatResetIn(computeNextLocalMidnight(new Date())));
+
   const timerRef = useRef<number | null>(null);
   const tickRef = useRef<number | null>(null);
-
-  const readStorage = useCallback((): UsageRecord => {
-    if (typeof window === "undefined") return { date: formatLocalDateYYYYMMDD(new Date()), count: 0 };
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      if (!raw) return { date: formatLocalDateYYYYMMDD(new Date()), count: 0 };
-      const parsed = JSON.parse(raw) as UsageRecord;
-      if (!parsed || typeof parsed.date !== "string" || typeof parsed.count !== "number") {
-        return { date: formatLocalDateYYYYMMDD(new Date()), count: 0 };
-      }
-      return parsed;
-    } catch {
-      return { date: formatLocalDateYYYYMMDD(new Date()), count: 0 };
-    }
-  }, [storageKey]);
 
   const writeStorage = useCallback((record: UsageRecord) => {
     if (typeof window === "undefined") return;
@@ -64,21 +69,18 @@ export function useDailyRateLimit(featureKey: string, dailyLimit: number) {
 
   const refresh = useCallback(() => {
     const today = formatLocalDateYYYYMMDD(new Date());
-    const stored = readStorage();
+    const stored = readStorageSync(storageKey);
     const normalized = stored.date === today ? stored : { date: today, count: 0 };
-    if (normalized !== stored) writeStorage(normalized);
-    setCount(normalized.count);
-    setDateStr(normalized.date);
+    if (normalized.date !== stored.date || normalized.count !== stored.count) {
+      writeStorage(normalized);
+    }
+    setUsage(normalized);
     const nextMidnight = computeNextLocalMidnight(new Date());
     setResetAt(nextMidnight);
     setResetIn(formatResetIn(nextMidnight));
-  }, [readStorage, writeStorage]);
+  }, [storageKey, writeStorage]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  // schedule refresh at next midnight
+  // Schedule refresh at next midnight
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
     const now = Date.now();
@@ -91,7 +93,7 @@ export function useDailyRateLimit(featureKey: string, dailyLimit: number) {
     };
   }, [resetAt, refresh]);
 
-  // update the human string periodically
+  // Update the human-readable string periodically
   useEffect(() => {
     if (tickRef.current) window.clearInterval(tickRef.current);
     tickRef.current = window.setInterval(() => {
@@ -119,24 +121,21 @@ export function useDailyRateLimit(featureKey: string, dailyLimit: number) {
 
   const increment = useCallback(() => {
     const today = formatLocalDateYYYYMMDD(new Date());
-    const stored = readStorage();
+    const stored = readStorageSync(storageKey);
     const base = stored.date === today ? stored : { date: today, count: 0 };
     if (base.count >= dailyLimit) return;
     const updated = { date: today, count: base.count + 1 };
     writeStorage(updated);
-    setCount(updated.count);
-    setDateStr(updated.date);
+    setUsage(updated);
     // Notify other hook instances to refresh
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(RATE_LIMIT_UPDATE_EVENT, { detail: { key: storageKey } }));
     }
-  }, [dailyLimit, readStorage, writeStorage, storageKey]);
+  }, [dailyLimit, storageKey, writeStorage]);
 
   const limit = dailyLimit;
-  const remaining = Math.max(0, limit - count);
+  const remaining = Math.max(0, limit - usage.count);
   const canUse = remaining > 0;
 
-  return { count, limit, remaining, canUse, resetAt, resetIn, increment, refresh, date: dateStr } as const;
+  return { count: usage.count, limit, remaining, canUse, resetAt, resetIn, increment, refresh, date: usage.date } as const;
 }
-
-

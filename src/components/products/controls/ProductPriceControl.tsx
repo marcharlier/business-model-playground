@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -30,7 +30,6 @@ export function ProductPriceControl({
 }: ProductPriceControlProps) {
   const basePriceRef = useRef<number | null>(null);
   const [sliderValue, setSliderValue] = useState(100); // 100 = middle (0% change)
-  const hasInitializedRef = useRef(false);
 
   // Convert slider value (0-200) to price
   // 0 = -100% (0), 100 = 0% (base), 200 = +100% (2x base)
@@ -49,17 +48,12 @@ export function ProductPriceControl({
     return Math.max(0, Math.min(200, Math.round(multiplier * 100)));
   }, []);
 
-  // Initialize base price and reset slider when component first shows
-  useEffect(() => {
-    if (!hasInitializedRef.current) {
-      const currentPrice = Number.parseFloat(value || '0') || 0;
-      const basePrice = currentPrice || 1; // Use 1 as default if price is 0
-      basePriceRef.current = basePrice;
-      // Reset slider to middle (100 = 0% change from base)
-      setSliderValue(100);
-      hasInitializedRef.current = true;
-    }
-  }, [value]); // Initialize with initial value, but only run once due to hasInitializedRef guard
+  // Initialize base price on first render using the allowed null-check pattern
+  if (basePriceRef.current == null) {
+    const currentPrice = Number.parseFloat(value || '0') || 0;
+    const basePrice = currentPrice || 1; // Use 1 as default if price is 0
+    basePriceRef.current = basePrice;
+  }
 
   const handleSliderChange = useCallback(
     (newSliderValue: number[]) => {

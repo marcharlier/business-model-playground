@@ -1,15 +1,28 @@
 'use client';
-import React, { useMemo, type JSX } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 export type TextShimmerProps = {
   children: string;
-  as?: React.ElementType;
+  as?: 'p' | 'span' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   className?: string;
   duration?: number;
   spread?: number;
 };
+
+// Pre-create motion components for supported elements
+const motionComponents = {
+  p: motion.p,
+  span: motion.span,
+  div: motion.div,
+  h1: motion.h1,
+  h2: motion.h2,
+  h3: motion.h3,
+  h4: motion.h4,
+  h5: motion.h5,
+  h6: motion.h6,
+} as const;
 
 function TextShimmerComponent({
   children,
@@ -18,9 +31,7 @@ function TextShimmerComponent({
   duration = 2,
   spread = 2,
 }: TextShimmerProps) {
-  const MotionComponent = motion.create(
-    Component as keyof JSX.IntrinsicElements
-  );
+  const MotionComponent = motionComponents[Component];
 
   const dynamicSpread = useMemo(() => {
     return children.length * spread;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useProject } from '@/lib/context/ProjectContext';
@@ -21,17 +21,42 @@ import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import { BreakEvenStatement } from '@/components/dashboard/BreakEvenStatement';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Helper function to compute initial sales from project
+function computeInitialSales(project: { revenueStreams: { products: Product[] } } | null): Record<string, ProductSales> {
+  if (!project) return {};
+  const initialSales: Record<string, ProductSales> = {};
+  for (const product of project.revenueStreams.products) {
+    initialSales[product.id] = product.sales || {
+      volume: 1,
+      period: 'monthly'
+    };
+  }
+  return initialSales;
+}
+
+// Helper to get a stable key representing the product list
+function getProductIdsKey(project: { revenueStreams: { products: Product[] } } | null): string {
+  if (!project) return '';
+  return project.revenueStreams.products.map(p => p.id).join(',');
+}
+
 export default function DashboardPage() {
   const { id } = useParams();
   const { project, refreshProject } = useProject();
   const [productSales, setProductSales] = useState<Record<string, ProductSales>>({});
-  const [initialized, setInitialized] = useState(false);
   const [projectionMonths, setProjectionMonths] = useState<number>(12);
   
-  // Ref to track if we triggered the last project change (to prevent update loops)
-  const isUpdatingRef = useRef(false);
-  // Ref to store the last saved sales data to prevent unnecessary saves
-  const lastSavedSalesRef = useRef<string>('');
+  // Track product list to detect when products are added/removed
+  const productIdsKey = getProductIdsKey(project);
+  const [prevProductIdsKey, setPrevProductIdsKey] = useState(productIdsKey);
+
+  // Reinitialize product sales when product list changes (React-recommended pattern)
+  // This handles: initial load, products added, products removed
+  if (productIdsKey !== prevProductIdsKey) {
+    setPrevProductIdsKey(productIdsKey);
+    setProductSales(computeInitialSales(project));
+  }
 
   // Load project data when component mounts or id changes
   useEffect(() => {
@@ -40,37 +65,16 @@ export default function DashboardPage() {
     }
   }, [id, refreshProject]);
 
-  // Initialize product sales when project is loaded or changes
-  useEffect(() => {
-    if (project && !isUpdatingRef.current) {
-      // Initialize product sales from project data or defaults
-      const initialSales: Record<string, ProductSales> = {};
-      
-      for (const product of project.revenueStreams.products) {
-        // Use stored values if available (from embedded sales or productSales), otherwise default to 1 unit monthly
-        initialSales[product.id] = product.sales || {
-          volume: 1,
-          period: 'monthly'
-        };
-      }
-      
-      // Only update if we have products to initialize and we haven't initialized yet
-      if (project.revenueStreams.products.length > 0 && !initialized) {
-        setProductSales(initialSales);
-        setInitialized(true);
-        // Store the initial state so we don't immediately save it back
-        lastSavedSalesRef.current = JSON.stringify(initialSales);
-      }
-    }
-  }, [project, initialized]);
-
   // Save sales volumes to products when they change
   useEffect(() => {
-    if (project && initialized && Object.keys(productSales).length > 0) {
-      // Check if sales data actually changed to prevent unnecessary saves
+    if (project && Object.keys(productSales).length > 0) {
+      // Compute what initial sales would be from project data
+      const initialSalesJson = JSON.stringify(computeInitialSales(project));
       const currentSalesJson = JSON.stringify(productSales);
-      if (currentSalesJson === lastSavedSalesRef.current) {
-        return; // No actual change, skip save
+      
+      // If current matches what's already in project, no need to save
+      if (currentSalesJson === initialSalesJson) {
+        return;
       }
       
       // Update sales in products
@@ -87,17 +91,9 @@ export default function DashboardPage() {
         }
       };
       
-      // Mark that we're updating to prevent re-initialization loops
-      isUpdatingRef.current = true;
-      lastSavedSalesRef.current = currentSalesJson;
       projectStorage.updateProject(updatedProject);
-      
-      // Reset the flag after a short delay to allow for the update to propagate
-      setTimeout(() => {
-        isUpdatingRef.current = false;
-      }, 100);
     }
-  }, [productSales, project, initialized]);
+  }, [productSales, project]);
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleSalesVolumeChange = useCallback((productId: string, value: number) => {

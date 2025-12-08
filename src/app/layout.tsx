@@ -1,12 +1,13 @@
 import "./globals.css"
-import { Inter as NextInter } from "next/font/google"
+import { Inter, Figtree } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { AppBarWrapper } from "@/components/ui/app-bar-wrapper"
 import { Footer } from "@/components/ui/footer"
 import { ThemeProvider } from "@/context/ThemeContext"
 import { Analytics } from "@vercel/analytics/react"
 
-const inter = NextInter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" })
 
 export const metadata = {
   title: 'Business Model Playground',
@@ -26,7 +27,8 @@ export default function RootLayout({
       </head>
       <body className={cn(
         "min-h-screen bg-background font-sans antialiased flex flex-col bg-[#E4E4E4]",
-        inter.className
+        inter.variable,
+        figtree.variable
       )}>
         <ThemeProvider>
           <div className="flex flex-col min-h-screen">

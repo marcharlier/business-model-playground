@@ -38,7 +38,7 @@ export function RevenueBreakdownChart({
 
   // Memoize the CustomTooltip component to prevent unnecessary re-renders
   const CustomTooltip = useMemo(() => {
-    const TooltipComponent = ({ active, payload }: CustomTooltipProps) => {
+    return function CustomTooltipContent({ active, payload }: CustomTooltipProps) {
       if (active && payload && payload.length) {
         const data = payload[0].payload;
         const totalRevenue = data.costs + data.profit;
@@ -65,8 +65,6 @@ export function RevenueBreakdownChart({
       }
       return null;
     };
-    TooltipComponent.displayName = 'CustomTooltip';
-    return TooltipComponent;
   }, [currency]);
 
   return (

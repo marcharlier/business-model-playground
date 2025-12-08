@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sparkles } from "lucide-react";
@@ -12,24 +12,35 @@ const ANIMALS = [
 ];
 
 const STORAGE_KEY = "business-model-playground-avatar-emoji";
+// Cached empty string for server snapshot
+const EMPTY_EMOJI = '';
+
+// Get or create avatar emoji from localStorage
+function getAvatarEmoji(): string {
+  if (typeof window === 'undefined') return '';
+  const storedEmoji = localStorage.getItem(STORAGE_KEY);
+  if (storedEmoji) return storedEmoji;
+  
+  const randomIndex = Math.floor(Math.random() * ANIMALS.length);
+  const newEmoji = ANIMALS[randomIndex];
+  localStorage.setItem(STORAGE_KEY, newEmoji);
+  return newEmoji;
+}
+
+// Subscription function (emoji doesn't change after initial load)
+function subscribeToEmoji() {
+  // Emoji is set once and doesn't change, so no need to subscribe to changes
+  return () => {};
+}
+
+function getServerEmoji(): string {
+  return EMPTY_EMOJI;
+}
 
 export function UserAvatarPopover() {
   const [isOpen, setIsOpen] = useState(false);
-  const [avatarEmoji, setAvatarEmoji] = useState<string>("");
+  const avatarEmoji = useSyncExternalStore(subscribeToEmoji, getAvatarEmoji, getServerEmoji);
   const aiUsage = useDailyRateLimit("ai-cost-ideas", 10);
-
-  useEffect(() => {
-    const storedEmoji = localStorage.getItem(STORAGE_KEY);
-
-    if (storedEmoji) {
-      setAvatarEmoji(storedEmoji);
-    } else {
-      const randomIndex = Math.floor(Math.random() * ANIMALS.length);
-      const newEmoji = ANIMALS[randomIndex];
-      localStorage.setItem(STORAGE_KEY, newEmoji);
-      setAvatarEmoji(newEmoji);
-    }
-  }, []);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>

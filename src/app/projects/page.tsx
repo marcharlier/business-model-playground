@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Coffee, Plus } from 'lucide-react';
@@ -10,19 +9,14 @@ import { ProjectCard } from '@/components/project/ProjectCard';
 import { useProjects } from '@/lib/hooks/use-projects';
 
 export default function ProjectsList() {
-  const { projects, deleteProject } = useProjects();
-  const [isLoading, setIsLoading] = useState(true);
+  const { projects, deleteProject, isLoading } = useProjects();
   const router = useRouter();
-
-  useEffect(() => {
-    // Set loading to false once we have projects data
-    setIsLoading(false);
-  }, [projects]);
 
   const handleDeleteProject = async (projectId: string, e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation
     e.stopPropagation(); // Prevent event bubbling
     await deleteProject(projectId);
+    router.push('/');
   };
 
   const handleCreateNewProject = () => {

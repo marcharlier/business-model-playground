@@ -7,6 +7,22 @@ import type { Currency, ProductSales } from '@/lib/storage/types';
 import type { Product } from '@/lib/storage/types';
 import { useMemo } from 'react';
 
+interface ChartDataPoint {
+  month: string;
+  revenue: number;
+  upfront: number;
+  operating: number;
+  cogs: number;
+  totalCosts: number;
+  profit: number;
+}
+
+interface ProjectionData {
+  data: ChartDataPoint[];
+  firstProfitLabel: string | undefined;
+  firstProfitRevenue: number | undefined;
+}
+
 interface MonthlyProjectionChartProps {
   products: Product[];
   productSales: Record<string, ProductSales>;
@@ -17,6 +33,78 @@ interface MonthlyProjectionChartProps {
 
 type CustomTooltipProps = TooltipProps<number, string>;
 
+function calculateProjectionData(
+  products: Product[],
+  productSales: Record<string, ProductSales>,
+  fixedCosts: { monthly: number; annual: number; upfront: number },
+  lengthMonths: number
+): ProjectionData {
+  const months = Array.from({ length: lengthMonths }, (_, i) => i + 1);
+  
+  // Calculate base monthly revenue (one month's worth)
+  const baseMonthlyRevenue = products.reduce((total, product) => {
+    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    return total + (product.price * monthlyVolume);
+  }, 0);
+
+  // Calculate base monthly variable costs (one month's worth)
+  const baseMonthlyVariableCosts = products.reduce((total, product) => {
+    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
+    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    return total + (unitCost * monthlyVolume);
+  }, 0);
+
+  // Calculate monthly data with compounding values (stacked cumulative costs)
+  let cumulativeRevenue = 0;
+  let cumulativeUpfront = 0;
+  let cumulativeOperating = 0;
+  let cumulativeCogs = 0;
+  let firstProfitLabel: string | undefined;
+  let firstProfitRevenue: number | undefined;
+
+  const data = months.map(month => {
+    // Add this month's revenue to the cumulative total
+    cumulativeRevenue += baseMonthlyRevenue;
+
+    // Build cumulative costs stacks
+    if (month === 1) {
+      // First month: add upfront costs once
+      cumulativeUpfront = fixedCosts.upfront;
+    }
+    
+    // Add annual costs at the start of each year (month 1, 13, 25, etc.)
+    const isStartOfYear = (month - 1) % 12 === 0;
+    if (isStartOfYear) {
+      cumulativeOperating += fixedCosts.annual;
+    }
+    
+    // Add monthly operating costs and COGS every month
+    cumulativeOperating += fixedCosts.monthly;
+    cumulativeCogs += baseMonthlyVariableCosts;
+
+    const totalCosts = cumulativeUpfront + cumulativeOperating + cumulativeCogs;
+    const profit = cumulativeRevenue - totalCosts;
+    if (!firstProfitLabel && cumulativeRevenue >= totalCosts) {
+      firstProfitLabel = `Month ${month}`;
+      firstProfitRevenue = cumulativeRevenue;
+    }
+
+    return {
+      month: `Month ${month}`,
+      revenue: cumulativeRevenue,
+      upfront: cumulativeUpfront,
+      operating: cumulativeOperating,
+      cogs: cumulativeCogs,
+      totalCosts,
+      profit
+    };
+  });
+
+  return { data, firstProfitLabel, firstProfitRevenue };
+}
+
 export function MonthlyProjectionChart({ 
   products, 
   productSales, 
@@ -24,86 +112,16 @@ export function MonthlyProjectionChart({
   currency,
   lengthMonths = 12
 }: MonthlyProjectionChartProps) {
-  // Calculate monthly data for 12 months
-  const { data, firstProfitLabel, firstProfitRevenue } = useMemo(() => {
-    const months = Array.from({ length: lengthMonths }, (_, i) => i + 1);
-    
-    // Calculate base monthly revenue (one month's worth)
-    const baseMonthlyRevenue = products.reduce((total, product) => {
-      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-      return total + (product.price * monthlyVolume);
-    }, 0);
-
-    // Calculate base monthly variable costs (one month's worth)
-    const baseMonthlyVariableCosts = products.reduce((total, product) => {
-      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-      const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
-      return total + (unitCost * monthlyVolume);
-    }, 0);
-
-    // Calculate monthly data with compounding values (stacked cumulative costs)
-    let cumulativeRevenue = 0;
-    let cumulativeUpfront = 0;
-    let cumulativeOperating = 0;
-    let cumulativeCogs = 0;
-    let firstProfitLabel: string | undefined;
-    let firstProfitRevenue: number | undefined;
-
-    const points = months.map(month => {
-      // Add this month's revenue to the cumulative total
-      cumulativeRevenue += baseMonthlyRevenue;
-
-      // Build cumulative costs stacks
-      if (month === 1) {
-        // First month: add upfront costs once
-        cumulativeUpfront = fixedCosts.upfront;
-      }
-      
-      // Add annual costs at the start of each year (month 1, 13, 25, etc.)
-      const isStartOfYear = (month - 1) % 12 === 0;
-      if (isStartOfYear) {
-        cumulativeOperating += fixedCosts.annual;
-      }
-      
-      // Add monthly operating costs and COGS every month
-      cumulativeOperating += fixedCosts.monthly;
-      cumulativeCogs += baseMonthlyVariableCosts;
-
-      const totalCosts = cumulativeUpfront + cumulativeOperating + cumulativeCogs;
-      const profit = cumulativeRevenue - totalCosts;
-      if (!firstProfitLabel && cumulativeRevenue >= totalCosts) {
-        firstProfitLabel = `Month ${month}`;
-        firstProfitRevenue = cumulativeRevenue;
-      }
-
-      return {
-        month: `Month ${month}`,
-        revenue: cumulativeRevenue,
-        upfront: cumulativeUpfront,
-        operating: cumulativeOperating,
-        cogs: cumulativeCogs,
-        totalCosts,
-        profit
-      };
-    });
-    return { data: points, firstProfitLabel, firstProfitRevenue };
-  }, [products, productSales, fixedCosts, lengthMonths]);
+  const { data, firstProfitLabel, firstProfitRevenue } = useMemo(
+    () => calculateProjectionData(products, productSales, fixedCosts, lengthMonths),
+    [products, productSales, fixedCosts, lengthMonths]
+  );
 
   // Memoize the CustomTooltip component to prevent unnecessary re-renders
   const CustomTooltip = useMemo(() => {
-    const TooltipComponent = ({ active, payload }: CustomTooltipProps) => {
+    return function CustomTooltipContent({ active, payload }: CustomTooltipProps) {
       if (active && payload && payload.length) {
-        const data = payload[0].payload as {
-          month: string;
-          revenue: number;
-          upfront: number;
-          operating: number;
-          cogs: number;
-          totalCosts: number;
-          profit: number;
-        };
+        const data = payload[0].payload as ChartDataPoint;
         return (
           <div className="rounded-lg border bg-background p-2 shadow-sm">
             <p className="font-medium text-sm">{data.month}</p>
@@ -135,8 +153,6 @@ export function MonthlyProjectionChart({
       }
       return null;
     };
-    TooltipComponent.displayName = 'CustomTooltip';
-    return TooltipComponent;
   }, [currency]);
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, PencilIcon, InfoIcon } from 'lucide-react';
@@ -26,13 +26,16 @@ export function CategoryCard({
   onAddClick,
   onEditClick,
 }: CategoryCardProps) {
-  const [showExamples, setShowExamples] = useState(costs.length === 0);
+  const hasCosts = costs.length > 0;
+  const [showExamples, setShowExamples] = useState(!hasCosts);
+  const [prevHasCosts, setPrevHasCosts] = useState(hasCosts);
 
-  useEffect(() => {
-    if (costs.length > 0) {
-      setShowExamples(false);
-    }
-  }, [costs.length]);
+  // Adjust state during render when costs presence changes (React-recommended pattern)
+  // This replaces the useEffect and handles both directions: show when empty, hide when has costs
+  if (hasCosts !== prevHasCosts) {
+    setPrevHasCosts(hasCosts);
+    setShowExamples(!hasCosts);
+  }
 
   return (
     <Card className="h-full relative transition-all gap-0 pt-4 pb-2">

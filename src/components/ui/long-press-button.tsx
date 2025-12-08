@@ -24,9 +24,9 @@ export function LongPressButton({
 }: LongPressButtonProps) {
   const [isPressed, setIsPressed] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
-  const intervalRef = React.useRef<NodeJS.Timeout>();
-  const startTimeRef = React.useRef<number>();
+  const timeoutRef = React.useRef<NodeJS.Timeout>(undefined);
+  const intervalRef = React.useRef<NodeJS.Timeout>(undefined);
+  const startTimeRef = React.useRef<number>(undefined);
 
   const cleanup = React.useCallback(() => {
     if (timeoutRef.current) {

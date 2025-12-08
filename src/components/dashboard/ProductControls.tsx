@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
@@ -52,15 +52,11 @@ function ProductControlForm({
   calculateBreakEven,
   upfrontRecoupText
 }: ProductControlFormProps) {
-  const [inputValue, setInputValue] = useState<string>(product.price === 0 ? '' : product.price.toString());
-
-  useEffect(() => {
-    setInputValue(product.price === 0 ? '' : product.price.toString());
-  }, [product.price]);
+  // Derive input value from product.price - no need for separate state sync
+  const inputValue = product.price === 0 ? '' : product.price.toString();
 
   const handlePriceChange = useCallback(
     (nextValue: string) => {
-      setInputValue(nextValue);
       onPriceChange(product.id, nextValue);
     },
     [onPriceChange, product.id]
