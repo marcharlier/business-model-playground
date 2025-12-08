@@ -200,7 +200,7 @@ export function CanvasSectionEditableCard({
                     role="button"
                     tabIndex={0}
                   >
-                    <span className="min-w-0 truncate">{item.text}</span>
+                    <span className="min-w-0 line-clamp-2">{item.text}</span>
                     <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   </div>
                 ))

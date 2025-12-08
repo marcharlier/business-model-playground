@@ -5,7 +5,7 @@ import { projectStorage } from '@/lib/storage/projectStorage';
 import { cloudProjectStorage } from '@/lib/storage/cloudProjectStorage';
 import type { Project } from '@/lib/storage/types';
 
-export type CloudSyncStatus = 'idle' | 'syncing' | 'migrating' | 'error';
+export type CloudSyncStatus = 'idle' | 'syncing' | 'migrating' | 'error' | 'offline';
 
 interface UseCloudSyncOptions {
   /** Debounce delay in ms before syncing after a change. Default: 300 */
@@ -36,10 +36,50 @@ export function useCloudSync(options: UseCloudSyncOptions = {}): UseCloudSyncRet
   const hasInitializedRef = useRef(false);
   const isReconciling = useRef(false);
 
+  // Listen for online/offline events
+  useEffect(() => {
+    const handleOnline = () => {
+      if (status === 'offline') {
+        setStatus('idle');
+      }
+    };
+    const handleOffline = () => {
+      setStatus('offline');
+      setError(null); // Clear any previous error since we now know it's just offline
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [status]);
+
+  /**
+   * Check if an error is likely due to being offline.
+   */
+  const isNetworkError = useCallback((err: unknown): boolean => {
+    if (!navigator.onLine) return true;
+    if (err instanceof TypeError && err.message.includes('fetch')) return true;
+    if (err instanceof Error) {
+      const msg = err.message.toLowerCase();
+      return msg.includes('network') || msg.includes('failed to fetch') || msg.includes('offline');
+    }
+    return false;
+  }, []);
+
   /**
    * Sync a single project to cloud storage.
    */
   const syncProject = useCallback(async (project: Project) => {
+    // Don't attempt sync if offline
+    if (!navigator.onLine) {
+      setStatus('offline');
+      return;
+    }
+
     try {
       setStatus('syncing');
       setError(null);
@@ -48,15 +88,26 @@ export function useCloudSync(options: UseCloudSyncOptions = {}): UseCloudSyncRet
       setStatus('idle');
     } catch (err) {
       console.error('Cloud sync failed:', err);
-      setError(err instanceof Error ? err.message : 'Sync failed');
-      setStatus('error');
+      if (isNetworkError(err)) {
+        setStatus('offline');
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Sync failed');
+        setStatus('error');
+      }
     }
-  }, []);
+  }, [isNetworkError]);
 
   /**
    * Delete a project from cloud storage.
    */
   const deleteFromCloud = useCallback(async (deletedProjectId: string) => {
+    // Don't attempt delete if offline
+    if (!navigator.onLine) {
+      setStatus('offline');
+      return;
+    }
+
     try {
       setStatus('syncing');
       setError(null);
@@ -65,10 +116,15 @@ export function useCloudSync(options: UseCloudSyncOptions = {}): UseCloudSyncRet
       setStatus('idle');
     } catch (err) {
       console.error('Cloud delete failed:', err);
-      setError(err instanceof Error ? err.message : 'Delete sync failed');
-      setStatus('error');
+      if (isNetworkError(err)) {
+        setStatus('offline');
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Delete sync failed');
+        setStatus('error');
+      }
     }
-  }, []);
+  }, [isNetworkError]);
 
   /**
    * Initial reconciliation: fetch cloud data and merge with local storage.
@@ -78,8 +134,16 @@ export function useCloudSync(options: UseCloudSyncOptions = {}): UseCloudSyncRet
     if (isReconciling.current) return;
     isReconciling.current = true;
 
+    // If offline, skip reconciliation and allow local-only usage
+    if (!navigator.onLine) {
+      setStatus('offline');
+      hasInitializedRef.current = true;
+      isReconciling.current = false;
+      return;
+    }
+
     try {
-      setStatus('migrating');
+      setStatus('syncing');
       setError(null);
 
       // Fetch all cloud projects
@@ -118,6 +182,7 @@ export function useCloudSync(options: UseCloudSyncOptions = {}): UseCloudSyncRet
 
       // Migrate local-only projects to cloud
       if (projectsToMigrate.length > 0) {
+        setStatus('migrating');
         await cloudProjectStorage.syncProjects(projectsToMigrate);
       }
 
@@ -129,13 +194,18 @@ export function useCloudSync(options: UseCloudSyncOptions = {}): UseCloudSyncRet
       window.dispatchEvent(new Event('projectChange'));
     } catch (err) {
       console.error('Cloud reconciliation failed:', err);
-      setError(err instanceof Error ? err.message : 'Reconciliation failed');
-      setStatus('error');
+      if (isNetworkError(err)) {
+        setStatus('offline');
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Reconciliation failed');
+        setStatus('error');
+      }
       hasInitializedRef.current = true; // Still mark as initialized to allow local-only usage
     } finally {
       isReconciling.current = false;
     }
-  }, []);
+  }, [isNetworkError]);
 
   /**
    * Handle project changes from localStorage (debounced sync).

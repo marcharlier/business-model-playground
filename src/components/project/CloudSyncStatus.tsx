@@ -1,6 +1,6 @@
 'use client';
 
-import { CloudOff, RefreshCw, CloudUpload, CloudCheck } from 'lucide-react';
+import { CloudOff, RefreshCw, CloudUpload, CloudCheck, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -16,6 +16,8 @@ interface CloudSyncStatusProps {
   error: string | null;
   lastSyncedAt: Date | null;
   onRetry?: () => void;
+  /** Show a text label next to the icon */
+  showLabel?: boolean;
 }
 
 export function CloudSyncStatus({
@@ -23,13 +25,15 @@ export function CloudSyncStatus({
   error,
   lastSyncedAt,
   onRetry,
+  showLabel = true,
 }: CloudSyncStatusProps) {
   const getStatusConfig = () => {
     switch (status) {
       case 'idle':
         return {
           icon: CloudCheck,
-          label: 'Synced to cloud',
+          label: 'Synced',
+          tooltipLabel: 'Synced to cloud',
           description: lastSyncedAt
             ? `Last synced ${formatTimeAgo(lastSyncedAt)}`
             : 'All changes saved',
@@ -40,6 +44,7 @@ export function CloudSyncStatus({
         return {
           icon: RefreshCw,
           label: 'Syncing...',
+          tooltipLabel: 'Syncing...',
           description: 'Saving changes to cloud',
           iconClass: 'text-blue-500',
           animate: true,
@@ -48,14 +53,25 @@ export function CloudSyncStatus({
         return {
           icon: CloudUpload,
           label: 'Migrating...',
+          tooltipLabel: 'Migrating...',
           description: 'Setting up cloud storage',
           iconClass: 'text-amber-500',
+          animate: false,
+        };
+      case 'offline':
+        return {
+          icon: WifiOff,
+          label: 'Offline',
+          tooltipLabel: 'You are offline',
+          description: 'Changes will sync when you reconnect',
+          iconClass: 'text-muted-foreground',
           animate: false,
         };
       case 'error':
         return {
           icon: CloudOff,
-          label: 'Sync failed',
+          label: 'Error',
+          tooltipLabel: 'Sync failed',
           description: error || 'Unable to sync to cloud',
           iconClass: 'text-red-500',
           animate: false,
@@ -66,37 +82,52 @@ export function CloudSyncStatus({
   const config = getStatusConfig();
   const Icon = config.icon;
 
+  const isClickable = status === 'error' || status === 'offline';
+  const handleClick = isClickable ? onRetry : undefined;
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            variant={status === 'error' ? 'outline' : 'link'}
-            size="sm"
-            className={cn(
-              'h-8 w-8 p-0',
-              status === 'error' && 'hover:bg-red-500/10'
-            )}
-            onClick={status === 'error' ? onRetry : undefined}
-            disabled={status === 'syncing' || status === 'migrating'}
-          >
-            <Icon
+          <div className="flex items-center gap-0">
+            <Button
+              variant={status === 'error' ? 'outline' : 'link'}
+              size="sm"
               className={cn(
-                'h-4 w-4',
-                config.iconClass,
-                config.animate && 'animate-spin'
+                'h-8 w-8 p-0',
+                status === 'error' && 'hover:bg-red-500/10'
               )}
-            />
-            <span className="sr-only">{config.label}</span>
-          </Button>
+              onClick={handleClick}
+              disabled={status === 'syncing' || status === 'migrating'}
+            >
+              <Icon
+                className={cn(
+                  'h-4 w-4',
+                  config.iconClass,
+                  config.animate && 'animate-spin'
+                )}
+              />
+              <span className="sr-only">{config.tooltipLabel}</span>
+            </Button>
+            {showLabel && (
+              <span className="text-sm text-muted-foreground">
+                {config.label}
+              </span>
+            )}
+          </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" align="center">
           <div className="text-center">
-            <p className="font-medium">{config.label}</p>
+            <p className="font-medium">{config.tooltipLabel}</p>
             <p className="text-xs text-muted-foreground">{config.description}</p>
             {status === 'error' && (
               <p className="text-xs text-muted-foreground mt-1">
                 Click to retry
+              </p>
+            )}
+            {status === 'offline' && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Click to retry when online
               </p>
             )}
           </div>

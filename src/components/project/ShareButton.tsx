@@ -266,7 +266,7 @@ export function ShareButton({ project }: ShareButtonProps) {
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Button variant="outline" className="rounded-lg" onClick={() => setOpen(true)}>
           <Share className="h-4 w-4" />
           Share project
         </Button>

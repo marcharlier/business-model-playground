@@ -1,3 +1,5 @@
+'use client';
+
 import { useMediaQuery } from '@/hooks/use-media-query';
 import {
   Dialog,
@@ -16,45 +18,40 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
-import { ProductForm } from './ProductForm';
-import type { Product, AssociatedCost, Currency, ProductSales } from '@/lib/storage/types';
+import { ProjectForm, type ProjectFormData } from './ProjectForm';
+import type { Project } from '@/lib/storage/types';
 
-interface ProductDialogProps {
+interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product?: Product;
-  currency: Currency;
-  onSave: (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => void;
+  project: Project;
+  onSave: (data: ProjectFormData) => void;
   isSubmitting: boolean;
   onDelete?: () => void;
 }
 
-export function ProductDialog({
+export function ProjectDialog({
   open,
   onOpenChange,
-  product,
-  currency,
+  project,
   onSave,
   isSubmitting,
-  onDelete
-}: ProductDialogProps) {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  onDelete,
+}: ProjectDialogProps) {
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{product ? 'Edit revenue stream' : 'Add revenue stream'}</DialogTitle>
+            <DialogTitle>Edit project</DialogTitle>
             <DialogDescription>
-              {product 
-                ? 'Make changes to your revenue stream here.'
-                : 'Add a new revenue stream to your business.'}
+              Make changes to your project here.
             </DialogDescription>
           </DialogHeader>
-          <ProductForm
-            product={product}
-            currency={currency}
+          <ProjectForm
+            project={project}
             onSave={onSave}
             onCancel={() => onOpenChange(false)}
             isSubmitting={isSubmitting}
@@ -69,17 +66,14 @@ export function ProductDialog({
     <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>{product ? 'Edit revenue stream' : 'Add revenue stream'}</DrawerTitle>
+          <DrawerTitle>Edit project</DrawerTitle>
           <DrawerDescription>
-            {product 
-              ? 'Make changes to your revenue stream here.'
-              : 'Add a new revenue stream to your business.'}
+            Make changes to your project here.
           </DrawerDescription>
         </DrawerHeader>
         <div className="px-4">
-          <ProductForm
-            product={product}
-            currency={currency}
+          <ProjectForm
+            project={project}
             onSave={onSave}
             onCancel={() => onOpenChange(false)}
             isSubmitting={isSubmitting}
@@ -95,4 +89,5 @@ export function ProductDialog({
       </DrawerContent>
     </Drawer>
   );
-} 
+}
+

@@ -5,6 +5,8 @@ type UsageRecord = {
   count: number;
 };
 
+const RATE_LIMIT_UPDATE_EVENT = "bmpl:rate-limit-update";
+
 function formatLocalDateYYYYMMDD(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -100,6 +102,21 @@ export function useDailyRateLimit(featureKey: string, dailyLimit: number) {
     };
   }, [resetAt]);
 
+  // Listen for updates from other hook instances
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ key: string }>).detail;
+      if (detail.key === storageKey) {
+        refresh();
+      }
+    };
+    window.addEventListener(RATE_LIMIT_UPDATE_EVENT, handleUpdate);
+    return () => {
+      window.removeEventListener(RATE_LIMIT_UPDATE_EVENT, handleUpdate);
+    };
+  }, [storageKey, refresh]);
+
   const increment = useCallback(() => {
     const today = formatLocalDateYYYYMMDD(new Date());
     const stored = readStorage();
@@ -109,7 +126,11 @@ export function useDailyRateLimit(featureKey: string, dailyLimit: number) {
     writeStorage(updated);
     setCount(updated.count);
     setDateStr(updated.date);
-  }, [dailyLimit, readStorage, writeStorage]);
+    // Notify other hook instances to refresh
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(RATE_LIMIT_UPDATE_EVENT, { detail: { key: storageKey } }));
+    }
+  }, [dailyLimit, readStorage, writeStorage, storageKey]);
 
   const limit = dailyLimit;
   const remaining = Math.max(0, limit - count);

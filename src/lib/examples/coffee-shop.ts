@@ -39,7 +39,7 @@ export const coffeeShopExample: Project = {
       name: "Business Insurance",
       amount: 150,
       frequency: "monthly",
-      category: "insurance",
+      category: "professional",
       projectId: "example-coffee-shop"
     },
     {

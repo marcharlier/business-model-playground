@@ -5,13 +5,12 @@ import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggleTheme}
       className="rounded-full hover:bg-accent hover:text-accent-foreground"
     >
       {theme === 'light' ? (

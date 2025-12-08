@@ -1,33 +1,106 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Calculator, LineChart, BarChart3, TrendingUp, ArrowRight, Plus, Coffee } from 'lucide-react';
+import { Sparkles, Plus } from 'lucide-react';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { coffeeShopExample } from '@/lib/examples/coffee-shop';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
+import type { Currency } from '@/lib/storage/types';
+import { useProjects } from '@/lib/hooks/use-projects';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ProjectCard } from '@/components/project/ProjectCard';
+
+// Canvas preview component for the hero card
+// Uses CSS Grid with 10 columns (LCM of 5 and 2) for flexible row layouts
+// Row 1-2: 5 equal columns (each card spans 2 cols)
+// Row 3: 2 equal columns (each card spans 5 cols)
+function CanvasPreview({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`grid grid-cols-10 grid-rows-3 gap-2 opacity-90 ${className ?? ''}`}
+    >
+      {/* Partnerships - col 1-2, row 1-2 (double height) */}
+      <div className="col-start-1 col-span-2 row-start-1 row-span-2 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Partnerships</span>
+      </div>
+      
+      {/* Activities - col 3-4, row 1 */}
+      <div className="col-start-3 col-span-2 row-start-1 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Activities</span>
+      </div>
+      
+      {/* Resources - col 3-4, row 2 */}
+      <div className="col-start-3 col-span-2 row-start-2 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Resources</span>
+      </div>
+      
+      {/* Value Proposition - col 5-6, row 1-2 (double height) */}
+      <div className="col-start-5 col-span-2 row-start-1 row-span-2 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Value Proposition</span>
+      </div>
+      
+      {/* Customer Relationships - col 7-8, row 1 */}
+      <div className="col-start-7 col-span-2 row-start-1 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Customer Relationships</span>
+      </div>
+      
+      {/* Channels - col 7-8, row 2 */}
+      <div className="col-start-7 col-span-2 row-start-2 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Channels</span>
+      </div>
+      
+      {/* Customer Segments - col 9-10, row 1-2 (double height) */}
+      <div className="col-start-9 col-span-2 row-start-1 row-span-2 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="text-white/20 text-xs text-center px-2">Customer Segments</span>
+      </div>
+      
+      {/* Cost Structure - col 1-5, row 3 */}
+      <div className="col-start-1 col-span-5 row-start-3 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="hidden text-white/20 text-xs text-center px-2">Cost Structure</span>
+      </div>
+      
+      {/* Revenue Streams - col 6-10, row 3 */}
+      <div className="col-start-6 col-span-5 row-start-3 rounded-lg bg-blue-950/30 flex items-center justify-center">
+        <span className="hidden text-white/20 text-xs text-center px-2">Revenue Streams</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
-  const [hasProjects, setHasProjects] = useState(false);
+  const { projects, deleteProject } = useProjects();
   const [isLoading, setIsLoading] = useState(true);
+  const [businessIdea, setBusinessIdea] = useState('');
+  const [currency, setCurrency] = useState<Currency>('GBP');
   const router = useRouter();
 
   useEffect(() => {
-    const projects = projectStorage.getAllProjects();
-    setHasProjects(projects.length > 0);
-    // Small delay to ensure the initial state is set before showing the buttons
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 50);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
+
+  const handleDeleteProject = async (projectId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await deleteProject(projectId);
+  };
 
   const handleCreateNewProject = () => {
     try {
-      const newProject = projectStorage.createProject('My new project', 'GBP');
-      router.push(`/projects/${newProject.id}/fixed-costs`);
+      const newProject = projectStorage.createProject('My new project', currency);
+      router.push(`/projects/${newProject.id}/canvas-view`);
     } catch (error) {
       console.error('Error creating project:', error);
     }
@@ -39,7 +112,6 @@ export default function Home() {
       coffeeShopExample.currency
     );
     
-    // Update the project with example data
     const productsWithSales = coffeeShopExample.revenueStreams.products.map(product => ({
       ...product,
       projectId: newProject.id,
@@ -66,7 +138,6 @@ export default function Home() {
       revenueStreams: {
         products: productsWithSales
       },
-      // Include all canvas sections
       partnerships: coffeeShopExample.partnerships ?? [],
       activities: coffeeShopExample.activities ?? [],
       valueProposition: coffeeShopExample.valueProposition ?? [],
@@ -77,108 +148,106 @@ export default function Home() {
     };
     
     projectStorage.updateProject(updatedProject);
-    router.push(`/projects/${newProject.id}/dashboard`);
+    router.push(`/projects/${newProject.id}/canvas-view`);
+  };
+
+  const handleGenerateCanvas = () => {
+    // Placeholder for AI generation - will be connected later
+    console.log('Generate canvas with:', { businessIdea, currency });
   };
 
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="container mx-auto px-4 md:px-8 py-8 sm:py-16 flex-1">
-        <div className="max-w-4xl mx-auto text-center mb-8 sm:mb-16">
-          <h1 className="font-hero text-blue-700 text-4xl sm:text-4xl font-bold mb-4 sm:mb-6">Create, explore and share your business models.</h1>
-          <p className="text-lg sm:text-lg mb-6 sm:mb-8 text-muted-foreground">
-            Use the <a href="https://www.strategyzer.com/library/the-business-model-canvas" target="_blank" className="link">Business Model Canvas</a> with built in calculators, projections and visualisations.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-            {isLoading ? (
-              <>
-                <Skeleton className="h-12 sm:h-10 w-full sm:w-40" />
-                <Skeleton className="h-12 sm:h-10 w-full sm:w-40" />
-              </>
-            ) : (
-              <>
-                {hasProjects ? (
-                  <Button asChild size="lg" className="gap-2 w-full sm:w-auto">
-                    <Link href="/projects">
-                      View Your Projects
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button 
-                    size="lg" 
-                    className="gap-2 w-full sm:w-auto"
-                    onClick={handleCreateNewProject}
-                  >
-                    Create Your First Project
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                )}
-                {!hasProjects && (
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="gap-2 w-full sm:w-auto"
-                    onClick={handleAddExampleProject}
-                  >
-                    <Coffee className="h-4 w-4" />
-                    Play with an example
-                  </Button>
-                )}
-              </>
-            )}
+    <div className="flex-1 flex flex-col pt-20">
+      <div className="container max-w-7xl mx-auto py-8 sm:py-12 flex-1">
+        {/* Hero Card */}
+        <div className="mx-auto mb-8">
+          <div className="relative rounded-2xl bg-gradient-to-b from-blue-700 to-blue-950 p-8 sm:p-12 overflow-hidden">
+            {/* Canvas Preview - absolute positioned background layer */}
+            <CanvasPreview className="absolute inset-x-0 top-0 h-3/4 bottom-0 mx-auto max-w-3xl my-8 sm:my-12 blur-[1px]" />
+            
+            {/* Content layer - positioned on top of canvas */}
+            <div className="relative z-10 pt-32">
+              {/* Tagline */}
+              <h2 className="text-white text-xl sm:text-2xl font-semibold text-center mb-8">
+                Build a business model using AI<br />
+                and explore pricing and profitability.
+              </h2>
+              
+              {/* Input Card */}
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-white rounded-xl p-4 shadow-lg relative opacity-50">
+                  <textarea
+                    value={businessIdea}
+                    onChange={(e) => setBusinessIdea(e.target.value)}
+                    placeholder="Describe your business idea and get a filled in Business Model Canvas"
+                    className="blur-[1px] w-full h-20 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-sm sm:text-base"
+                  />
+                  <div className="blur-[1px] flex items-center justify-end gap-3 pt-2">
+                    <Select value={currency} onValueChange={(value: Currency) => setCurrency(value)}>
+                      <SelectTrigger className="w-20 h-9 bg-gray-50 border-gray-200 rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      onClick={handleGenerateCanvas}
+                      className="gap-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Generate Canvas
+                    </Button>
+                  </div>
+                  <div className="inset-0 absolute flex items-center justify-center text-blue-700 font-bold">Coming soon...</div>
+                </div>
+              </div>
+              
+              {/* Quick action pills */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                <button
+                  onClick={handleAddExampleProject}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors"
+                >
+                  Artisan coffee shop
+                </button>
+                <button
+                  className="hidden px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors opacity-60 cursor-not-allowed"
+                  disabled
+                  title="Coming soon"
+                >
+                  B2B SaaS platform
+                </button>
+                <button
+                  onClick={handleCreateNewProject}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Start blank
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          <div className="bg-card p-4 sm:p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center mb-3 sm:mb-4">
-              <div className="bg-primary/10 p-2 rounded-full mr-3">
-                <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <h3 className="text-base sm:text-lg font-medium">Financial Modeling</h3>
+        {/* Projects Section - Only show if user has projects */}
+        {!isLoading && projects.length > 0 && (
+          <div className="mx-auto">
+            <h2 className="text-xl font-semibold mb-4">Your projects</h2>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                            <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onDelete={handleDeleteProject}
+                          />
+              ))}
             </div>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Add your products, services, and costs to create a complete financial model of your business idea.
-            </p>
           </div>
-          
-          <div className="bg-card p-4 sm:p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center mb-3 sm:mb-4">
-              <div className="bg-primary/10 p-2 rounded-full mr-3">
-                <LineChart className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <h3 className="text-base sm:text-lg font-medium">Scenario Testing</h3>
-            </div>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Experiment with different sales volumes and pricing strategies to see how they affect your profitability.
-            </p>
-          </div>
-          
-          <div className="bg-card p-4 sm:p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center mb-3 sm:mb-4">
-              <div className="bg-primary/10 p-2 rounded-full mr-3">
-                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <h3 className="text-base sm:text-lg font-medium">Visual Analytics</h3>
-            </div>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              View revenue breakdowns, cost structures, and profit margins through intuitive charts and visualizations.
-            </p>
-          </div>
-          
-          <div className="bg-card p-4 sm:p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center mb-3 sm:mb-4">
-              <div className="bg-primary/10 p-2 rounded-full mr-3">
-                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <h3 className="text-base sm:text-lg font-medium">Break-Even Analysis</h3>
-            </div>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Determine how many units you need to sell to cover your costs and start making a profit.
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
-} 
+}

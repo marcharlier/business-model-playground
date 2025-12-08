@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CircleDollarSign, Pencil, Plus } from 'lucide-react';
+import { CircleDollarSign, Pencil, Plus, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils/currency';
 import {
@@ -31,6 +31,7 @@ interface CostStructureCardProps {
   currency: Currency;
   onEditCost: (cost: UnifiedCost, type: 'upfront' | 'operating') => void;
   onAddCost: () => void;
+  onAISuggestions?: () => void;
 }
 
 export function CostStructureCard({
@@ -40,6 +41,7 @@ export function CostStructureCard({
   currency,
   onEditCost,
   onAddCost,
+  onAISuggestions,
 }: CostStructureCardProps) {
   const Icon = CircleDollarSign;
 
@@ -101,15 +103,28 @@ export function CostStructureCard({
       </CardContent>
       <CardFooter className="mt-auto flex w-full flex-col gap-2 px-2 pb-2 pt-0">
         <Separator className="bg-border/70" />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onAddCost}
-          className="h-8 w-full justify-center rounded-lg border border-border bg-background text-xs font-medium text-foreground shadow-none"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add cost
-        </Button>
+        <div className="flex w-full gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onAddCost}
+            className="h-8 flex-1 justify-center rounded-lg border border-border bg-background text-xs font-medium text-foreground shadow-none"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+          {onAISuggestions && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAISuggestions}
+              className="h-8 flex-1 justify-center rounded-lg border border-border bg-background text-xs font-medium text-foreground shadow-none"
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI ideas
+            </Button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

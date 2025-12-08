@@ -1,7 +1,7 @@
 import "./globals.css"
 import { Inter as NextInter } from "next/font/google"
 import { cn } from "@/lib/utils"
-import { AppBar } from "@/components/ui/app-bar"
+import { AppBarWrapper } from "@/components/ui/app-bar-wrapper"
 import { Footer } from "@/components/ui/footer"
 import { ThemeProvider } from "@/context/ThemeContext"
 import { Analytics } from "@vercel/analytics/react"
@@ -25,13 +25,13 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body className={cn(
-        "min-h-screen bg-background font-sans antialiased flex flex-col",
+        "min-h-screen bg-background font-sans antialiased flex flex-col bg-[#E4E4E4]",
         inter.className
       )}>
         <ThemeProvider>
           <div className="flex flex-col min-h-screen">
-            <AppBar />
-            <main className="flex-1 pt-14">
+            <AppBarWrapper />
+            <main className="flex-1">
               {children}
             </main>
             <Footer />

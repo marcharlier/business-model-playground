@@ -13,7 +13,7 @@ interface OnboardingProgressProps {
 	hasProducts: boolean;
 	className?: string;
 	projectId?: string;
-	currentPage?: 'upfront-costs' | 'fixed-costs' | 'products' | 'dashboard';
+	currentPage?: 'upfront-costs' | 'fixed-costs' | 'products' | 'dashboard' | 'playground';
 }
 
 export function OnboardingProgress({
@@ -118,13 +118,13 @@ export function OnboardingProgress({
 					</p>
 				</Link>
 
-				{/* Step 4: Play with Dashboard */}
+				{/* Step 4: Play with Playground */}
 				<Link 
-					href={`/projects/${projectId}/dashboard`}
+					href={`/projects/${projectId}/playground`}
 					className={cn(
 						"flex flex-col items-center text-center my-auto p-2 sm:p-4 rounded-full border transition-colors",
 						"hover:bg-muted/80",
-						currentPage === 'dashboard' && "ring-2 ring-foreground"
+						(currentPage === 'dashboard' || currentPage === 'playground') && "ring-2 ring-foreground"
 					)}
 				>
           <div className="flex items-center sm:mb-2">

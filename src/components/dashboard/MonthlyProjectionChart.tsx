@@ -128,7 +128,6 @@ export function MonthlyProjectionChart({
               <p className="text-xs mt-1">Total Costs: {formatCurrency(data.totalCosts, currency)}</p>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <div className="h-2 w-2 rounded-full bg-[hsl(var(--chart-2))]" />
               <p className={`text-xs font-medium ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>Cumulative Profit: {formatCurrency(data.profit, currency)}</p>
             </div>
           </div>
@@ -141,7 +140,7 @@ export function MonthlyProjectionChart({
   }, [currency]);
 
   return (
-    <div className="h-[300px]">
+    <div className="h-[233px]">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
@@ -171,23 +170,24 @@ export function MonthlyProjectionChart({
             cursor={false}
           />
           <Legend 
-            iconType="circle"
+
             iconSize={8}
-            wrapperStyle={{ paddingTop: '20px', fontSize: '0.75rem' }}
+            wrapperStyle={{ paddingTop: '20px', fontSize: '0.75rem', width: '100%' }}
+            align="left"
           />
-          <Area type="monotone" dataKey="upfront" name="Upfront (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.15} />
-          <Area type="monotone" dataKey="operating" name="Operating (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.3} />
-          <Area type="monotone" dataKey="cogs" name="COGS (cumulative)" stackId="1" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.5} />
+          <Area type="monotone" dataKey="upfront" name="Upfront (cumulative)" stackId="1" stroke="none" fill="hsla(var(--destructive) / 0.65)"/>
+          <Area type="monotone" dataKey="operating" name="Operating (cumulative)" stackId="1" stroke="none" fill="hsla(var(--destructive) / 0.85)" />
+          <Area type="monotone" dataKey="cogs" name="COGS (cumulative)" stackId="1" stroke="none" fill="hsla(var(--destructive) / 1.0)" />
           <Line 
             type="monotone"
             dataKey="revenue" 
             name="Cumulative Revenue" 
-            stroke="hsl(var(--chart-1))"
+            stroke="hsla(var(--chart-1)/1.0)"
             strokeWidth={2}
             dot={false}
           />
           {firstProfitLabel && firstProfitRevenue !== undefined ? (
-            <ReferenceDot x={firstProfitLabel} y={firstProfitRevenue} r={5} fill="hsl(var(--chart-1))" stroke="hsl(var(--chart-1))" />
+            <ReferenceDot x={firstProfitLabel} y={firstProfitRevenue} r={5} fill="hsla(var(--chart-1)/1.0)" stroke="hsl(var(--chart-1))" />
           ) : null}
         </ComposedChart>
       </ResponsiveContainer>

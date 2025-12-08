@@ -1,71 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Coffee, Trash2, Plus } from 'lucide-react';
+import { Coffee, Plus } from 'lucide-react';
 import { projectStorage } from '@/lib/storage/projectStorage';
-import type { Project } from '@/lib/storage/types';
 import { coffeeShopExample } from '@/lib/examples/coffee-shop';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ProjectCard } from '@/components/project/ProjectCard';
+import { useProjects } from '@/lib/hooks/use-projects';
 
 export default function ProjectsList() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const { projects, deleteProject } = useProjects();
   const [isLoading, setIsLoading] = useState(true);
-  const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
-  const [showDeleteButton, setShowDeleteButton] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const loadProjects = () => {
-      try {
-        const loadedProjects = projectStorage.getAllProjects();
-        setProjects(loadedProjects);
-      } catch (error) {
-        console.error('Error loading projects:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // Set loading to false once we have projects data
+    setIsLoading(false);
+  }, [projects]);
 
-    loadProjects();
-  }, []);
-
-  // Handle hover state with delay
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    if (hoveredProjectId) {
-      timeoutId = setTimeout(() => {
-        setShowDeleteButton(true);
-      }, 500);
-    } else {
-      setShowDeleteButton(false);
-    }
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [hoveredProjectId]);
-
-  const handleDeleteProject = (projectId: string, e: React.MouseEvent) => {
+  const handleDeleteProject = async (projectId: string, e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation
     e.stopPropagation(); // Prevent event bubbling
-    
-    try {
-      projectStorage.deleteProject(projectId);
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-    } catch (error) {
-      console.error('Error deleting project:', error);
-    }
+    await deleteProject(projectId);
   };
 
   const handleCreateNewProject = () => {
     try {
       const newProject = projectStorage.createProject('My new project', 'GBP');
-      router.push(`/projects/${newProject.id}/fixed-costs`);
+      router.push(`/projects/${newProject.id}/canvas-view`);
     } catch (error) {
       console.error('Error creating project:', error);
     }
@@ -116,11 +79,8 @@ export default function ProjectsList() {
     // Save the updated project
     projectStorage.updateProject(updatedProject);
     
-    // Update local state
-    setProjects(prev => [...prev, updatedProject]);
-    
-    // Redirect to the project's dashboard
-    router.push(`/projects/${updatedProject.id}/dashboard`);
+    // Redirect to the project's canvas view
+    router.push(`/projects/${updatedProject.id}/canvas-view`);
   };
 
   if (isLoading) {
@@ -132,7 +92,7 @@ export default function ProjectsList() {
   }
 
   return (
-    <main className="container mx-auto py-6 sm:py-10 px-4 md:px-8">
+    <main className="container mx-auto py-6 sm:py-10 px-4 md:px-8 pt-20">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Your Projects</h1>
         {projects.length > 0 && (
@@ -170,45 +130,11 @@ export default function ProjectsList() {
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Link 
-              key={project.id} 
-              href={`/projects/${project.id}/dashboard`}
-              className="block p-4 sm:p-6 border rounded-lg hover:border-primary transition-colors relative"
-              onMouseEnter={() => setHoveredProjectId(project.id)}
-              onMouseLeave={() => setHoveredProjectId(null)}
-            >
-              <h2 className="text-lg sm:text-xl font-semibold mb-2">{project.name}</h2>
-              <p className="text-sm text-muted-foreground mb-3 sm:mb-4">
-                Created on {new Date(project.createdAt).toLocaleDateString()}
-              </p>
-              <div className="flex justify-between items-center text-sm">
-                <Badge variant="outline" className="text-xs font-mono">
-                  {project.currency}
-                </Badge>
-                <span className="text-muted-foreground">
-                  {project.costStructure.fixedRunningCosts.length} fixed costs, {project.revenueStreams.products.length} products
-                </span>
-              </div>
-              {hoveredProjectId === project.id && showDeleteButton && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => handleDeleteProject(project.id, e)}
-                        className="absolute top-2 right-2 h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Delete project</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </Link>
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onDelete={handleDeleteProject}
+            />
           ))}
         </div>
       )}

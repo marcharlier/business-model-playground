@@ -2,7 +2,7 @@
 
 export function Footer() {
   return (
-    <footer className="border-t bg-muted/50 mt-auto">
+    <footer className="border-t-[1px] border-[#CCCCCC] border-dashed shadow-[inset_0px_1px_0px_white] bg-muted/50 mt-auto">
       <div className="container py-8">
         <div className="grid gap-8 md:grid-cols-3">
           <div className="space-y-2">

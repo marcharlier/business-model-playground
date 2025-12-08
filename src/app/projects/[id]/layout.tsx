@@ -1,233 +1,24 @@
 'use client';
 
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectProvider, useProject } from '@/lib/context/ProjectContext';
-import { PencilIcon, Trash2, List, LayoutPanelTop } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PencilIcon } from 'lucide-react';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { useState } from 'react';
-import type { Currency, Project } from '@/lib/storage/types';
-import { Badge } from '@/components/ui/badge';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useProjects } from '@/lib/hooks/use-projects';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer';
-import { cn } from '@/lib/utils';
-import { LongPressButton } from '@/components/ui/long-press-button';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ShareButton } from '@/components/project/ShareButton';
 import { CloudSyncStatus } from '@/components/project/CloudSyncStatus';
-import { Textarea } from '@/components/ui/textarea';
+import { ProjectDialog } from '@/components/project/ProjectDialog';
+import type { ProjectFormData } from '@/components/project/ProjectForm';
 import { useCloudSync } from '@/hooks/use-cloud-sync';
-
-const MAX_DESCRIPTION_LENGTH = 600;
-
-function ProjectEditForm({ 
-  className,
-  project,
-  onSave,
-  onDelete,
-  isSubmitting 
-}: {
-  className?: string;
-  project: Project;
-  onSave: (name: string, currency: Currency, description: string) => void;
-  onDelete: () => void;
-  isSubmitting: boolean;
-}) {
-  const [name, setName] = useState(project.name);
-  const [currency, setCurrency] = useState<Currency>(project.currency);
-  const [description, setDescription] = useState(project.description ?? "");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) {
-      onSave(name.trim(), currency, description.trim());
-    }
-  };
-
-  const handleCurrencyChange = (value: string) => {
-    setCurrency(value as Currency);
-  };
-
-  return (
-    <form className={cn("grid items-start gap-4", className)} onSubmit={handleSubmit}>
-      <div className="grid gap-2">
-        <Label htmlFor="project-name">Project name</Label>
-        <Input
-          id="project-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={isSubmitting}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="currency">Currency</Label>
-        <Select value={currency} onValueChange={handleCurrencyChange} disabled={isSubmitting}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="GBP">GBP (£)</SelectItem>
-            <SelectItem value="USD">USD ($)</SelectItem>
-            <SelectItem value="EUR">EUR (€)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="business-description">Business description</Label>
-        <Textarea
-          id="business-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          maxLength={MAX_DESCRIPTION_LENGTH}
-          disabled={isSubmitting}
-        />
-        <div className="text-xs text-muted-foreground text-right">
-          {description.length}/{MAX_DESCRIPTION_LENGTH}
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Button type="submit" disabled={isSubmitting || !name.trim()}>
-          Save changes
-        </Button>
-        <Accordion type="single" collapsible>
-          <AccordionItem value="delete">
-            <AccordionTrigger className="text-sm text-muted-foreground hover:text-destructive py-2">
-              Delete this project?
-            </AccordionTrigger>
-            <AccordionContent>
-              <LongPressButton
-                variant="destructive"
-                onLongPress={onDelete}
-                disabled={isSubmitting}
-                className="gap-2 w-full"
-                duration={2000}
-        >
-              <Trash2 className="h-4 w-4" />
-                Hold to delete project
-              </LongPressButton>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </div>
-    </form>
-  );
-}
-
-function ProjectEditDialog({ 
-  project, 
-  refreshProject,
-  trigger 
-}: { 
-  project: Project;
-  refreshProject: () => void;
-  trigger: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
-  const handleSave = async (name: string, currency: Currency, description: string) => {
-    setIsSubmitting(true);
-    try {
-      projectStorage.updateProject({
-        ...project,
-        name,
-        currency,
-        description
-      });
-      refreshProject();
-      setOpen(false);
-    } catch (error) {
-      console.error('Error updating project:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = () => {
-    try {
-      projectStorage.deleteProject(project.id);
-      router.push('/projects');
-    } catch (error) {
-      console.error('Error deleting project:', error);
-    }
-  };
-
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          {trigger}
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit project</DialogTitle>
-            <DialogDescription>
-              Make changes to your project here.
-            </DialogDescription>
-          </DialogHeader>
-          <ProjectEditForm
-            project={project}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            isSubmitting={isSubmitting}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return (
-    <Drawer open={open} onOpenChange={setOpen} repositionInputs={false}>
-      <DrawerTrigger asChild>
-        {trigger}
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Edit project</DrawerTitle>
-          <DrawerDescription>
-            Make changes to your project here.
-          </DrawerDescription>
-        </DrawerHeader>
-        <ProjectEditForm
-          className="px-4"
-          project={project}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          isSubmitting={isSubmitting}
-        />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
-}
 
 function ProjectLayoutContent({
   children,
@@ -240,41 +31,59 @@ function ProjectLayoutContent({
   const projectId = params?.id as string;
   const { project, isLoading, refreshProject } = useProject();
   const { status: cloudSyncStatus, error: cloudSyncError, lastSyncedAt, retry: cloudSyncRetry } = useCloudSync({ projectId });
+  const { projects, deleteProject } = useProjects();
+  
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isCanvasView = pathname.includes('/canvas-view');
-
-  // Determine the active tab based on the current path
-  const getActiveTab = () => {
-    if (pathname.includes('/fixed-costs')) return 'fixed-costs';
-    if (pathname.includes('/upfront-costs')) return 'upfront-costs';
-    if (pathname.includes('/products')) return 'products';
-    return 'dashboard';
+  // Handle project switch
+  const handleProjectSwitch = (newProjectId: string) => {
+    if (newProjectId === projectId) return;
+    
+    // Navigate to the same sub-route for the new project
+    const currentSubPath = pathname.split(`/projects/${projectId}`)[1] || '/canvas-view';
+    router.push(`/projects/${newProjectId}${currentSubPath}`);
   };
 
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    if (!projectId) return;
+  // Handle project save
+  const handleSave = async (data: ProjectFormData) => {
+    if (!project) return;
     
-    switch (value) {
-      case 'dashboard':
-        router.push(`/projects/${projectId}/dashboard`);
-        break;
-      case 'fixed-costs':
-        router.push(`/projects/${projectId}/fixed-costs`);
-        break;
-      case 'upfront-costs':
-        router.push(`/projects/${projectId}/upfront-costs`);
-        break;
-      case 'products':
-        router.push(`/projects/${projectId}/products`);
-        break;
+    setIsSubmitting(true);
+    try {
+      projectStorage.updateProject({
+        ...project,
+        name: data.name,
+        currency: data.currency,
+        description: data.description,
+      });
+      refreshProject();
+      setEditDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating project:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle project delete
+  const handleDelete = async () => {
+    if (!project) return;
+    
+    try {
+      await deleteProject(project.id);
+      router.push('/projects');
+    } catch (error) {
+      console.error('Error deleting project:', error);
     }
   };
 
   if (isLoading) {
     return (
-      <main className="container mx-auto py-10">
-        <p>Loading project...</p>
+      <main className="min-h-screen bg-[#E4E4E4] pt-14">
+        <div className="container mx-auto py-10">
+          <p>Loading project...</p>
+        </div>
       </main>
     );
   }
@@ -284,76 +93,60 @@ function ProjectLayoutContent({
   }
 
   return (
-    <main className="container mx-auto py-6 sm:py-10 px-4 md:px-8">
-      <div className="flex flex-col gap-4 mb-6">
-        {/* Back Button - Mobile */}
-        <div className="sm:hidden">
-          <Button variant="ghost" size="sm" asChild className="gap-2 -ml-2">
-            <Link href="/projects">
-              <List className="h-4 w-4" />
-              All Projects
-            </Link>
+    <main className="min-h-screen bg-[#E4E4E4] pt-14">
+      <div className="container mx-auto py-6 sm:py-10 px-4 md:px-8">
+        {/* Project Header Bar */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          {/* Project Switcher */}
+          <Select value={projectId} onValueChange={handleProjectSwitch}>
+            <SelectTrigger className="w-auto rounded-lg min-w-[200px] bg-background border border-border">
+              <SelectValue>
+                {project.name} ({project.currency})
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} ({p.currency})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Edit Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-lg"
+            onClick={() => setEditDialogOpen(true)}
+          >
+            <PencilIcon className="h-4 w-4" />
           </Button>
+
+          {/* Share Button */}
+          <ShareButton project={project} />
+
+          {/* Cloud Sync Status with Label */}
+          <CloudSyncStatus
+            status={cloudSyncStatus}
+            error={cloudSyncError}
+            lastSyncedAt={lastSyncedAt}
+            onRetry={cloudSyncRetry}
+          />
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-md sm:text-3xl font-bold">{project.name}</h1>
-            <Badge variant="outline" className="font-mono">
-              {project.currency}
-            </Badge>
-            <ProjectEditDialog
-              project={project}
-              refreshProject={refreshProject}
-              trigger={
-                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-              }
-            />
-            <CloudSyncStatus
-              status={cloudSyncStatus}
-              error={cloudSyncError}
-              lastSyncedAt={lastSyncedAt}
-              onRetry={cloudSyncRetry}
-            />
-            <ShareButton project={project} />
-            <Button
-              asChild
-              variant={isCanvasView ? 'default' : 'ghost'}
-              size="sm"
-              className="gap-2"
-            >
-              <Link href={`/projects/${projectId}/canvas-view`}>
-                <LayoutPanelTop className="h-4 w-4" />
-                Canvas view (beta)
-              </Link>
-            </Button>
-          </div>
-          {/* Back Button - Desktop */}
-          <div className="hidden sm:block">
-            <Button variant="ghost" size="sm" asChild className="gap-2">
-              <Link href="/projects">
-                <List className="h-4 w-4" />
-                All Projects
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+        {/* Project Edit Dialog */}
+        <ProjectDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          project={project}
+          onSave={handleSave}
+          isSubmitting={isSubmitting}
+          onDelete={handleDelete}
+        />
 
-      <div className="mb-6 overflow-x-auto hidden">
-        <Tabs value={getActiveTab()} onValueChange={handleTabChange}>
-          <TabsList className="w-full sm:w-fit">
-            <TabsTrigger value="fixed-costs" className="flex-1 sm:flex-none">Operating Costs</TabsTrigger>
-            <TabsTrigger value="upfront-costs" className="flex-1 sm:flex-none">Upfront Costs</TabsTrigger>
-            <TabsTrigger value="products" className="flex-1 sm:flex-none">Products</TabsTrigger>
-            <TabsTrigger value="dashboard" className="flex-1 sm:flex-none">Results Dashboard</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {children}
       </div>
-
-      {children}
     </main>
   );
 }
@@ -368,4 +161,4 @@ export default function ProjectLayout({
       <ProjectLayoutContent>{children}</ProjectLayoutContent>
     </ProjectProvider>
   );
-} 
+}

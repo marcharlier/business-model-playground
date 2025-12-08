@@ -33,12 +33,16 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CanvasSectionEditableCard } from '@/components/canvas/CanvasSectionEditableCard';
 import { CostStructureCard } from '@/components/canvas/CostStructureCard';
+import { RevenueStreamsCard } from '@/components/canvas/RevenueStreamsCard';
+import { CanvasAISuggestionsSheet } from '@/components/canvas/CanvasAISuggestionsSheet';
 import { CostDialog } from '@/components/costs/CostDialog';
+import { ProductDialog } from '@/components/products/ProductDialog';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
+import { productStorage } from '@/lib/storage/productStorage';
 import type { CanvasItem } from '@/lib/domain/types';
-import type { FixedCost, UpfrontCost } from '@/lib/storage/types';
+import type { FixedCost, UpfrontCost, Product, AssociatedCost, ProductSales } from '@/lib/storage/types';
 import type { CostFormData } from '@/components/costs/CostForm';
 
 type CanvasSection = {
@@ -129,6 +133,20 @@ export default function CanvasViewPage() {
   const [editingCost, setEditingCost] = useState<FixedCost | UpfrontCost | undefined>();
   const [costDialogType, setCostDialogType] = useState<'upfront' | 'operating'>('operating');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // AI suggestions sheet state
+  const [aiSuggestionsOpen, setAiSuggestionsOpen] = useState(false);
+  
+  // Prefill values for cost dialog (from AI suggestions)
+  const [prefillName, setPrefillName] = useState<string | undefined>();
+  const [prefillAmount, setPrefillAmount] = useState<string | undefined>();
+  const [prefillFrequency, setPrefillFrequency] = useState<'monthly' | 'annual' | undefined>();
+  const [prefillCategory, setPrefillCategory] = useState<string | undefined>();
+
+  // Product dialog state
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
+  const [isProductSubmitting, setIsProductSubmitting] = useState(false);
 
   const placeholder = 'Coming soon...';
   const costStructureItems = useMemo(() => {
@@ -187,7 +205,7 @@ export default function CanvasViewPage() {
 
   const handleTabChange = (value: string) => {
     if (value === 'profitability' && projectId) {
-      router.push(`/projects/${projectId}/dashboard`);
+      router.push(`/projects/${projectId}/playground`);
     }
   };
 
@@ -216,12 +234,42 @@ export default function CanvasViewPage() {
   const handleAddCost = () => {
     setEditingCost(undefined);
     setCostDialogType('operating');
+    // Clear any prefill values
+    setPrefillName(undefined);
+    setPrefillAmount(undefined);
+    setPrefillFrequency(undefined);
+    setPrefillCategory(undefined);
+    setCostDialogOpen(true);
+  };
+
+  const handleAISuggestions = () => {
+    setAiSuggestionsOpen(true);
+  };
+
+  const handleAddCostFromAI = (data: {
+    name: string;
+    costType: 'upfront' | 'operating';
+    categoryId?: string;
+    amount?: number;
+    frequency?: 'monthly' | 'annual';
+  }) => {
+    setEditingCost(undefined);
+    setCostDialogType(data.costType);
+    setPrefillName(data.name);
+    setPrefillAmount(data.amount !== undefined ? String(data.amount) : undefined);
+    setPrefillFrequency(data.frequency);
+    setPrefillCategory(data.categoryId);
     setCostDialogOpen(true);
   };
 
   const handleEditCost = (cost: FixedCost | UpfrontCost, type: 'upfront' | 'operating') => {
     setEditingCost(cost);
     setCostDialogType(type);
+    // Clear prefill values when editing
+    setPrefillName(undefined);
+    setPrefillAmount(undefined);
+    setPrefillFrequency(undefined);
+    setPrefillCategory(undefined);
     setCostDialogOpen(true);
   };
 
@@ -306,9 +354,64 @@ export default function CanvasViewPage() {
     setEditingCost(undefined);
   };
 
+  // Product handlers
+  const handleAddProduct = () => {
+    setEditingProduct(undefined);
+    setProductDialogOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setProductDialogOpen(true);
+  };
+
+  const handleSaveProduct = (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => {
+    if (!projectId) return;
+
+    setIsProductSubmitting(true);
+    try {
+      if (editingProduct) {
+        // Update existing product
+        const updatedProduct: Product = {
+          ...editingProduct,
+          name,
+          price,
+          associatedCosts,
+          sales,
+        };
+        productStorage.updateProduct(updatedProduct, projectId);
+      } else {
+        // Create new product
+        const newProduct: Product = {
+          id: crypto.randomUUID(),
+          name,
+          price,
+          associatedCosts,
+          sales,
+          projectId,
+        };
+        productStorage.createProduct(newProduct, projectId);
+      }
+
+      refreshProject();
+      setProductDialogOpen(false);
+      setEditingProduct(undefined);
+    } finally {
+      setIsProductSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = () => {
+    if (!editingProduct || !projectId) return;
+
+    productStorage.deleteProduct(editingProduct.id, projectId);
+    refreshProject();
+    setProductDialogOpen(false);
+    setEditingProduct(undefined);
+  };
+
   return (
     <section className="relative">
-      <div className="rounded-sm border border-border/60 bg-secondary px-4 py-6 shadow-sm sm:px-6 lg:px-10">
         <div className="mx-auto flex w-full flex-col gap-6">
           <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full">
             <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
@@ -426,17 +529,27 @@ export default function CanvasViewPage() {
                       currency={project.currency}
                       onEditCost={handleEditCost}
                       onAddCost={handleAddCost}
+                      onAISuggestions={handleAISuggestions}
                     />
                   ) : (
                     <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-72" />
                   )}
-                  <CanvasSectionCard section={sectionMap['revenue-streams']!} />
+                  {project ? (
+                    <RevenueStreamsCard
+                      className="h-72"
+                      products={project.revenueStreams.products}
+                      currency={project.currency}
+                      onEditProduct={handleEditProduct}
+                      onAddProduct={handleAddProduct}
+                    />
+                  ) : (
+                    <CanvasSectionCard section={sectionMap['revenue-streams']!} className="h-72" />
+                  )}
                 </div>
               </div>
             </TabsContent>
           </Tabs>
         </div>
-      </div>
 
       {/* Cost Dialog */}
       {project && (
@@ -450,6 +563,30 @@ export default function CanvasViewPage() {
           isSubmitting={isSubmitting}
           onDelete={editingCost ? handleDeleteCost : undefined}
           toggleEnabled={true}
+          prefillName={prefillName}
+          prefillAmount={prefillAmount}
+          prefillFrequency={prefillFrequency}
+          categoryPreselected={prefillCategory}
+        />
+      )}
+
+      {/* AI Suggestions Sheet */}
+      <CanvasAISuggestionsSheet
+        open={aiSuggestionsOpen}
+        onOpenChange={setAiSuggestionsOpen}
+        onAddCost={handleAddCostFromAI}
+      />
+
+      {/* Product Dialog */}
+      {project && (
+        <ProductDialog
+          open={productDialogOpen}
+          onOpenChange={setProductDialogOpen}
+          product={editingProduct}
+          currency={project.currency}
+          onSave={handleSaveProduct}
+          isSubmitting={isProductSubmitting}
+          onDelete={editingProduct ? handleDeleteProduct : undefined}
         />
       )}
     </section>

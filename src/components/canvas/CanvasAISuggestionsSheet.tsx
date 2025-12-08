@@ -1,24 +1,38 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, CheckCircle2, Circle, FileText, LayoutGrid } from "lucide-react";
-import { TextShimmer } from "@/components/ui/text-shimmer";
-import { useProject } from "@/lib/context/ProjectContext";
-import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { costIdeasSchema, type CostIdea } from "@/app/api/ai/cost-ideas/schema";
-import { useDailyRateLimit } from "@/hooks/use-daily-rate-limit";
+import { useMemo } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { TextShimmer } from '@/components/ui/text-shimmer';
+import { useProject } from '@/lib/context/ProjectContext';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { costIdeasSchema, type CostIdea } from '@/app/api/ai/cost-ideas/schema';
+import { useDailyRateLimit } from '@/hooks/use-daily-rate-limit';
+import { CheckCircle2, Circle, FileText, LayoutGrid } from 'lucide-react';
 
-interface AISuggestionsSheetProps {
+interface CanvasAISuggestionsSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onAddCost?: (data: {
     name: string;
     costType: 'upfront' | 'operating';
     categoryId?: string;
     amount?: number;
-    frequency?: "monthly" | "annual";
+    frequency?: 'monthly' | 'annual';
   }) => void;
 }
 
@@ -77,13 +91,17 @@ function useContextCheck(project: ReturnType<typeof useProject>['project']): Con
   }, [project]);
 }
 
-export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
+export function CanvasAISuggestionsSheet({
+  open,
+  onOpenChange,
+  onAddCost,
+}: CanvasAISuggestionsSheetProps) {
   const { project, isLoading: isProjectLoading } = useProject();
-  const usage = useDailyRateLimit("ai-cost-ideas", 10);
+  const usage = useDailyRateLimit('ai-cost-ideas', 10);
   const contextCheck = useContextCheck(project);
 
   const { object, submit, isLoading, error, stop } = useObject({
-    api: "/api/ai/cost-ideas",
+    api: '/api/ai/cost-ideas',
     schema: costIdeasSchema,
   });
 
@@ -91,7 +109,7 @@ export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
     if (!project) return null;
     return {
       name: project.name,
-      description: project.description ?? "",
+      description: project.description ?? '',
       currency: project.currency,
       fixedCosts: project.costStructure.fixedRunningCosts.map((c) => ({
         name: c.name,
@@ -99,14 +117,17 @@ export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
         frequency: c.frequency,
         category: c.category,
       })),
-      upfrontCosts: project.costStructure.upfrontCosts.map((c) => ({ name: c.name, amount: c.amount })),
+      upfrontCosts: project.costStructure.upfrontCosts.map((c) => ({
+        name: c.name,
+        amount: c.amount,
+      })),
       products: project.revenueStreams.products.map((p) => ({
         name: p.name,
         price: p.price,
         salesVolume: p.sales?.volume,
         salesPeriod: p.sales?.period,
       })),
-      // Include canvas sections for richer context
+      // Include all canvas sections
       partnerships: project.partnerships ?? [],
       activities: project.activities ?? [],
       valueProposition: project.valueProposition ?? [],
@@ -156,13 +177,7 @@ export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
   ];
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
-          <Sparkles className="h-4 w-4" />
-          AI cost suggestions
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:w-[520px]">
         <SheetHeader className="pb-2 border-b">
           <SheetTitle>AI cost suggestions</SheetTitle>
@@ -235,9 +250,10 @@ export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
               // Show AI generation UI when context is sufficient
               <>
                 <div className="text-xs text-muted-foreground">
-                  {usage.count}/{usage.limit} today • {usage.remaining} left • resets {usage.resetIn}
+                  {usage.count}/{usage.limit} today • {usage.remaining} left • resets{' '}
+                  {usage.resetIn}
                 </div>
-            
+
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={() => {
@@ -257,57 +273,77 @@ export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
                     </Button>
                   ) : null}
                   {!usage.canUse ? (
-                    <div className="text-xs text-red-600 ml-2">Daily limit reached. Resets {usage.resetIn}.</div>
+                    <div className="text-xs text-red-600 ml-2">
+                      Daily limit reached. Resets {usage.resetIn}.
+                    </div>
                   ) : null}
                   {error ? (
-                    <div className="text-sm text-red-600 ml-2">Something went wrong. Please try again.</div>
+                    <div className="text-sm text-red-600 ml-2">
+                      Something went wrong. Please try again.
+                    </div>
                   ) : null}
                 </div>
 
                 {isLoading ? (
-                  <TextShimmer className="text-sm">Analyzing your project and generating ideas…</TextShimmer>
+                  <TextShimmer className="text-sm">
+                    Analyzing your project and generating ideas…
+                  </TextShimmer>
                 ) : null}
 
-                {typeof object?.reasoning === "string" && object.reasoning.trim() ? (
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap">{object.reasoning}</div>
+                {typeof object?.reasoning === 'string' && object.reasoning.trim() ? (
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {object.reasoning}
+                  </div>
                 ) : null}
 
                 <div className="grid grid-cols-1 gap-3">
                   {items.map((ci, idx) => (
-                    <Card 
-                    key={idx}
-                    className="p-1 gap-0 rounded-sm"
-                    >
+                    <Card key={idx} className="p-1 gap-0 rounded-sm">
                       <CardHeader className="p-2 text-sm">
-                        <CardTitle>{ci?.title ?? "Untitled"}</CardTitle>
+                        <CardTitle>{ci?.title ?? 'Untitled'}</CardTitle>
                         <CardDescription>
-                          {(ci?.category ?? "uncategorized").toString()} • {(ci?.kind ?? "one-time").toString()} • {ci?.estimate?.currency ?? "USD"} {typeof ci?.estimate?.amount === "number" ? ci.estimate.amount : "-"}
+                          {(ci?.category ?? 'uncategorized').toString()} •{' '}
+                          {(ci?.kind ?? 'one-time').toString()} •{' '}
+                          {ci?.estimate?.currency ?? 'USD'}{' '}
+                          {typeof ci?.estimate?.amount === 'number'
+                            ? ci.estimate.amount
+                            : '-'}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-2">
-                        <div className="text-sm leading-relaxed mb-2">{ci?.description ?? ""}</div>
+                        <div className="text-sm leading-relaxed mb-2">
+                          {ci?.description ?? ''}
+                        </div>
                         <div className="flex gap-2">
                           <Button
                             size="sm"
                             onClick={() => {
                               if (!onAddCost) return;
-                              const name = (ci?.title ?? "").toString();
-                              const amount = typeof ci?.estimate?.amount === "number" ? ci.estimate.amount : undefined;
-                              const categoryId = (ci?.category ?? "other").toString();
-                              const costType = ci?.kind === "monthly" ? "operating" : "upfront";
-                              const frequency = ci?.kind === "monthly" ? "monthly" : undefined;
+                              const name = (ci?.title ?? '').toString();
+                              const amount =
+                                typeof ci?.estimate?.amount === 'number'
+                                  ? ci.estimate.amount
+                                  : undefined;
+                              const categoryId = (ci?.category ?? 'other').toString();
+                              const costType =
+                                ci?.kind === 'monthly' ? 'operating' : 'upfront';
+                              const frequency =
+                                ci?.kind === 'monthly' ? 'monthly' : undefined;
 
                               onAddCost({
                                 name,
                                 costType,
-                                categoryId: costType === "operating" ? categoryId : undefined,
+                                categoryId:
+                                  costType === 'operating' ? categoryId : undefined,
                                 amount,
-                                frequency: frequency as "monthly" | "annual" | undefined,
+                                frequency: frequency as 'monthly' | 'annual' | undefined,
                               });
                             }}
                             disabled={isProjectLoading}
                           >
-                            {ci?.kind === "monthly" ? "Add as operating cost" : "Add as upfront cost"}
+                            {ci?.kind === 'monthly'
+                              ? 'Add as operating cost'
+                              : 'Add as upfront cost'}
                           </Button>
                         </div>
                       </CardContent>
@@ -322,5 +358,3 @@ export function AISuggestionsSheet({ onAddCost }: AISuggestionsSheetProps) {
     </Sheet>
   );
 }
-
-

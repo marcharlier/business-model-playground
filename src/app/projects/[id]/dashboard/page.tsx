@@ -295,7 +295,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Business Overview - Shows first on mobile, right side on desktop */}
         <div className="order-first md:order-first space-y-6">
-        <div className="sticky top-14 pt-4 border-b pb-4 bg-background/60 backdrop-blur z-10">
+        <div className="sticky top-14 pt-4 border-b pb-4 bg-[#E4E4E4]/60 backdrop-blur z-10">
           <h3 className="text-xl font-bold px-4">Upfront costs and projections</h3>
           <p className="text-sm text-muted-foreground px-4">How long will it take to recoup your upfront costs?</p>
           </div>
@@ -345,7 +345,7 @@ export default function DashboardPage() {
 
         {/* Left Column - Financial Summary and Charts */}
         <div className="space-y-6 order-last md:order-last">
-          <div className="sticky top-14 pt-4 border-b pb-4 bg-background/60 backdrop-blur z-10">
+          <div className="sticky top-14 pt-4 border-b pb-4 bg-[#E4E4E4]/60 backdrop-blur z-10">
           <h3 className="text-xl font-bold px-4">Operating metrics</h3>
           <p className="text-sm text-muted-foreground px-4">Excluding up-front costs, is the business operating profitably?</p>
           </div>

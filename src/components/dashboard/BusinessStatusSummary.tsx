@@ -83,7 +83,7 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
   const statusInfo = getStatusInfo();
 
   return (
-    <div className={`py-8 px-4 h-full ${statusInfo.bgColor} rounded-t-[0.7rem]`}>
+    <div className={`p-3 rounded-md h-full ${statusInfo.bgColor} `}>
       <div className="flex flex-row items-center gap-2">
         {statusInfo.icon}
         {showTitle ? (

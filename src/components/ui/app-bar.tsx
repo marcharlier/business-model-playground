@@ -1,133 +1,38 @@
 'use client'
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useState, useEffect } from "react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import Link from "next/link"
-import Image from "next/image"
-import { useRouter, usePathname } from "next/navigation"
-import { useProjects } from "@/lib/hooks/use-projects"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { UserAvatarPopover } from "@/components/ui/user-avatar-popover"
 
-const ANIMALS = [
-  "🐶", "🐱", "🐰", "🦊", "🐼", "🦁", "🐯", "🐨", "🐮", "🐷",
-  "🐸", "🐙", "🦄", "🦒", "🦘", "🦛", "🦏", "🐪", "🦬", "🐃"
-]
+interface AppBarProps {
+  variant?: 'default' | 'hero'
+}
 
-const STORAGE_KEY = 'business-model-playground-avatar-emoji'
-
-export function AppBar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [avatarEmoji, setAvatarEmoji] = useState<string>("")
-  const [selectedProject, setSelectedProject] = useState("")
-  const router = useRouter()
-  const pathname = usePathname()
-  const projects = useProjects()
-
-  useEffect(() => {
-    // Try to get the stored emoji from localStorage
-    const storedEmoji = localStorage.getItem(STORAGE_KEY)
-    
-    if (storedEmoji) {
-      // If we have a stored emoji, use it
-      setAvatarEmoji(storedEmoji)
-    } else {
-      // If no stored emoji, generate a random one and store it
-      const randomIndex = Math.floor(Math.random() * ANIMALS.length)
-      const newEmoji = ANIMALS[randomIndex]
-      localStorage.setItem(STORAGE_KEY, newEmoji)
-      setAvatarEmoji(newEmoji)
-    }
-  }, [])
-
-  const handleProjectSelect = (value: string) => {
-    setSelectedProject(value)
-    if (value === 'all') {
-      router.push('/projects')
-    } else {
-      // Keep the user on the same sub-page within /projects when switching projects
-      // Example: /projects/oldId/products -> /projects/newId/products
-      // If no sub-path present, default to dashboard
-      const match = pathname?.match(/^\/projects\/(?:[^/]+)(?:\/(.*))?$/)
-      const restPath = match && match[1] ? match[1] : 'dashboard'
-      router.push(`/projects/${value}/${restPath}`)
-    }
-    // Reset the select after a short delay to ensure navigation has started
-    setTimeout(() => setSelectedProject(""), 100)
-  }
+export function AppBar({ variant = 'default' }: AppBarProps) {
+  const isHero = variant === 'hero'
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-blue-700 backdrop-blur">
-      <div className="container px-4 md:px-8 flex h-14 items-center">
+    <header className={cn(
+      "fixed top-0 left-0 right-0 z-50 bg-[#E4E4E4]/50 backdrop-blur-xl",
+      !isHero && "border-b-[1px] border-white shadow-[inset_0px_-1px_0px_#CCCCCC]"
+    )}>
+      <div className={cn(
+        "container px-4 md:px-8 flex items-center",
+        isHero ? "h-32" : "h-14",
+        isHero ? "max-w-7xl" : ""
+      )}>
         <div className="mr-4 flex">
           <Link className="flex items-center space-x-2" href="/">
-            <Image className="h-8 w-8" src="/favicon.svg" alt="Logo" width={32} height={32} />
-            <span className="font-hero text-md font-medium tracking-tighter sm:text-base text-background">Business Model Playground</span>
+            <span className={cn(
+              "font-hero font-medium text-blue-700",
+              isHero ? "text-xl sm:text-xl" : "text-md sm:text-base"
+            )}>Business Model Playground</span>
           </Link>
-          {projects.length > 0 && (
-            <div className="hidden sm:block">
-              <Select value={selectedProject} onValueChange={handleProjectSelect}>
-                <SelectTrigger className="ml-4 bg-background">
-                  <SelectValue placeholder="Jump to project..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
-                  <SelectSeparator />
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <ThemeToggle />
-          <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
-              <button 
-                type="button"
-                className="rounded-full hover:bg-accent hover:text-accent-foreground"
-                onMouseEnter={() => setIsOpen(true)}
-                onMouseLeave={() => setIsOpen(false)}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>{avatarEmoji}</AvatarFallback>
-                </Avatar>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-80 p-4" 
-              align="end"
-              onMouseEnter={() => setIsOpen(true)}
-              onMouseLeave={() => setIsOpen(false)}
-            >
-              <div className="space-y-2">
-                <h4 className="font-medium leading-none">How your data is stored</h4>
-                <p className="text-sm text-muted-foreground">
-                  This application uses cloud storage to save your data. Here&apos;s what you need to know:
-                </p>
-                <ul className="list-disc pl-4 text-sm text-muted-foreground">
-                  <li>No login required </li>
-                  <li>A unique user id is generated for you</li>
-                  <li>Clearing browser data resets your user id</li>
-                  <li>{avatarEmoji} is your random avatar</li>
-                </ul>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <UserAvatarPopover />
         </div>
       </div>
     </header>
   )
-} 
+}
