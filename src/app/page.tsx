@@ -152,8 +152,19 @@ export default function Home() {
   };
 
   const handleGenerateCanvas = () => {
-    // Placeholder for AI generation - will be connected later
-    console.log('Generate canvas with:', { businessIdea, currency });
+    if (!businessIdea.trim() || businessIdea.trim().length < 10) {
+      return;
+    }
+    
+    try {
+      // Create a blank project with a temporary name
+      const newProject = projectStorage.createProject('Generating...', currency);
+      // Navigate to canvas view with generation params
+      const encodedPrompt = encodeURIComponent(businessIdea.trim());
+      router.push(`/projects/${newProject.id}/canvas-view?generating=true&prompt=${encodedPrompt}`);
+    } catch (error) {
+      console.error('Error creating project:', error);
+    }
   };
 
   return (
@@ -175,33 +186,40 @@ export default function Home() {
               
               {/* Input Card */}
               <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-xl p-4 shadow-lg relative opacity-50">
+                <div className="bg-white rounded-xl p-4 shadow-lg">
                   <textarea
                     value={businessIdea}
                     onChange={(e) => setBusinessIdea(e.target.value)}
-                    placeholder="Describe your business idea and get a filled in Business Model Canvas"
-                    className="blur-[1px] w-full h-20 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-sm sm:text-base"
+                    placeholder="Describe your business idea and get a filled in Business Model Canvas. For example: 'A mobile app that connects local farmers directly with restaurants for fresh produce delivery...'"
+                    className="w-full h-24 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-sm sm:text-base"
                   />
-                  <div className="blur-[1px] flex items-center justify-end gap-3 pt-2">
-                    <Select value={currency} onValueChange={(value: Currency) => setCurrency(value)}>
-                      <SelectTrigger className="w-20 h-9 bg-gray-50 border-gray-200 rounded-lg">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GBP">GBP</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      onClick={handleGenerateCanvas}
-                      className="gap-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Generate Canvas
-                    </Button>
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                    <span className="text-xs text-gray-400">
+                      {businessIdea.trim().length < 10 && businessIdea.trim().length > 0
+                        ? `${10 - businessIdea.trim().length} more characters needed`
+                        : ''}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <Select value={currency} onValueChange={(value: Currency) => setCurrency(value)}>
+                        <SelectTrigger className="w-20 h-9 bg-gray-50 border-gray-200 rounded-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        onClick={handleGenerateCanvas}
+                        disabled={businessIdea.trim().length < 10}
+                        className="gap-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Generate Canvas
+                      </Button>
+                    </div>
                   </div>
-                  <div className="inset-0 absolute flex items-center justify-center text-blue-700 font-bold">Coming soon...</div>
                 </div>
               </div>
               

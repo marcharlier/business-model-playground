@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   Link,
@@ -35,6 +35,9 @@ import { CanvasSectionEditableCard } from '@/components/canvas/CanvasSectionEdit
 import { CostStructureCard } from '@/components/canvas/CostStructureCard';
 import { RevenueStreamsCard } from '@/components/canvas/RevenueStreamsCard';
 import { CanvasAISuggestionsSheet } from '@/components/canvas/CanvasAISuggestionsSheet';
+import { CanvasGenerationSheet } from '@/components/canvas/CanvasGenerationSheet';
+import type { CanvasGeneration } from '@/app/api/ai/generate-canvas/schema';
+import { generateUUID } from '@/lib/utils';
 import { CostDialog } from '@/components/costs/CostDialog';
 import { ProductDialog } from '@/components/products/ProductDialog';
 import { projectStorage } from '@/lib/storage/projectStorage';
@@ -122,11 +125,131 @@ function CanvasSectionCard({ section, className }: CanvasSectionCardProps) {
   );
 }
 
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
 export default function CanvasViewPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params?.id as string | undefined;
   const { project, refreshProject } = useProject();
+
+  // AI generation state from URL params
+  const isGenerating = searchParams.get('generating') === 'true';
+  const generationPromptFromUrl = searchParams.get('prompt') ?? '';
+  const [showGenerationSheet, setShowGenerationSheet] = useState(false);
+  const [storedPrompt, setStoredPrompt] = useState<string>('');
+  // Track if we just completed generation (to prevent immediate switch to viewOnly)
+  const [justCompletedGeneration, setJustCompletedGeneration] = useState(false);
+
+  // Initialize generation sheet when URL params are present
+  useEffect(() => {
+    if (isGenerating && generationPromptFromUrl && !showGenerationSheet) {
+      const decodedPrompt = decodeURIComponent(generationPromptFromUrl);
+      setStoredPrompt(decodedPrompt);
+      setShowGenerationSheet(true);
+      setJustCompletedGeneration(false); // Reset when starting new generation
+      // Clear URL params to prevent re-triggering on refresh
+      router.replace(`/projects/${projectId}/canvas-view`, { scroll: false });
+    }
+  }, [isGenerating, generationPromptFromUrl, showGenerationSheet, router, projectId]);
+
+  // Check if project was AI-generated
+  const aiGeneratedPrompt = project?.aiGeneratedFromPrompt ?? null;
+
+  // Handle streaming updates from AI generation
+  const handleGenerationUpdate = useCallback((data: DeepPartial<CanvasGeneration>) => {
+    if (!project || !projectId) return;
+
+    // Convert string arrays to CanvasItem arrays, filtering out undefined values
+    const toCanvasItems = (items: (string | undefined)[] | undefined) => 
+      items?.filter((text): text is string => typeof text === 'string').map(text => ({ id: generateUUID(), text })) ?? [];
+
+    const updatedProject = {
+      ...project,
+      partnerships: data.partnerships ? toCanvasItems(data.partnerships) : project.partnerships,
+      activities: data.activities ? toCanvasItems(data.activities) : project.activities,
+      resources: data.resources ? toCanvasItems(data.resources) : project.resources,
+      valueProposition: data.valueProposition ? toCanvasItems(data.valueProposition) : project.valueProposition,
+      customerRelationships: data.customerRelationships ? toCanvasItems(data.customerRelationships) : project.customerRelationships,
+      channels: data.channels ? toCanvasItems(data.channels) : project.channels,
+      customerSegments: data.customerSegments ? toCanvasItems(data.customerSegments) : project.customerSegments,
+    };
+
+    projectStorage.updateProject(updatedProject);
+    refreshProject();
+  }, [project, projectId, refreshProject]);
+
+  // Handle generation completion
+  const handleGenerationComplete = useCallback((data: CanvasGeneration) => {
+    if (!project || !projectId) return;
+
+    // Convert string arrays to CanvasItem arrays
+    const toCanvasItems = (items: string[]) => 
+      items.map(text => ({ id: generateUUID(), text }));
+
+    // Convert generated upfront costs to the correct format
+    const upfrontCosts: UpfrontCost[] = (data.upfrontCosts ?? []).map(cost => ({
+      id: generateUUID(),
+      name: cost.name,
+      amount: cost.amount,
+      projectId,
+    }));
+
+    // Convert generated running costs to the correct format
+    const fixedRunningCosts: FixedCost[] = (data.runningCosts ?? []).map(cost => ({
+      id: generateUUID(),
+      name: cost.name,
+      amount: cost.amount,
+      frequency: cost.frequency,
+      category: cost.category,
+      projectId,
+    }));
+
+    // Convert generated products to the correct format
+    const products: Product[] = (data.products ?? []).map(product => ({
+      id: generateUUID(),
+      name: product.name,
+      price: product.price,
+      associatedCosts: [],
+      projectId,
+      sales: {
+        volume: product.salesVolume,
+        period: product.salesPeriod,
+      },
+    }));
+
+    const updatedProject = {
+      ...project,
+      name: data.projectName,
+      // Store the original prompt in description (user-typed content, no marker needed)
+      description: storedPrompt || project.description,
+      // Track that this project was AI-generated and store the original prompt
+      aiGeneratedFromPrompt: storedPrompt || undefined,
+      partnerships: toCanvasItems(data.partnerships),
+      activities: toCanvasItems(data.activities),
+      resources: toCanvasItems(data.resources),
+      valueProposition: toCanvasItems(data.valueProposition),
+      customerRelationships: toCanvasItems(data.customerRelationships),
+      channels: toCanvasItems(data.channels),
+      customerSegments: toCanvasItems(data.customerSegments),
+      // Add the generated costs and products
+      costStructure: {
+        fixedRunningCosts,
+        upfrontCosts,
+      },
+      revenueStreams: {
+        products,
+      },
+    };
+
+    projectStorage.updateProject(updatedProject);
+    refreshProject();
+    // Mark that we just completed generation (prevents immediate switch to viewOnly)
+    setJustCompletedGeneration(true);
+  }, [project, projectId, refreshProject, storedPrompt]);
 
   // Cost dialog state
   const [costDialogOpen, setCostDialogOpen] = useState(false);
@@ -410,18 +533,50 @@ export default function CanvasViewPage() {
     setEditingProduct(undefined);
   };
 
+  // Track if the generation panel is actually expanded (for layout purposes)
+  const isPanelExpanded = showGenerationSheet;
+
   return (
     <section className="relative">
-        <div className="mx-auto flex w-full flex-col gap-6">
-          <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full">
-            <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
-              <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
-                Business Model
-              </TabsTrigger>
-              <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
-                Profitability Playground
-              </TabsTrigger>
-            </TabsList>
+      {/* AI Canvas Generation Side Panel - Fixed position */}
+      {project && (
+        <CanvasGenerationSheet
+          prompt={storedPrompt}
+          currency={project.currency}
+          onUpdate={handleGenerationUpdate}
+          onComplete={handleGenerationComplete}
+          viewOnly={!!aiGeneratedPrompt && !isGenerating && !justCompletedGeneration}
+          onClose={() => {
+            setShowGenerationSheet(false);
+            setJustCompletedGeneration(false);
+          }}
+          isOpen={showGenerationSheet}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowGenerationSheet(false);
+              setJustCompletedGeneration(false);
+            }
+          }}
+        />
+      )}
+        
+      {/* Main Content Area - shifts right when panel is open */}
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        isPanelExpanded && "ml-[360px]"
+      )}>
+          <div className="mx-auto flex w-full flex-col gap-6">
+            <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full">
+              <div className="flex items-center justify-center gap-4">
+                <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
+                  <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
+                    Business Model
+                  </TabsTrigger>
+                  <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
+                    Profitability Playground
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             <TabsContent value="business-model" className="mt-6 outline-none w-full">
                 <div className="space-y-4">
                  <div className="grid grid-cols-1 gap-4 lg:h-96 lg:grid-cols-5 lg:auto-rows-[minmax(0,1fr)]">
@@ -551,44 +706,45 @@ export default function CanvasViewPage() {
           </Tabs>
         </div>
 
-      {/* Cost Dialog */}
-      {project && (
-        <CostDialog
-          open={costDialogOpen}
-          onOpenChange={setCostDialogOpen}
-          cost={editingCost}
-          costType={costDialogType}
-          currency={project.currency}
-          onSave={handleSaveCost}
-          isSubmitting={isSubmitting}
-          onDelete={editingCost ? handleDeleteCost : undefined}
-          toggleEnabled={true}
-          prefillName={prefillName}
-          prefillAmount={prefillAmount}
-          prefillFrequency={prefillFrequency}
-          categoryPreselected={prefillCategory}
-        />
-      )}
+        {/* Cost Dialog */}
+        {project && (
+          <CostDialog
+            open={costDialogOpen}
+            onOpenChange={setCostDialogOpen}
+            cost={editingCost}
+            costType={costDialogType}
+            currency={project.currency}
+            onSave={handleSaveCost}
+            isSubmitting={isSubmitting}
+            onDelete={editingCost ? handleDeleteCost : undefined}
+            toggleEnabled={true}
+            prefillName={prefillName}
+            prefillAmount={prefillAmount}
+            prefillFrequency={prefillFrequency}
+            categoryPreselected={prefillCategory}
+          />
+        )}
 
-      {/* AI Suggestions Sheet */}
-      <CanvasAISuggestionsSheet
-        open={aiSuggestionsOpen}
-        onOpenChange={setAiSuggestionsOpen}
-        onAddCost={handleAddCostFromAI}
-      />
-
-      {/* Product Dialog */}
-      {project && (
-        <ProductDialog
-          open={productDialogOpen}
-          onOpenChange={setProductDialogOpen}
-          product={editingProduct}
-          currency={project.currency}
-          onSave={handleSaveProduct}
-          isSubmitting={isProductSubmitting}
-          onDelete={editingProduct ? handleDeleteProduct : undefined}
+        {/* AI Suggestions Sheet */}
+        <CanvasAISuggestionsSheet
+          open={aiSuggestionsOpen}
+          onOpenChange={setAiSuggestionsOpen}
+          onAddCost={handleAddCostFromAI}
         />
-      )}
+
+        {/* Product Dialog */}
+        {project && (
+          <ProductDialog
+            open={productDialogOpen}
+            onOpenChange={setProductDialogOpen}
+            product={editingProduct}
+            currency={project.currency}
+            onSave={handleSaveProduct}
+            isSubmitting={isProductSubmitting}
+            onDelete={editingProduct ? handleDeleteProduct : undefined}
+          />
+        )}
+      </div>
     </section>
   );
 }

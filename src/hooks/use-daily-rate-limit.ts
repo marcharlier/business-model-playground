@@ -7,6 +7,12 @@ type UsageRecord = {
 
 const RATE_LIMIT_UPDATE_EVENT = "bmpl:rate-limit-update";
 
+/**
+ * Daily limit for AI feature usage across the application.
+ * This is the maximum number of AI generations allowed per day.
+ */
+export const DAILY_AI_LIMIT = 10;
+
 function formatLocalDateYYYYMMDD(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

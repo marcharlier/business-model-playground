@@ -21,7 +21,7 @@ import { TextShimmer } from '@/components/ui/text-shimmer';
 import { useProject } from '@/lib/context/ProjectContext';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { costIdeasSchema, type CostIdea } from '@/app/api/ai/cost-ideas/schema';
-import { useDailyRateLimit } from '@/hooks/use-daily-rate-limit';
+import { useDailyRateLimit, DAILY_AI_LIMIT } from '@/hooks/use-daily-rate-limit';
 import { CheckCircle2, Circle, FileText, LayoutGrid } from 'lucide-react';
 
 interface CanvasAISuggestionsSheetProps {
@@ -97,7 +97,7 @@ export function CanvasAISuggestionsSheet({
   onAddCost,
 }: CanvasAISuggestionsSheetProps) {
   const { project, isLoading: isProjectLoading } = useProject();
-  const usage = useDailyRateLimit('ai-cost-ideas', 10);
+  const usage = useDailyRateLimit('ai-features', DAILY_AI_LIMIT);
   const contextCheck = useContextCheck(project);
 
   const { object, submit, isLoading, error, stop } = useObject({

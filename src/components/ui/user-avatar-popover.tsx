@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sparkles } from "lucide-react";
-import { useDailyRateLimit } from "@/hooks/use-daily-rate-limit";
+import { useDailyRateLimit, DAILY_AI_LIMIT } from "@/hooks/use-daily-rate-limit";
 
 const ANIMALS = [
   "🐶", "🐱", "🐰", "🦊", "🐼", "🦁", "🐯", "🐨", "🐮", "🐷",
@@ -40,7 +40,7 @@ function getServerEmoji(): string {
 export function UserAvatarPopover() {
   const [isOpen, setIsOpen] = useState(false);
   const avatarEmoji = useSyncExternalStore(subscribeToEmoji, getAvatarEmoji, getServerEmoji);
-  const aiUsage = useDailyRateLimit("ai-cost-ideas", 10);
+  const aiUsage = useDailyRateLimit("ai-features", DAILY_AI_LIMIT);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -82,7 +82,7 @@ export function UserAvatarPopover() {
               <h4 className="font-medium leading-none">AI Feature Usage</h4>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Daily suggestions used</span>
+              <span className="text-muted-foreground">Daily usage</span>
               <span className="font-medium tabular-nums">
                 {aiUsage.count} / {aiUsage.limit}
               </span>
