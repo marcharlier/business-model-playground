@@ -330,7 +330,7 @@ export default function PlaygroundPage() {
                       <CardDescription className="text-sm">Per Month</CardDescription>
                     </CardHeader>
                     <CardContent className="p-2">
-                      <p className={cn('text-2xl font-bold', metrics.totalMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600')}>
+                      <p className={cn('text-sm md:text-2xl font-bold', metrics.totalMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600')}>
                         {formatCurrency(metrics.totalMonthlyProfit, project.currency)}
                       </p>
                     </CardContent>
@@ -341,7 +341,7 @@ export default function PlaygroundPage() {
                       <CardDescription className="text-sm">Revenue / Costs</CardDescription>
                     </CardHeader>
                     <CardContent className="p-2">
-                      <p className={cn('text-2xl font-bold', metrics.totalMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600')}>
+                      <p className={cn('text-sm md:text-2xl font-bold', metrics.totalMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600')}>
                       {formatProfitMargin(metrics.profitMargin)}
                       </p>
                     </CardContent>
@@ -354,7 +354,7 @@ export default function PlaygroundPage() {
                       <CardDescription className="text-sm">&nbsp;</CardDescription>
                     </CardHeader>
                     <CardContent className="p-2">
-                      <p className="text-2xl font-bold">
+                      <p className="text-sm md:text-2xl font-bold">
                         {metrics.breakEven.isImmediateProfitable
                           ? 'Day 1'
                           : !metrics.breakEven.hasRevenue
@@ -377,7 +377,7 @@ export default function PlaygroundPage() {
                       <CardDescription className="text-sm">Per Month</CardDescription>
                     </CardHeader>
                     <CardContent className="p-2">
-                      <p className="text-2xl font-bold">{formatCurrency(metrics.totalMonthlyRevenue, project.currency)}</p>
+                      <p className="text-sm md:text-2xl font-bold">{formatCurrency(metrics.totalMonthlyRevenue, project.currency)}</p>
                     </CardContent>
                   </Card>
 
@@ -388,7 +388,7 @@ export default function PlaygroundPage() {
                       <CardDescription className="text-sm">Per Month (Operating + COGS)</CardDescription>
                     </CardHeader>
                     <CardContent className="p-2">
-                      <p className="text-2xl font-bold">
+                      <p className="text-sm md:text-2xl font-bold">
                         {formatCurrency(metrics.totalMonthlyOperatingCosts, project.currency)}
                       </p>
                     </CardContent>

@@ -157,19 +157,19 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 flex flex-col pt-20">
-      <div className="container max-w-7xl mx-auto py-8 sm:py-12 flex-1">
+    <div className="flex-1 flex flex-col pt-24 md:pt-20">
+      <div className="container px-4 md:px-8 max-w-7xl mx-auto py-8 sm:py-12 flex-1">
         {/* Hero Card */}
         <div className="mx-auto mb-8">
           <div className="relative rounded-2xl bg-gradient-to-b from-blue-700 to-blue-950 p-8 sm:p-12 overflow-hidden">
             {/* Canvas Preview - absolute positioned background layer */}
-            <CanvasPreview className="absolute inset-x-0 top-0 h-3/4 bottom-0 mx-auto max-w-3xl my-8 sm:my-12 blur-[1px]" />
+            <CanvasPreview className="absolute inset-x-0 top-0 h-1/4 md:h-3/4 bottom-0 mx-auto max-w-3xl my-8 sm:my-12 blur-[1px]" />
             
             {/* Content layer - positioned on top of canvas */}
             <div className="relative z-10 pt-32">
               {/* Tagline */}
               <h2 className="text-white text-xl sm:text-2xl font-semibold text-center mb-8">
-                Build a business model using AI<br />
+                Build a business model using AI <br className="hidden md:block" />
                 and explore pricing and profitability.
               </h2>
               
