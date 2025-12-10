@@ -11,11 +11,11 @@ function ProjectLayoutContent({
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#E4E4E4] pt-24 md:pt-14">
-        <div className="container mx-auto py-10">
+      <div className="h-full bg-[#E4E4E4] pt-24 md:pt-14 flex flex-col">
+        <div className="container mx-auto py-10 flex-1 min-h-0">
           <p>Loading project...</p>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -24,11 +24,11 @@ function ProjectLayoutContent({
   }
 
   return (
-    <main className="min-h-screen bg-[#E4E4E4] pt-24 md:pt-14">
-      <div className="container mx-auto py-6 sm:py-10 px-4 md:px-8">
+    <div className="h-full bg-[#E4E4E4] pt-24 md:pt-20 flex flex-col">
+      <div className="container flex-1 min-h-0 px-4 md:px-8">
         {children}
       </div>
-    </main>
+    </div>
   );
 }
 

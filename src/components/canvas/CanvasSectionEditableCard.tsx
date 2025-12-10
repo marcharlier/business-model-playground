@@ -170,7 +170,7 @@ export function CanvasSectionEditableCard({
     <>
       <Card
         className={cn(
-          'flex h-full flex-col rounded-lg gap-0 border-black/5 bg-background p-1 shadow-md',
+          'flex h-full flex-col rounded-xl gap-0 border-border bg-background p-1',
           className,
         )}
       >
@@ -189,7 +189,7 @@ export function CanvasSectionEditableCard({
                 items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted transition-colors hover:bg-foreground/20"
+                    className="flex min-w-0 items-center justify-between gap-2 rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-blue-100 transition-colors hover:bg-foreground/20"
                     onClick={() => handleEditClick(item)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {

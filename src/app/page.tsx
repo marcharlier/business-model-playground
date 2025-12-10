@@ -80,6 +80,18 @@ export default function Home() {
   const [businessIdea, setBusinessIdea] = useState('');
   const [currency, setCurrency] = useState<Currency>('GBP');
   const router = useRouter();
+  const trimmedIdea = businessIdea.trim();
+  const ideaLength = trimmedIdea.length;
+  const promptStage = (() => {
+    if (ideaLength >= 250) return 3; // best: 1-2 paragraphs
+    if (ideaLength >= 120) return 2; // better: short paragraph
+    if (ideaLength >= 10) return 1;  // good: long sentence
+    return 0;
+  })();
+  const promptEncouragement =
+    promptStage === 0
+      ? `At least ${Math.max(1, 10 - ideaLength)} more characters`
+      : ['','Keep writing for better result','A bit more if you can...','Perfect!'][promptStage];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -152,7 +164,7 @@ export default function Home() {
   };
 
   const handleGenerateCanvas = () => {
-    if (!businessIdea.trim() || businessIdea.trim().length < 10) {
+    if (!trimmedIdea || ideaLength < 10) {
       return;
     }
     
@@ -160,7 +172,7 @@ export default function Home() {
       // Create a blank project with a temporary name
       const newProject = projectStorage.createProject('Generating...', currency);
       // Navigate to canvas view with generation params
-      const encodedPrompt = encodeURIComponent(businessIdea.trim());
+      const encodedPrompt = encodeURIComponent(trimmedIdea);
       router.push(`/projects/${newProject.id}/canvas-view?generating=true&prompt=${encodedPrompt}`);
     } catch (error) {
       console.error('Error creating project:', error);
@@ -172,7 +184,7 @@ export default function Home() {
       <div className="container px-4 md:px-8 max-w-7xl mx-auto py-8 sm:py-12 flex-1">
         {/* Hero Card */}
         <div className="mx-auto mb-8">
-          <div className="relative rounded-2xl bg-gradient-to-b from-blue-700 to-blue-950 p-8 sm:p-12 overflow-hidden">
+          <div className="relative rounded-2xl bg-gradient-to-b from-blue-700 to-blue-950 p-8 sm:p-12">
             {/* Canvas Preview - absolute positioned background layer */}
             <CanvasPreview className="absolute inset-x-0 top-0 h-1/4 md:h-3/4 bottom-0 mx-auto max-w-3xl my-8 sm:my-12 blur-[1px]" />
             
@@ -194,11 +206,19 @@ export default function Home() {
                     className="w-full h-24 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-sm sm:text-base"
                   />
                   <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
-                    <span className="text-xs text-gray-400">
-                      {businessIdea.trim().length < 10 && businessIdea.trim().length > 0
-                        ? `${10 - businessIdea.trim().length} more characters needed`
-                        : ''}
-                    </span>
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="flex h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
+                        {[1, 2, 3].map((idx) => (
+                          <div
+                            key={idx}
+                            className={`flex-1 transition-colors ${promptStage >= idx ? 'bg-blue-500' : 'bg-gray-200'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {promptEncouragement}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-3">
                       <Select value={currency} onValueChange={(value: Currency) => setCurrency(value)}>
                         <SelectTrigger className="w-20 h-9 bg-gray-50 border-gray-200 rounded-lg">
@@ -212,7 +232,7 @@ export default function Home() {
                       </Select>
                       <Button 
                         onClick={handleGenerateCanvas}
-                        disabled={businessIdea.trim().length < 10}
+                        disabled={ideaLength < 10}
                         className="gap-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="h-4 w-4" />

@@ -156,7 +156,7 @@ export function MonthlyProjectionChart({
   }, [currency]);
 
   return (
-    <div className="h-[233px]">
+    <div className="h-[230px]">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}

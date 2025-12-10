@@ -67,7 +67,7 @@ export function CostStructureCard({
   return (
     <Card
       className={cn(
-        'flex h-full flex-col rounded-lg gap-0 border-black/5 bg-background p-1 shadow-md',
+        'flex h-full flex-col rounded-xl gap-0 border-border bg-background p-1',
         className,
       )}
     >
@@ -87,10 +87,10 @@ export function CostStructureCard({
                 <button
                   key={`${item.type}-${item.cost.id}-${index}`}
                   onClick={() => onEditCost(item.cost, item.type)}
-                  className="flex items-center justify-between rounded-lg bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                  className="flex items-center justify-between rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-blue-100 transition-colors cursor-pointer"
                 >
                   <span className="truncate text-left">{item.displayText}</span>
-                  <Pencil className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 ml-1" />
+                  <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </button>
               ))
             ) : (

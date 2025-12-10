@@ -537,7 +537,7 @@ export default function CanvasViewPage() {
   const isPanelExpanded = showGenerationSheet;
 
   return (
-    <section className="relative">
+    <section className="relative h-full flex flex-col">
       {/* AI Canvas Generation Side Panel - Fixed position */}
       {project && (
         <CanvasGenerationSheet
@@ -562,11 +562,11 @@ export default function CanvasViewPage() {
         
       {/* Main Content Area - shifts right when panel is open */}
       <div className={cn(
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-300 ease-in-out flex-1 min-h-0 flex flex-col",
         isPanelExpanded && "ml-[360px]"
       )}>
-          <div className="mx-auto flex w-full flex-col gap-6">
-            <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full">
+          <div className="mx-auto flex flex-1 min-h-0 flex-col gap-6 pb-8">
+            <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full lg:h-full">
               <div className="flex items-center justify-center gap-4">
                 <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
                   <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
@@ -577,131 +577,155 @@ export default function CanvasViewPage() {
                   </TabsTrigger>
                 </TabsList>
               </div>
-            <TabsContent value="business-model" className="mt-6 outline-none w-full">
-                <div className="space-y-4">
-                 <div className="grid grid-cols-1 gap-4 lg:h-96 lg:grid-cols-5 lg:auto-rows-[minmax(0,1fr)]">
-                  <div className="row-span-2 h-full">
+            <TabsContent value="business-model" className="mt-6 outline-none w-full flex-1 min-h-[600px] flex flex-col">
+                {/* 10-column, 3-row grid layout matching CanvasPreview on desktop, 1 column stack on mobile */}
+                {/* Height constraint: flex-1 min-h-0 makes this fill available height from parent TabsContent */}
+                {/* Grid rows derive equal height from the constrained grid container via grid-rows-3 */}
+                <div className="grid grid-cols-1 lg:grid-cols-10 lg:grid-rows-3 gap-1 flex-1 auto-rows-fr min-h-[1400px] lg:min-h-0">
+                  {/* Row 1-2: Partnerships - col 1-2, row 1-2 (double height) */}
+                  <div className="lg:col-start-1 lg:col-span-2 lg:row-start-1 lg:row-span-2">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Partnerships"
                         icon={Link}
                         items={project.partnerships ?? []}
                         onUpdate={(items) => handleUpdateSection('partnerships', items)}
-                        className="h-full"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="partnership"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['partnerships']!} className="h-full" />
+                      <CanvasSectionCard section={sectionMap['partnerships']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
                   </div>
-                  <div className="flex lg:h-96 flex-col gap-4">
+                  
+                  {/* Row 1: Activities - col 3-4, row 1 */}
+                  <div className="lg:col-start-3 lg:col-span-2 lg:row-start-1">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Activities"
                         icon={Zap}
                         items={project.activities ?? []}
                         onUpdate={(items) => handleUpdateSection('activities', items)}
-                        className="flex-1 min-h-0"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="activity"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['activities']!} className="flex-1 min-h-0" />
+                      <CanvasSectionCard section={sectionMap['activities']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
+                  </div>
+                  
+                  {/* Row 2: Resources - col 3-4, row 2 */}
+                  <div className="lg:col-start-3 lg:col-span-2 lg:row-start-2">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Resources"
                         icon={Factory}
                         items={project.resources ?? []}
                         onUpdate={(items) => handleUpdateSection('resources', items)}
-                        className="flex-1 min-h-0"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="resource"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['resources']!} className="flex-1 min-h-0" />
+                      <CanvasSectionCard section={sectionMap['resources']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
                   </div>
-                  <div className="row-span-2 h-full">
+                  
+                  {/* Row 1-2: Value Proposition - col 5-6, row 1-2 (double height) */}
+                  <div className="lg:col-start-5 lg:col-span-2 lg:row-start-1 lg:row-span-2">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Value Proposition"
                         icon={Gift}
                         items={project.valueProposition ?? []}
                         onUpdate={(items) => handleUpdateSection('valueProposition', items)}
-                        className="h-full"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="value proposition"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['value-proposition']!} className="h-full" />
+                      <CanvasSectionCard section={sectionMap['value-proposition']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
                   </div>
-                  <div className="flex h-96 flex-col gap-4">
+                  
+                  {/* Row 1: Customer Relationships - col 7-8, row 1 */}
+                  <div className="lg:col-start-7 lg:col-span-2 lg:row-start-1">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Customer Relationships"
                         icon={Heart}
                         items={project.customerRelationships ?? []}
                         onUpdate={(items) => handleUpdateSection('customerRelationships', items)}
-                        className="flex-1 min-h-0"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="customer relationship"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['customer-relationships']!} className="flex-1 min-h-0" />
+                      <CanvasSectionCard section={sectionMap['customer-relationships']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
+                  </div>
+                  
+                  {/* Row 2: Channels - col 7-8, row 2 */}
+                  <div className="lg:col-start-7 lg:col-span-2 lg:row-start-2">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Channels"
                         icon={Truck}
                         items={project.channels ?? []}
                         onUpdate={(items) => handleUpdateSection('channels', items)}
-                        className="flex-1 min-h-0"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="channel"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['channels']!} className="flex-1 min-h-0" />
+                      <CanvasSectionCard section={sectionMap['channels']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
                   </div>
-                  <div className="row-span-2 h-full">
+                  
+                  {/* Row 1-2: Customer Segments - col 9-10, row 1-2 (double height) */}
+                  <div className="lg:col-start-9 lg:col-span-2 lg:row-start-1 lg:row-span-2">
                     {project ? (
                       <CanvasSectionEditableCard
                         title="Customer Segments"
                         icon={SquareUserRound}
                         items={project.customerSegments ?? []}
                         onUpdate={(items) => handleUpdateSection('customerSegments', items)}
-                        className="h-full"
+                        className="h-[300px] lg:h-full min-h-[200px]"
                         itemLabel="customer segment"
                       />
                     ) : (
-                      <CanvasSectionCard section={sectionMap['customer-segments']!} className="h-full" />
+                      <CanvasSectionCard section={sectionMap['customer-segments']!} className="h-[300px] lg:h-full min-h-[200px]" />
+                    )}
+                  </div>
+                  
+                  {/* Row 3: Cost Structure - col 1-5 */}
+                  <div className="lg:col-start-1 lg:col-span-5 lg:row-start-3">
+                    {project ? (
+                      <CostStructureCard
+                        className="h-[300px] lg:h-full min-h-[200px]"
+                        operatingCosts={project.costStructure.fixedRunningCosts}
+                        upfrontCosts={project.costStructure.upfrontCosts ?? []}
+                        currency={project.currency}
+                        onEditCost={handleEditCost}
+                        onAddCost={handleAddCost}
+                        onAISuggestions={handleAISuggestions}
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-[300px] lg:h-full min-h-[200px]" />
+                    )}
+                  </div>
+                  
+                  {/* Row 3: Revenue Streams - col 6-10 */}
+                  <div className="lg:col-start-6 lg:col-span-5 lg:row-start-3">
+                    {project ? (
+                      <RevenueStreamsCard
+                        className="h-[300px] lg:h-full min-h-[200px]"
+                        products={project.revenueStreams.products}
+                        currency={project.currency}
+                        onEditProduct={handleEditProduct}
+                        onAddProduct={handleAddProduct}
+                      />
+                    ) : (
+                      <CanvasSectionCard section={sectionMap['revenue-streams']!} className="h-[300px] lg:h-full min-h-[200px]" />
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  {project ? (
-                    <CostStructureCard
-                      className="h-72"
-                      operatingCosts={project.costStructure.fixedRunningCosts}
-                      upfrontCosts={project.costStructure.upfrontCosts ?? []}
-                      currency={project.currency}
-                      onEditCost={handleEditCost}
-                      onAddCost={handleAddCost}
-                      onAISuggestions={handleAISuggestions}
-                    />
-                  ) : (
-                    <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-72" />
-                  )}
-                  {project ? (
-                    <RevenueStreamsCard
-                      className="h-72"
-                      products={project.revenueStreams.products}
-                      currency={project.currency}
-                      onEditProduct={handleEditProduct}
-                      onAddProduct={handleAddProduct}
-                    />
-                  ) : (
-                    <CanvasSectionCard section={sectionMap['revenue-streams']!} className="h-72" />
-                  )}
-                </div>
-              </div>
             </TabsContent>
           </Tabs>
         </div>

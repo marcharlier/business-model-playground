@@ -275,21 +275,28 @@ export default function PlaygroundPage() {
   }
 
   return (
-    <section className="relative">
-      <div className="mx-auto flex w-full flex-col gap-6">
-        <Tabs value="profitability" onValueChange={handleTabChange} className="self-center items-center w-full">
-          <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
-            <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
-              Business Model
-            </TabsTrigger>
-            <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
-              Profitability Playground
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="profitability" className="mt-6 outline-none w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Charts and Metrics */}
-              <div className="space-y-2">
+    <section className="relative h-full min-h-0 flex flex-col">
+      <div className="mx-auto flex w-full flex-col gap-6 pb-8 lg:flex-1 lg:min-h-0">
+        <Tabs
+          value="profitability"
+          onValueChange={handleTabChange}
+          className="self-center items-center w-full lg:h-full"
+        >
+          <div className="flex items-center justify-center gap-4">
+            <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
+              <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
+                Business Model
+              </TabsTrigger>
+              <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
+                Profitability Playground
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="profitability" className="mt-6 outline-none w-full flex flex-col lg:flex-1 lg:min-h-0">
+            {/* 2-column layout: fills remaining viewport height */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:flex-1 lg:min-h-0">
+              {/* Left Column - Charts and Metrics flowing from top */}
+              <div className="flex flex-col space-y-2 min-h-0 lg:overflow-y-auto">
                 {/* Monthly Projection Chart */}
                 <Card>
                   <CardHeader className="pb-2 flex flex-col gap-2">
@@ -324,7 +331,7 @@ export default function PlaygroundPage() {
                 {/* Metric Cards */}
                 <div className="grid grid-cols-6 gap-2">
                   {/* Top Left: Operating Profit */}
-                  <Card className="p-2 gap-0 col-span-2">
+                  <Card className="p-2 gap-0 col-span-2 rounded-lg">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Operating profit </CardTitle>
                       <CardDescription className="text-sm">Per Month</CardDescription>
@@ -335,7 +342,7 @@ export default function PlaygroundPage() {
                       </p>
                     </CardContent>
                   </Card>
-                  <Card className="p-2 gap-0 col-span-2">
+                  <Card className="p-2 gap-0 col-span-2 rounded-lg">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Operating margin </CardTitle>
                       <CardDescription className="text-sm">Revenue / Costs</CardDescription>
@@ -348,7 +355,7 @@ export default function PlaygroundPage() {
                   </Card>
 
                   {/* Top Right: Break Even */}
-                  <Card className="p-2 gap-0 col-span-2">
+                  <Card className="p-2 gap-0 col-span-2 rounded-lg">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Break even</CardTitle>
                       <CardDescription className="text-sm">&nbsp;</CardDescription>
@@ -371,7 +378,7 @@ export default function PlaygroundPage() {
                   </Card>
 
                   {/* Bottom Left: Revenue */}
-                  <Card className="p-2 gap-0 col-span-3">
+                  <Card className="p-2 gap-0 col-span-3 rounded-lg">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Revenue</CardTitle>
                       <CardDescription className="text-sm">Per Month</CardDescription>
@@ -382,7 +389,7 @@ export default function PlaygroundPage() {
                   </Card>
 
                   {/* Bottom Right: Operating Costs */}
-                  <Card className="p-2 gap-0 col-span-3">
+                  <Card className="p-2 gap-0 col-span-3 rounded-lg">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Costs</CardTitle>
                       <CardDescription className="text-sm">Per Month (Operating + COGS)</CardDescription>
@@ -396,13 +403,13 @@ export default function PlaygroundPage() {
                 </div>
               </div>
 
-              {/* Right Column - Business Summary and Quick Edit */}
-              <Card className="flex flex-col overflow-hidden lg:h-[calc(100vh-12rem)] gap-4">
-                <CardHeader className="">
+              {/* Right Column - Single card filling full available height */}
+              <Card className="flex flex-col h-full min-h-0 gap-4">
+                <CardHeader className="flex-shrink-0">
                   <BusinessStatusSummary project={project} productSales={productSales} showTitle={true} />
                 </CardHeader>
-                <CardContent className="flex-1 min-h-0 p-0 overflow-hidden border-t border-border/20">
-                  <ScrollArea className="h-full">
+                <CardContent className="flex-1 min-h-0 p-0 border-t border-border/20 overflow-hidden">
+                  <ScrollArea className="h-full w-full">
                     <div className="p-6 space-y-6">
                       {/* Products Section */}
                       <div className="space-y-3">

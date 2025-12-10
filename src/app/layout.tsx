@@ -2,7 +2,8 @@ import "./globals.css"
 import { Inter, Figtree } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { AppBarWrapper } from "@/components/ui/app-bar-wrapper"
-import { Footer } from "@/components/ui/footer"
+import { FooterWrapper } from "@/components/ui/footer-wrapper"
+import { LayoutWrapper } from "@/components/ui/layout-wrapper"
 import { ThemeProvider } from "@/context/ThemeContext"
 import { Analytics } from "@vercel/analytics/react"
 
@@ -31,13 +32,13 @@ export default function RootLayout({
         figtree.variable
       )}>
         <ThemeProvider>
-          <div className="flex flex-col min-h-screen">
+          <LayoutWrapper>
             <AppBarWrapper />
-            <main className="flex-1">
+            <main className="flex-1 min-h-0">
               {children}
             </main>
-            <Footer />
-          </div>
+            <FooterWrapper />
+          </LayoutWrapper>
         </ThemeProvider>
         <Analytics />
       </body>
