@@ -296,9 +296,9 @@ export default function PlaygroundPage() {
             {/* 2-column layout: fills remaining viewport height */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:flex-1 lg:min-h-0">
               {/* Left Column - Charts and Metrics flowing from top */}
-              <div className="flex flex-col space-y-2 min-h-0 lg:overflow-y-auto">
+              <div className="flex flex-col space-y-2 min-h-0 lg:flex-1 lg:h-full">
                 {/* Monthly Projection Chart */}
-                <Card>
+                <Card className="flex flex-col flex-1">
                   <CardHeader className="pb-2 flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-4">
                       <CardTitle>Revenue Projection</CardTitle>
@@ -317,7 +317,7 @@ export default function PlaygroundPage() {
                     </div>
                     <CardDescription>Cumulative revenue and costs over time</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-1 min-h-0">
                     <MonthlyProjectionChart
                       products={project.revenueStreams.products}
                       productSales={productSales}
@@ -331,7 +331,7 @@ export default function PlaygroundPage() {
                 {/* Metric Cards */}
                 <div className="grid grid-cols-6 gap-2">
                   {/* Top Left: Operating Profit */}
-                  <Card className="p-2 gap-0 col-span-2 rounded-lg">
+                  <Card className="p-2 gap-0 col-span-2">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Operating profit </CardTitle>
                       <CardDescription className="text-sm">Per Month</CardDescription>
@@ -342,7 +342,7 @@ export default function PlaygroundPage() {
                       </p>
                     </CardContent>
                   </Card>
-                  <Card className="p-2 gap-0 col-span-2 rounded-lg">
+                  <Card className="p-2 gap-0 col-span-2">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Operating margin </CardTitle>
                       <CardDescription className="text-sm">Revenue / Costs</CardDescription>
@@ -355,7 +355,7 @@ export default function PlaygroundPage() {
                   </Card>
 
                   {/* Top Right: Break Even */}
-                  <Card className="p-2 gap-0 col-span-2 rounded-lg">
+                  <Card className="p-2 gap-0 col-span-2">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Break even</CardTitle>
                       <CardDescription className="text-sm">&nbsp;</CardDescription>
@@ -378,7 +378,7 @@ export default function PlaygroundPage() {
                   </Card>
 
                   {/* Bottom Left: Revenue */}
-                  <Card className="p-2 gap-0 col-span-3 rounded-lg">
+                  <Card className="p-2 gap-0 col-span-3">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Revenue</CardTitle>
                       <CardDescription className="text-sm">Per Month</CardDescription>
@@ -389,7 +389,7 @@ export default function PlaygroundPage() {
                   </Card>
 
                   {/* Bottom Right: Operating Costs */}
-                  <Card className="p-2 gap-0 col-span-3 rounded-lg">
+                  <Card className="p-2 gap-0 col-span-3">
                     <CardHeader className="p-2 gap-0">
                       <CardTitle className="text-sm text-foreground">Costs</CardTitle>
                       <CardDescription className="text-sm">Per Month (Operating + COGS)</CardDescription>

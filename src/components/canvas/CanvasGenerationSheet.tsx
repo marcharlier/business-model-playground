@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TextShimmer } from '@/components/ui/text-shimmer';
+import { Textarea } from '@/components/ui/textarea';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { canvasGenerationSchema, type CanvasGeneration } from '@/app/api/ai/generate-canvas/schema';
 import { useDailyRateLimit, DAILY_AI_LIMIT } from '@/hooks/use-daily-rate-limit';
@@ -12,7 +13,6 @@ import {
   Loader2,
   Sparkles,
   AlertCircle,
-  CircleDollarSign,
   Info,
   X,
 } from 'lucide-react';
@@ -148,10 +148,58 @@ export function CanvasGenerationSheet({
   
   const totalCanvasItems = Object.values(canvasItemCounts).reduce((a, b) => a + b, 0);
   const totalFinancialItems = Object.values(financialItemCounts).reduce((a, b) => a + b, 0);
-  const totalItems = totalCanvasItems + totalFinancialItems;
   
   // Check if revenue model doesn't fit product sales
   const hasRevenueModelNote = !!object?.revenueModelNote;
+
+  const activityLog = [
+    {
+      id: 'idea',
+      label: 'Understanding your idea',
+      detail: 'Parsing your request and goals.',
+      done: status !== 'idle',
+    },
+    {
+      id: 'canvas',
+      label: 'Drafting business model canvas',
+      detail: 'Partners, activities, resources, relationships, and channels.',
+      done: totalCanvasItems > 0,
+    },
+    {
+      id: 'financials',
+      label: 'Exploring costs and revenue',
+      detail: 'Upfront costs, running costs, and revenue streams.',
+      done: totalFinancialItems > 0 || hasRevenueModelNote,
+    },
+    {
+      id: 'naming',
+      label: 'Polishing your project name',
+      detail: 'Aligning the story around your business.',
+      done: !!object?.projectName || status === 'complete',
+    },
+    {
+      id: 'summary',
+      label: 'Preparing summary and handoff',
+      detail: 'Final checks before sharing the results.',
+      done: status === 'complete',
+    },
+  ];
+
+  const visibleActivityLog =
+    status === 'complete'
+      ? activityLog
+      : (() => {
+          const firstIncompleteIndex = activityLog.findIndex((item) => !item.done);
+          if (firstIncompleteIndex === -1) return activityLog;
+          return activityLog.slice(0, firstIncompleteIndex + 1);
+        })();
+
+  const currentAction =
+    status === 'complete'
+      ? 'Agent ready with your canvas summary'
+      : status === 'error'
+        ? 'Agent hit an issue — see below'
+        : activityLog.find((item) => !item.done)?.label ?? 'Finalizing outputs';
 
   // Return the side panel content - fixed position below app bar
   return (
@@ -241,122 +289,67 @@ export function CanvasGenerationSheet({
 
             {/* Generation status */}
             {status === 'generating' && (
-              <div className="space-y-3">
-                <TextShimmer className="text-sm font-medium">
-                  Building your business model canvas...
-                </TextShimmer>
-                
-                {object?.projectName && (
-                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3">
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">
-                      Project name
-                    </p>
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                      {object.projectName}
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-card p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-blue-500" />
+                    <p className="text-xs font-medium text-blue-600 dark:text-blue-300">
+                      AI Agent
                     </p>
                   </div>
-                )}
-
-                {/* Canvas sections progress */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Business Model Canvas
+                  <TextShimmer className="text-base font-semibold leading-relaxed">
+                    {currentAction}
+                  </TextShimmer>
+                  <p className="text-xs text-muted-foreground">
+                    Live agentic run. You can let it finish or stop at any time.
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(canvasItemCounts).map(([key, count]) => (
-                      <div
-                        key={key}
-                        className={cn(
-                          'flex items-center gap-2 text-xs rounded-md px-2 py-1.5',
-                          count > 0
-                            ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300'
-                            : 'bg-muted/50 text-muted-foreground'
-                        )}
-                      >
-                        {count > 0 ? (
-                          <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    Activity log
+                  </p>
+                  <div className="overflow-hidden rounded-lg border bg-muted/40 divide-y divide-border">
+                    {visibleActivityLog.map((item) => (
+                      <div key={item.id} className="flex items-start gap-3 px-3 py-2.5">
+                        {item.done ? (
+                          <div className="mt-0.5 rounded-full bg-green-100 dark:bg-green-900/60 p-1">
+                            <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-300" />
+                          </div>
                         ) : (
-                          <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
+                          <div className="mt-0.5 rounded-full bg-muted p-1">
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          </div>
                         )}
-                        <span className="truncate capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                        {count > 0 && (
-                          <span className="ml-auto font-medium">{count}</span>
-                        )}
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{item.label}</p>
+                            {item.id === 'canvas' && totalCanvasItems > 0 && (
+                              <span className="text-[11px] font-semibold text-green-600 dark:text-green-300">
+                                {totalCanvasItems} items
+                              </span>
+                            )}
+                            {item.id === 'financials' && totalFinancialItems > 0 && (
+                              <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-300">
+                                {totalFinancialItems} items
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{item.detail}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Financial sections progress */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                    <CircleDollarSign className="h-3 w-3" />
-                    Costs & Revenue
-                  </p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div
-                      className={cn(
-                        'flex items-center gap-2 text-xs rounded-md px-2 py-1.5',
-                        financialItemCounts.upfrontCosts > 0
-                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300'
-                          : 'bg-muted/50 text-muted-foreground'
-                      )}
-                    >
-                      {financialItemCounts.upfrontCosts > 0 ? (
-                        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
-                      )}
-                      <span>Upfront Costs</span>
-                      {financialItemCounts.upfrontCosts > 0 && (
-                        <span className="ml-auto font-medium">{financialItemCounts.upfrontCosts}</span>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        'flex items-center gap-2 text-xs rounded-md px-2 py-1.5',
-                        financialItemCounts.runningCosts > 0
-                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300'
-                          : 'bg-muted/50 text-muted-foreground'
-                      )}
-                    >
-                      {financialItemCounts.runningCosts > 0 ? (
-                        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
-                      )}
-                      <span>Running Costs</span>
-                      {financialItemCounts.runningCosts > 0 && (
-                        <span className="ml-auto font-medium">{financialItemCounts.runningCosts}</span>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        'flex items-center gap-2 text-xs rounded-md px-2 py-1.5',
-                        financialItemCounts.products > 0 || hasRevenueModelNote
-                          ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-muted/50 text-muted-foreground'
-                      )}
-                    >
-                      {financialItemCounts.products > 0 || hasRevenueModelNote ? (
-                        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
-                      )}
-                      <span>Revenue Streams</span>
-                      {financialItemCounts.products > 0 && (
-                        <span className="ml-auto font-medium">{financialItemCounts.products}</span>
-                      )}
-                      {hasRevenueModelNote && financialItemCounts.products === 0 && (
-                        <span className="ml-auto">
-                          <Info className="h-3 w-3" />
-                        </span>
-                      )}
-                    </div>
+                {object?.projectName && (
+                  <div className="rounded-lg border bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">
+                      Working title
+                    </p>
+                    <p className="text-sm font-semibold">{object.projectName}</p>
                   </div>
-                </div>
+                )}
 
                 <Button
                   variant="outline"
@@ -377,55 +370,78 @@ export function CanvasGenerationSheet({
 
             {/* Completion state - only show after actual generation, not in viewOnly mode */}
             {status === 'complete' && !viewOnly && (
-              <div className="space-y-3">
-                <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-4 text-center">
-                  <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                    Canvas generated successfully!
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-card p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-green-500" />
+                    <p className="text-xs font-semibold text-green-700 dark:text-green-300">
+                      Agent summary
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <p className="text-sm font-medium">Canvas generated successfully.</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    I created {totalCanvasItems} canvas items and {totalFinancialItems}{' '}
+                    financial items based on your idea. Everything is synced to your board.
                   </p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    {totalItems} items created across all sections
-                  </p>
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-full bg-green-100 dark:bg-green-900/40 px-3 py-1 font-semibold text-green-700 dark:text-green-200">
+                      {totalCanvasItems} canvas details
+                    </span>
+                    <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-3 py-1 font-semibold text-amber-700 dark:text-amber-200">
+                      {financialItemCounts.upfrontCosts + financialItemCounts.runningCosts} costs
+                    </span>
+                    <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 font-semibold text-emerald-700 dark:text-emerald-200">
+                      {financialItemCounts.products} revenue ideas
+                    </span>
+                  </div>
                 </div>
 
                 {object?.projectName && (
-                  <div className="rounded-lg bg-muted/50 p-3">
+                  <div className="rounded-lg border bg-muted/50 p-3">
                     <p className="text-xs text-muted-foreground font-medium mb-1">
                       Project name
                     </p>
-                    <p className="text-sm font-semibold">
-                      {object.projectName}
-                    </p>
+                    <p className="text-sm font-semibold">{object.projectName}</p>
                   </div>
                 )}
 
-                {/* Summary of what was generated */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Canvas sections</span>
-                    <span className="font-medium">{totalCanvasItems} items</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Upfront costs</span>
-                    <span className="font-medium">{financialItemCounts.upfrontCosts} items</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Running costs</span>
-                    <span className="font-medium">{financialItemCounts.runningCosts} items</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Products/Services</span>
-                    <span className="font-medium">
-                      {financialItemCounts.products > 0 
-                        ? `${financialItemCounts.products} items` 
-                        : 'See note below'}
-                    </span>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    Activity log
+                  </p>
+                  <div className="overflow-hidden rounded-lg border bg-muted/30 divide-y divide-border">
+                    {visibleActivityLog.map((item) => (
+                      <div key={item.id} className="flex items-start gap-3 px-3 py-2.5">
+                        <div className="mt-0.5 rounded-full bg-green-100 dark:bg-green-900/60 p-1">
+                          <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-300" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{item.label}</p>
+                            {item.id === 'canvas' && totalCanvasItems > 0 && (
+                              <span className="text-[11px] font-semibold text-green-600 dark:text-green-300">
+                                {totalCanvasItems} items
+                              </span>
+                            )}
+                            {item.id === 'financials' && totalFinancialItems > 0 && (
+                              <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-300">
+                                {totalFinancialItems} items
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{item.detail}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Revenue model note for non-product-sales businesses */}
                 {hasRevenueModelNote && (
-                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 space-y-2">
+                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 space-y-2 border border-blue-100 dark:border-blue-900/40">
                     <div className="flex items-center gap-2">
                       <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
                       <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
@@ -438,8 +454,24 @@ export function CanvasGenerationSheet({
                   </div>
                 )}
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Prompt for further edits
+                    </p>
+                    <span className="text-[11px] text-muted-foreground">Coming soon</span>
+                  </div>
+                  <Textarea
+                    placeholder="Ask the agent to refine a section or adjust numbers..."
+                    disabled
+                  />
+                  <Button disabled size="sm" className="w-full">
+                    Send to agent (not yet enabled)
+                  </Button>
+                </div>
+
                 <p className="text-xs text-muted-foreground text-center">
-                  {hasRevenueModelNote 
+                  {hasRevenueModelNote
                     ? 'Explore the canvas and add revenue streams manually based on the note above.'
                     : 'Explore the canvas and use the Profitability Playground to experiment with pricing.'}
                 </p>

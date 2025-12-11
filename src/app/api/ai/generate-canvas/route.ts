@@ -46,29 +46,29 @@ Category reference:
 ${categoriesList}
 
 REVENUE STREAMS GUIDELINES:
-- CRITICAL: Only generate products/services if the business model genuinely fits a product-sales approach
-- If the business is more suited to:
-  * Subscription/SaaS models
-  * Consulting/hourly billing
-  * Commission-based revenue
-  * Licensing/royalties
-  * Advertising-based revenue
-  * Marketplace/platform fees
-  * Freemium models with complex conversion
-  * Or other non-straightforward product sales...
+- DEFAULT TO PRODUCT SALES when customers buy a concrete unit of value (a product, session, ticket, credit/token pack, class, seat, bundle, or fixed-scope service). If they can purchase something with a price and quantity, model it as a product.
+- Treat prepaid credits/tokens/passes as products with tiers (e.g., 10 credits for $X, 50 credits for $Y) and realistic volume per salesPeriod.
+- Use products for fixed-scope services with clear deliverables (e.g., "Starter web setup", "Workshop pass", "House cleaning visit").
+- Only set products to an EMPTY ARRAY [] when the primary revenue is clearly non-transactional and not reasonably captured as per-unit purchases, such as:
+  * Pure subscription/SaaS without discrete plans to sell here
+  * Commission/marketplace take rates
+  * Advertising-only models
+  * Licensing/royalties without per-unit packaging
+  * Highly bespoke consulting with no repeatable packages
+  * Freemium where paid conversion cannot be expressed as discrete SKUs
   
-  Then set products to an EMPTY ARRAY [] and provide a helpful revenueModelNote explaining:
-  1. What revenue model would be better for this business
-  2. Why product-based pricing doesn't fit well
-  3. How the user should think about configuring their revenue manually
+  When you do leave products empty, provide a revenueModelNote explaining:
+  1. The better revenue model for this business
+  2. Why product-based pricing doesn't fit
+  3. How the user should configure revenue manually
   
-- If the business DOES fit product sales (retail, food service, e-commerce, simple services with clear pricing), generate 5-10 realistic products with:
-  * Specific product/service names
-  * Realistic prices for the market
+- For all product-friendly businesses (retail, food service, e-commerce, classes, events, credit/token packs, clear service packages), generate 5-10 realistic products with:
+  * Specific product/service names or bundle tiers
+  * Market-realistic prices (include bundle pricing where relevant)
   * Conservative but reasonable sales volume estimates
-  * Appropriate sales period (daily for high-volume items like food, monthly for services)
+  * Appropriate sales period (daily for high-volume items like food/tickets, monthly for services/subscriptions/bundles)
 
-Be honest about revenue model fit - don't force product sales where it doesn't make sense.`
+Be biased toward productization when there is any sellable unit or bundle; only fall back to empty products when productization truly does not fit.`
 
     const user = `Business idea: ${prompt}
 
