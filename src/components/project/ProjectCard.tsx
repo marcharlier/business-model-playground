@@ -42,7 +42,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   return (
     <Link
       href={`/projects/${project.id}/canvas-view`}
-      className="block p-4 border border-border rounded-lg hover:border-primary transition-colors relative bg-card"
+      className="block p-4 border border-border rounded-2xl hover:border-primary transition-colors relative bg-card"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
