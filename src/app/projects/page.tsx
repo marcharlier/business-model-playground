@@ -59,7 +59,8 @@ export default function ProjectsList() {
         }))
       },
       revenueStreams: {
-        products: productsWithSales
+        products: productsWithSales,
+        subscriptions: []
       },
       partnerships: coffeeShopExample.partnerships,
       activities: coffeeShopExample.activities,

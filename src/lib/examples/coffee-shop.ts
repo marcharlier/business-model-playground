@@ -156,6 +156,7 @@ export const coffeeShopExample: Project = {
         ]
       }
     ]
+    , subscriptions: []
   },
   partnerships: [
     {

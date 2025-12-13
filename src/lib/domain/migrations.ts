@@ -76,6 +76,7 @@ export function migrateProject(raw: unknown): Project {
     // Build revenueStreams
     const revenueStreams: z.infer<typeof RevenueStreams> = {
       products: productsWithSales,
+      subscriptions: [],
     };
 
     // Parse fixedCosts (version 1 structure)

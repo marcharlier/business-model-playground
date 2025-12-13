@@ -87,9 +87,9 @@ export function CostStructureCard({
                 <button
                   key={`${item.type}-${item.cost.id}-${index}`}
                   onClick={() => onEditCost(item.cost, item.type)}
-                  className="flex items-center justify-between rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-blue-100 transition-colors cursor-pointer"
+                  className="flex min-w-0 items-center justify-between gap-2 rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-blue-100 transition-colors cursor-pointer"
                 >
-                  <span className="truncate text-left">{item.displayText}</span>
+                  <span className="min-w-0 truncate text-left">{item.displayText}</span>
                   <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </button>
               ))

@@ -1,4 +1,5 @@
-import type { Product, ProductSales } from '@/lib/storage/types';
+import type { Product, Subscription, ProductSales } from '@/lib/storage/types';
+import { getSubscriptionMonthlyPrice } from './financial';
 
 export interface BreakEvenResult {
   months: number | null;
@@ -13,22 +14,40 @@ export interface BreakEvenResult {
 export function calculateBreakEven(
   products: Product[],
   productSales: Record<string, ProductSales>,
-  fixedCosts: { monthly: number; annual: number; upfront: number }
+  fixedCosts: { monthly: number; annual: number; upfront: number },
+  subscriptions: Subscription[] = []
 ): BreakEvenResult {
-  // Calculate monthly revenue
-  const monthlyRevenue = products.reduce((total, product) => {
+  // Calculate monthly revenue from products
+  const productRevenue = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (product.price * monthlyVolume);
   }, 0);
 
-  // Calculate monthly variable costs (COGS)
-  const monthlyCogs = products.reduce((total, product) => {
+  // Calculate monthly revenue from subscriptions
+  const subscriptionRevenue = subscriptions.reduce((total, subscription) => {
+    const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
+    return total + (monthlyPrice * subscription.subscribers);
+  }, 0);
+
+  const monthlyRevenue = productRevenue + subscriptionRevenue;
+
+  // Calculate monthly variable costs (COGS) from products
+  const productCogs = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
     return total + (unitCost * monthlyVolume);
   }, 0);
+
+  // Calculate monthly variable costs (COGS) from subscriptions
+  // For subscriptions, COGS are per subscriber per month
+  const subscriptionCogs = subscriptions.reduce((total, subscription) => {
+    const unitCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    return total + (unitCost * subscription.subscribers);
+  }, 0);
+
+  const monthlyCogs = productCogs + subscriptionCogs;
 
   // Use the pre-calculated totals (same as chart)
   const monthlyFixedCosts = fixedCosts.monthly;
@@ -117,7 +136,7 @@ export function calculateBreakEven(
  */
 export function formatBreakEvenStatement(result: BreakEvenResult): string {
   if (!result.hasRevenue) {
-    return "Set up your products to see break-even analysis.";
+    return "Set up your revenue streams to see break-even analysis.";
   }
 
   if (!result.hasPositiveMargin) {

@@ -3,9 +3,10 @@
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts';
 import type { TooltipProps } from 'recharts';
 import { formatCurrency } from '@/lib/utils/currency';
-import type { Currency, ProductSales } from '@/lib/storage/types';
+import type { Currency, ProductSales, Subscription } from '@/lib/storage/types';
 import type { Product } from '@/lib/storage/types';
 import { useMemo } from 'react';
+import { getSubscriptionMonthlyPrice } from '@/lib/utils/financial';
 
 interface ChartDataPoint {
   month: string;
@@ -29,6 +30,7 @@ interface MonthlyProjectionChartProps {
   fixedCosts: { monthly: number; annual: number; upfront: number };
   currency: Currency;
   lengthMonths?: number;
+  subscriptions?: Subscription[];
 }
 
 type CustomTooltipProps = TooltipProps<number, string>;
@@ -37,24 +39,41 @@ function calculateProjectionData(
   products: Product[],
   productSales: Record<string, ProductSales>,
   fixedCosts: { monthly: number; annual: number; upfront: number },
-  lengthMonths: number
+  lengthMonths: number,
+  subscriptions: Subscription[] = []
 ): ProjectionData {
   const months = Array.from({ length: lengthMonths }, (_, i) => i + 1);
   
-  // Calculate base monthly revenue (one month's worth)
-  const baseMonthlyRevenue = products.reduce((total, product) => {
+  // Calculate base monthly revenue from products (one month's worth)
+  const productRevenue = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (product.price * monthlyVolume);
   }, 0);
 
-  // Calculate base monthly variable costs (one month's worth)
-  const baseMonthlyVariableCosts = products.reduce((total, product) => {
+  // Calculate base monthly revenue from subscriptions
+  const subscriptionRevenue = subscriptions.reduce((total, subscription) => {
+    const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
+    return total + (monthlyPrice * subscription.subscribers);
+  }, 0);
+
+  const baseMonthlyRevenue = productRevenue + subscriptionRevenue;
+
+  // Calculate base monthly variable costs from products (one month's worth)
+  const productVariableCosts = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
     return total + (unitCost * monthlyVolume);
   }, 0);
+
+  // Calculate base monthly variable costs from subscriptions
+  const subscriptionVariableCosts = subscriptions.reduce((total, subscription) => {
+    const unitCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    return total + (unitCost * subscription.subscribers);
+  }, 0);
+
+  const baseMonthlyVariableCosts = productVariableCosts + subscriptionVariableCosts;
 
   // Calculate monthly data with compounding values (stacked cumulative costs)
   let cumulativeRevenue = 0;
@@ -110,11 +129,12 @@ export function MonthlyProjectionChart({
   productSales, 
   fixedCosts,
   currency,
-  lengthMonths = 12
+  lengthMonths = 12,
+  subscriptions = []
 }: MonthlyProjectionChartProps) {
   const { data, firstProfitLabel, firstProfitRevenue } = useMemo(
-    () => calculateProjectionData(products, productSales, fixedCosts, lengthMonths),
-    [products, productSales, fixedCosts, lengthMonths]
+    () => calculateProjectionData(products, productSales, fixedCosts, lengthMonths, subscriptions),
+    [products, productSales, fixedCosts, lengthMonths, subscriptions]
   );
 
   // Memoize the CustomTooltip component to prevent unnecessary re-renders

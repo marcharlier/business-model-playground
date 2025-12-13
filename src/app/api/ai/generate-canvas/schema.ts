@@ -26,6 +26,13 @@ const productSchema = z.object({
   salesPeriod: z.enum(["monthly", "daily"]).describe("Period for the sales volume"),
 })
 
+// Subscription revenue stream structure
+const subscriptionSchema = z.object({
+  name: z.string().describe("Name of the subscription service"),
+  price: z.number().positive().describe("Monthly subscription price"),
+  subscribers: z.number().positive().describe("Number of monthly subscribers"),
+})
+
 export const canvasGenerationSchema = z.object({
   projectName: z
     .string()
@@ -71,15 +78,23 @@ export const canvasGenerationSchema = z.object({
   products: z
     .array(productSchema)
     .max(10)
+    .optional()
     .describe("Products or services with pricing and expected sales volumes (5-10 items, or empty if not applicable)"),
+  // Revenue streams - subscriptions (can be empty if business doesn't suit subscription model)
+  subscriptions: z
+    .array(subscriptionSchema)
+    .max(10)
+    .optional()
+    .describe("Subscription services with monthly pricing and subscriber counts (5-10 items, or empty if not applicable)"),
   // Flag for non-product-sales businesses
   revenueModelNote: z
     .string()
     .optional()
-    .describe("If this business doesn't suit a product sales model, explain what revenue model would be better and why the user should configure it manually"),
+    .describe("If this business doesn't suit a product sales or subscription model, explain what revenue model would be better and why the user should configure it manually"),
 })
 
 export type CanvasGeneration = z.infer<typeof canvasGenerationSchema>
 export type UpfrontCostGeneration = z.infer<typeof upfrontCostSchema>
 export type RunningCostGeneration = z.infer<typeof runningCostSchema>
 export type ProductGeneration = z.infer<typeof productSchema>
+export type SubscriptionGeneration = z.infer<typeof subscriptionSchema>

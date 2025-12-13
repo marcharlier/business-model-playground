@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { HandCoins, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils/currency';
-import { calculateProfitMargin, formatProfitMargin } from '@/lib/utils/financial';
+import { calculateProfitMargin, formatProfitMargin, calculateSubscriptionProfitMargin } from '@/lib/utils/financial';
 import {
   Card,
   CardContent,
@@ -15,32 +15,42 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Product, Currency } from '@/lib/storage/types';
+import type { Product, Subscription, Currency } from '@/lib/storage/types';
 
-interface ProductWithDisplay {
-  product: Product;
+interface RevenueStreamItem {
+  id: string;
+  name: string;
   displayText: string;
+  type: 'product' | 'subscription';
+  item: Product | Subscription;
 }
 
 interface RevenueStreamsCardProps {
   className?: string;
   products: Product[];
+  subscriptions?: Subscription[];
   currency: Currency;
   onEditProduct: (product: Product) => void;
+  onEditSubscription?: (subscription: Subscription) => void;
   onAddProduct: () => void;
 }
 
 export function RevenueStreamsCard({
   className,
   products,
+  subscriptions = [],
   currency,
   onEditProduct,
+  onEditSubscription,
   onAddProduct,
 }: RevenueStreamsCardProps) {
   const Icon = HandCoins;
 
-  const productsWithDisplay: ProductWithDisplay[] = useMemo(() => {
-    return products.map((product) => {
+  const revenueStreams: RevenueStreamItem[] = useMemo(() => {
+    const items: RevenueStreamItem[] = [];
+
+    // Add products
+    products.forEach((product) => {
       const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
       const salesText = product.sales
         ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'}`
@@ -51,12 +61,49 @@ export function RevenueStreamsCard({
       if (salesText) parts.push(salesText);
       parts.push(`${margin} margin`);
 
-      return {
-        product,
+      items.push({
+        id: product.id,
+        name: product.name,
         displayText: parts.join(' • '),
-      };
+        type: 'product',
+        item: product,
+      });
     });
-  }, [products, currency]);
+
+    // Add subscriptions
+    subscriptions.forEach((subscription) => {
+      const priceText = subscription.price === 0 ? 'Free' : formatCurrency(subscription.price, currency);
+      const pricePeriod = subscription.pricePeriod || 'monthly';
+      const periodLabel = pricePeriod === 'annual' ? '/yr' : '/mo';
+      const subscribersText = `${subscription.subscribers} subscriber${subscription.subscribers !== 1 ? 's' : ''}`;
+      const margin = formatProfitMargin(calculateSubscriptionProfitMargin(subscription));
+
+      const parts = [
+        subscription.name,
+        `${priceText}${periodLabel}`,
+        subscribersText,
+        `${margin} margin`
+      ];
+
+      items.push({
+        id: subscription.id,
+        name: subscription.name,
+        displayText: parts.join(' • '),
+        type: 'subscription',
+        item: subscription,
+      });
+    });
+
+    return items;
+  }, [products, subscriptions, currency]);
+
+  const handleItemClick = (item: RevenueStreamItem) => {
+    if (item.type === 'product') {
+      onEditProduct(item.item as Product);
+    } else if (item.type === 'subscription' && onEditSubscription) {
+      onEditSubscription(item.item as Subscription);
+    }
+  };
 
   return (
     <Card
@@ -76,14 +123,14 @@ export function RevenueStreamsCard({
       <CardContent className="flex flex-1 min-h-0 flex-col px-2 pt-0">
         <ScrollArea className="flex-1 min-h-0">
           <div className="flex flex-col gap-2 pr-2">
-            {productsWithDisplay.length > 0 ? (
-              productsWithDisplay.map((item, index) => (
+            {revenueStreams.length > 0 ? (
+              revenueStreams.map((item, index) => (
                 <button
-                  key={`product-${item.product.id}-${index}`}
-                  onClick={() => onEditProduct(item.product)}
-                  className="flex items-center justify-between rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-blue-100 transition-colors cursor-pointer"
+                  key={`${item.type}-${item.id}-${index}`}
+                  onClick={() => handleItemClick(item)}
+                  className="flex min-w-0 items-center justify-between gap-2 rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-blue-100 transition-colors cursor-pointer"
                 >
-                  <span className="truncate text-left">{item.displayText}</span>
+                  <span className="min-w-0 truncate text-left">{item.displayText}</span>
                   <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </button>
               ))
@@ -110,4 +157,3 @@ export function RevenueStreamsCard({
     </Card>
   );
 }
-

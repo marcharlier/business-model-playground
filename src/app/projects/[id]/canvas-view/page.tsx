@@ -14,11 +14,12 @@ import {
   CircleDollarSign,
   HandCoins,
   Pencil,
+  PanelLeft,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils/currency';
-import { calculateProfitMargin, formatProfitMargin } from '@/lib/utils/financial';
+import { calculateProfitMargin, calculateSubscriptionProfitMargin, formatProfitMargin } from '@/lib/utils/financial';
 import { useProject } from '@/lib/context/ProjectContext';
 import {
   Card,
@@ -39,14 +40,16 @@ import { CanvasGenerationSheet } from '@/components/canvas/CanvasGenerationSheet
 import type { CanvasGeneration } from '@/app/api/ai/generate-canvas/schema';
 import { generateUUID } from '@/lib/utils';
 import { CostDialog } from '@/components/costs/CostDialog';
-import { ProductDialog } from '@/components/products/ProductDialog';
+import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
 import { productStorage } from '@/lib/storage/productStorage';
+import { subscriptionStorage } from '@/lib/storage/subscriptionStorage';
 import type { CanvasItem } from '@/lib/domain/types';
-import type { FixedCost, UpfrontCost, Product, AssociatedCost, ProductSales } from '@/lib/storage/types';
+import type { FixedCost, UpfrontCost, Product, Subscription, AssociatedCost, ProductSales } from '@/lib/storage/types';
 import type { CostFormData } from '@/components/costs/CostForm';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 type CanvasSection = {
   id: string;
@@ -97,10 +100,10 @@ function CanvasSectionCard({ section, className }: CanvasSectionCardProps) {
               section.items.map((item, index) => (
                 <div
                   key={`${section.id}-${index}`}
-                  className="flex items-center justify-between rounded-lg bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground"
+                  className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground"
                 >
-                  <span className="truncate">{item}</span>
-                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="min-w-0 truncate">{item}</span>
+                  <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </div>
               ))
             ) : (
@@ -221,6 +224,17 @@ export default function CanvasViewPage() {
       },
     }));
 
+    // Convert generated subscriptions to the correct format
+    const subscriptions: Subscription[] = (data.subscriptions ?? []).map(subscription => ({
+      id: generateUUID(),
+      name: subscription.name,
+      price: subscription.price,
+      pricePeriod: 'monthly' as const,
+      subscribers: subscription.subscribers,
+      associatedCosts: [],
+      projectId,
+    }));
+
     const updatedProject = {
       ...project,
       name: data.projectName,
@@ -235,13 +249,14 @@ export default function CanvasViewPage() {
       customerRelationships: toCanvasItems(data.customerRelationships),
       channels: toCanvasItems(data.channels),
       customerSegments: toCanvasItems(data.customerSegments),
-      // Add the generated costs and products
+      // Add the generated costs and revenue streams
       costStructure: {
         fixedRunningCosts,
         upfrontCosts,
       },
       revenueStreams: {
         products,
+        subscriptions,
       },
     };
 
@@ -271,6 +286,11 @@ export default function CanvasViewPage() {
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [isProductSubmitting, setIsProductSubmitting] = useState(false);
 
+  // Subscription dialog state
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | undefined>();
+  const [isSubscriptionSubmitting, setIsSubscriptionSubmitting] = useState(false);
+
   const placeholder = 'Coming soon...';
   const costStructureItems = useMemo(() => {
     if (!project) return [];
@@ -291,16 +311,29 @@ export default function CanvasViewPage() {
     if (!project) return [];
 
     const { revenueStreams, currency } = project;
+    const items: string[] = [];
 
-    return revenueStreams.products.map((product) => {
+    // Add products
+    revenueStreams.products.forEach((product) => {
       const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
       const salesText = product.sales
         ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'} sales`
         : 'No sales data';
       const margin = formatProfitMargin(calculateProfitMargin(product));
 
-      return `${product.name} • ${priceText} • ${salesText} • ${margin} margin`;
+      items.push(`${product.name} • ${priceText} • ${salesText} • ${margin} margin`);
     });
+
+    // Add subscriptions
+    (revenueStreams.subscriptions || []).forEach((subscription) => {
+      const priceText = subscription.price === 0 ? 'Free' : formatCurrency(subscription.price, currency);
+      const subscribersText = `${subscription.subscribers} subscriber${subscription.subscribers !== 1 ? 's' : ''}`;
+      const margin = formatProfitMargin(calculateSubscriptionProfitMargin(subscription));
+
+      items.push(`${subscription.name} • ${priceText}/mo • ${subscribersText} • ${margin} margin`);
+    });
+
+    return items;
   }, [project]);
 
   const sections = useMemo(() => {
@@ -480,12 +513,16 @@ export default function CanvasViewPage() {
   // Product handlers
   const handleAddProduct = () => {
     setEditingProduct(undefined);
+    setEditingSubscription(undefined);
     setProductDialogOpen(true);
+    setSubscriptionDialogOpen(false); // Ensure subscription dialog is closed
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
+    setEditingSubscription(undefined); // Clear subscription when editing product
     setProductDialogOpen(true);
+    setSubscriptionDialogOpen(false); // Ensure subscription dialog is closed
   };
 
   const handleSaveProduct = (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => {
@@ -518,6 +555,7 @@ export default function CanvasViewPage() {
 
       refreshProject();
       setProductDialogOpen(false);
+      setSubscriptionDialogOpen(false);
       setEditingProduct(undefined);
     } finally {
       setIsProductSubmitting(false);
@@ -533,8 +571,64 @@ export default function CanvasViewPage() {
     setEditingProduct(undefined);
   };
 
+  // Subscription handlers
+  const handleEditSubscription = (subscription: Subscription) => {
+    setEditingSubscription(subscription);
+    setEditingProduct(undefined); // Clear product when editing subscription
+    setSubscriptionDialogOpen(true);
+    setProductDialogOpen(false); // Ensure product dialog is closed
+  };
+
+  const handleSaveSubscription = (name: string, price: number, pricePeriod: 'monthly' | 'annual', subscribers: number, associatedCosts: AssociatedCost[]) => {
+    if (!projectId) return;
+
+    setIsSubscriptionSubmitting(true);
+    try {
+      if (editingSubscription) {
+        const updatedSubscription: Subscription = {
+          ...editingSubscription,
+          name,
+          price,
+          pricePeriod,
+          subscribers,
+          associatedCosts,
+        };
+        subscriptionStorage.updateSubscription(updatedSubscription, projectId);
+      } else {
+        const newSubscription: Subscription = {
+          id: crypto.randomUUID(),
+          name,
+          price,
+          pricePeriod,
+          subscribers,
+          associatedCosts,
+          projectId,
+        };
+        subscriptionStorage.createSubscription(newSubscription, projectId);
+      }
+
+      refreshProject();
+      setProductDialogOpen(false);
+      setSubscriptionDialogOpen(false);
+      setEditingSubscription(undefined);
+    } finally {
+      setIsSubscriptionSubmitting(false);
+    }
+  };
+
+  const handleDeleteSubscription = () => {
+    if (!editingSubscription || !projectId) return;
+
+    subscriptionStorage.deleteSubscription(editingSubscription.id, projectId);
+    refreshProject();
+    setSubscriptionDialogOpen(false);
+    setEditingSubscription(undefined);
+  };
+
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   // Track if the generation panel is actually expanded (for layout purposes)
-  const isPanelExpanded = showGenerationSheet;
+  const isPanelExpanded = showGenerationSheet && !isMobile;
 
   return (
     <section className="relative h-full flex flex-col">
@@ -546,6 +640,7 @@ export default function CanvasViewPage() {
           onUpdate={handleGenerationUpdate}
           onComplete={handleGenerationComplete}
           viewOnly={!!aiGeneratedPrompt && !isGenerating && !justCompletedGeneration}
+          projectDescription={aiGeneratedPrompt || project.description}
           onClose={() => {
             setShowGenerationSheet(false);
             setJustCompletedGeneration(false);
@@ -565,17 +660,23 @@ export default function CanvasViewPage() {
         "transition-all duration-300 ease-in-out flex-1 min-h-0 flex flex-col",
         isPanelExpanded && "ml-[360px]"
       )}>
-          <div className="mx-auto flex flex-1 min-h-0 flex-col gap-6 pb-8">
+          <div className="mx-auto flex flex-1 min-h-0 flex-col gap-6 pb-8 md:w-full">
             <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full lg:h-full">
-              <div className="flex items-center justify-center gap-4">
-                <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
-                  <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
-                    Business Model
-                  </TabsTrigger>
-                  <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
-                    Profitability Playground
-                  </TabsTrigger>
-                </TabsList>
+              <div className="relative flex flex-col md:flex-row md:items-center pt-2 md:pt-0 w-full gap-3 md:gap-0">
+                <Button className="h-8 w-full md:w-auto rounded-lg bg-blue-700 text-white font-hero font-semibold relative z-10" onClick={() => setShowGenerationSheet(!showGenerationSheet)}>
+                  <PanelLeft className="h-4 w-4" />
+                  AI Assistant
+                </Button>
+                <div className="w-full md:absolute md:left-1/2 md:-translate-x-1/2 flex justify-center md:z-0">
+                  <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
+                    <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
+                      Business Model
+                    </TabsTrigger>
+                    <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
+                      Profitability Playground
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
             <TabsContent value="business-model" className="mt-6 outline-none w-full flex-1 min-h-[600px] flex flex-col">
                 {/* 10-column, 3-row grid layout matching CanvasPreview on desktop, 1 column stack on mobile */}
@@ -717,8 +818,10 @@ export default function CanvasViewPage() {
                       <RevenueStreamsCard
                         className="h-[300px] lg:h-full min-h-[200px]"
                         products={project.revenueStreams.products}
+                        subscriptions={project.revenueStreams.subscriptions || []}
                         currency={project.currency}
                         onEditProduct={handleEditProduct}
+                        onEditSubscription={handleEditSubscription}
                         onAddProduct={handleAddProduct}
                       />
                     ) : (
@@ -756,16 +859,27 @@ export default function CanvasViewPage() {
           onAddCost={handleAddCostFromAI}
         />
 
-        {/* Product Dialog */}
+        {/* Revenue Stream Dialog - handles both products and subscriptions */}
         {project && (
-          <ProductDialog
-            open={productDialogOpen}
-            onOpenChange={setProductDialogOpen}
+          <RevenueStreamDialog
+            open={productDialogOpen || subscriptionDialogOpen}
+            onOpenChange={(open) => {
+              if (!open) {
+                setProductDialogOpen(false);
+                setSubscriptionDialogOpen(false);
+              }
+            }}
             product={editingProduct}
+            subscription={editingSubscription}
             currency={project.currency}
-            onSave={handleSaveProduct}
-            isSubmitting={isProductSubmitting}
-            onDelete={editingProduct ? handleDeleteProduct : undefined}
+            onSaveProduct={handleSaveProduct}
+            onSaveSubscription={handleSaveSubscription}
+            isSubmitting={isProductSubmitting || isSubscriptionSubmitting}
+            onDelete={
+              editingProduct ? handleDeleteProduct : 
+              editingSubscription ? handleDeleteSubscription : 
+              undefined
+            }
           />
         )}
       </div>

@@ -11,7 +11,8 @@ export const AssociatedCost = z.object({
   id: z.string(),
   name: z.string(),
   amount: z.number().nonnegative(),
-  productId: z.string(),
+  productId: z.string().optional(),
+  subscriptionId: z.string().optional(),
   projectId: z.string(),
 });
 
@@ -27,6 +28,16 @@ export const Product = z.object({
   associatedCosts: z.array(AssociatedCost),
   projectId: z.string(),
   sales: ProductSales.optional(),
+});
+
+export const Subscription = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number().nonnegative(),
+  pricePeriod: z.enum(['monthly', 'annual']).default('monthly'),
+  subscribers: z.number().nonnegative(),
+  associatedCosts: z.array(AssociatedCost),
+  projectId: z.string(),
 });
 
 // Note: 'upfront' is intentionally not part of FixedCost.frequency in the unified model
@@ -53,6 +64,7 @@ export const CostStructure = z.object({
 
 export const RevenueStreams = z.object({
   products: z.array(Product),
+  subscriptions: z.array(Subscription).default([]),
 });
 
 export const Project = z.object({

@@ -69,6 +69,7 @@ export const projectStorage = {
         },
         revenueStreams: {
           products: [],
+          subscriptions: [],
         },
         partnerships: [],
         activities: [],

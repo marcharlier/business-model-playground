@@ -1,6 +1,6 @@
 import { AlertCircle, TrendingUp, CircleDollarSign } from 'lucide-react';
 import type { Project, ProductSales } from '@/lib/storage/types';
-import { calculateProductTotalCost } from '@/lib/utils/financial';
+import { calculateProductTotalCost, calculateSubscriptionTotalCost, getSubscriptionMonthlyPrice } from '@/lib/utils/financial';
 import { CardTitle } from '@/components/ui/card';
 
 interface BusinessStatusSummaryProps {
@@ -16,20 +16,36 @@ export function BusinessStatusSummary({ project, productSales, showTitle = false
     return total + monthlyAmount;
   }, 0);
 
-  // Calculate total monthly variable costs
-  const totalMonthlyVariableCosts = project.revenueStreams.products.reduce((total, product) => {
+  // Calculate total monthly variable costs from products
+  const productVariableCosts = project.revenueStreams.products.reduce((total, product) => {
     const productCost = calculateProductTotalCost(product);
     const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (productCost * monthlyVolume);
   }, 0);
 
-  // Calculate total monthly revenue
-  const totalMonthlyRevenue = project.revenueStreams.products.reduce((total, product) => {
+  // Calculate total monthly variable costs from subscriptions
+  const subscriptionVariableCosts = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+    const subscriptionCost = calculateSubscriptionTotalCost(subscription);
+    return total + (subscriptionCost * subscription.subscribers);
+  }, 0);
+
+  const totalMonthlyVariableCosts = productVariableCosts + subscriptionVariableCosts;
+
+  // Calculate total monthly revenue from products
+  const productRevenue = project.revenueStreams.products.reduce((total, product) => {
     const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (product.price * monthlyVolume);
   }, 0);
+
+  // Calculate total monthly revenue from subscriptions
+  const subscriptionRevenue = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+    const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
+    return total + (monthlyPrice * subscription.subscribers);
+  }, 0);
+
+  const totalMonthlyRevenue = productRevenue + subscriptionRevenue;
 
   // Calculate total monthly profit
   const totalMonthlyProfit = totalMonthlyRevenue - totalMonthlyFixedCosts - totalMonthlyVariableCosts;

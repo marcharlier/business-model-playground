@@ -148,7 +148,8 @@ export default function Home() {
         }))
       },
       revenueStreams: {
-        products: productsWithSales
+        products: productsWithSales,
+        subscriptions: []
       },
       partnerships: coffeeShopExample.partnerships ?? [],
       activities: coffeeShopExample.activities ?? [],
@@ -206,12 +207,12 @@ export default function Home() {
                     className="w-full h-24 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-sm sm:text-base"
                   />
                   <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="flex h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
+                    <div className="flex items-center gap-2 flex-1 hidden md:block">
+                      <div className="flex h-1.5 w-24 gap-1 overflow-hidden rounded-full bg-gray-100">
                         {[1, 2, 3].map((idx) => (
                           <div
                             key={idx}
-                            className={`flex-1 transition-colors ${promptStage >= idx ? 'bg-blue-500' : 'bg-gray-200'}`}
+                            className={`flex-1 transition-colors ${promptStage >= idx ? 'bg-blue-700' : 'bg-gray-200'}`}
                           />
                         ))}
                       </div>
@@ -219,7 +220,7 @@ export default function Home() {
                         {promptEncouragement}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-end gap-3">
                       <Select value={currency} onValueChange={(value: Currency) => setCurrency(value)}>
                         <SelectTrigger className="w-20 h-9 bg-gray-50 border-gray-200 rounded-lg">
                           <SelectValue />
@@ -236,7 +237,7 @@ export default function Home() {
                         className="gap-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="h-4 w-4" />
-                        Generate Canvas
+                        Generate
                       </Button>
                     </div>
                   </div>
@@ -263,7 +264,7 @@ export default function Home() {
                   className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
-                  Start blank
+                  Blank canvas
                 </button>
               </div>
             </div>

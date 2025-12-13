@@ -1,1 +1,1 @@
-export type { Currency, CanvasItem, ProductSales, Project, FixedCost, UpfrontCost, Product, AssociatedCost, CostStructure, RevenueStreams } from '../domain/types';
+export type { Currency, CanvasItem, ProductSales, Project, FixedCost, UpfrontCost, Product, Subscription, AssociatedCost, CostStructure, RevenueStreams } from '../domain/types';

@@ -182,20 +182,35 @@ export default function DashboardPage() {
 
 
 
-  // Calculate total monthly variable costs
-  const totalMonthlyVariableCosts = project.revenueStreams.products.reduce((total, product) => {
+  // Calculate total monthly variable costs from products
+  const productVariableCosts = project.revenueStreams.products.reduce((total, product) => {
     const productCost = calculateProductTotalCost(product);
     const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (productCost * monthlyVolume);
   }, 0);
 
-  // Calculate total monthly revenue
-  const totalMonthlyRevenue = project.revenueStreams.products.reduce((total, product) => {
+  // Calculate total monthly variable costs from subscriptions
+  const subscriptionVariableCosts = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+    const subscriptionCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    return total + (subscriptionCost * subscription.subscribers);
+  }, 0);
+
+  const totalMonthlyVariableCosts = productVariableCosts + subscriptionVariableCosts;
+
+  // Calculate total monthly revenue from products
+  const productRevenue = project.revenueStreams.products.reduce((total, product) => {
     const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
     const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
     return total + (product.price * monthlyVolume);
   }, 0);
+
+  // Calculate total monthly revenue from subscriptions
+  const subscriptionRevenue = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+    return total + (subscription.price * subscription.subscribers);
+  }, 0);
+
+  const totalMonthlyRevenue = productRevenue + subscriptionRevenue;
 
   // Calculate total monthly profit
   const totalMonthlyProfit = totalMonthlyRevenue - totalMonthlyRunningCosts - totalMonthlyVariableCosts;

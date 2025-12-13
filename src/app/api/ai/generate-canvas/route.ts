@@ -46,29 +46,33 @@ Category reference:
 ${categoriesList}
 
 REVENUE STREAMS GUIDELINES:
-- DEFAULT TO PRODUCT SALES when customers buy a concrete unit of value (a product, session, ticket, credit/token pack, class, seat, bundle, or fixed-scope service). If they can purchase something with a price and quantity, model it as a product.
-- Treat prepaid credits/tokens/passes as products with tiers (e.g., 10 credits for $X, 50 credits for $Y) and realistic volume per salesPeriod.
-- Use products for fixed-scope services with clear deliverables (e.g., "Starter web setup", "Workshop pass", "House cleaning visit").
-- Only set products to an EMPTY ARRAY [] when the primary revenue is clearly non-transactional and not reasonably captured as per-unit purchases, such as:
-  * Pure subscription/SaaS without discrete plans to sell here
-  * Commission/marketplace take rates
-  * Advertising-only models
-  * Licensing/royalties without per-unit packaging
-  * Highly bespoke consulting with no repeatable packages
-  * Freemium where paid conversion cannot be expressed as discrete SKUs
+- CHOOSE BETWEEN PRODUCT SALES AND SUBSCRIPTIONS based on the business model:
   
-  When you do leave products empty, provide a revenueModelNote explaining:
-  1. The better revenue model for this business
-  2. Why product-based pricing doesn't fit
-  3. How the user should configure revenue manually
+  USE PRODUCT SALES when:
+  * Customers buy discrete units (products, sessions, tickets, credit/token packs, classes, seats, bundles, fixed-scope services)
+  * Revenue comes from one-time or repeat purchases of specific items
+  * Examples: retail, food service, e-commerce, events, workshops, consulting packages, prepaid credits
   
-- For all product-friendly businesses (retail, food service, e-commerce, classes, events, credit/token packs, clear service packages), generate 5-10 realistic products with:
+  USE SUBSCRIPTIONS when:
+  * Business model is primarily recurring monthly subscriptions (SaaS, memberships, monthly services)
+  * Customers pay a recurring fee for ongoing access to a service or product
+  * Revenue is predictable and recurring rather than transaction-based
+  * Examples: SaaS software, gym memberships, streaming services, monthly box subscriptions, maintenance contracts
+  
+  YOU CAN USE BOTH if the business has multiple revenue streams (e.g., a SaaS with subscription plans AND one-time setup fees as products)
+  
+- For PRODUCT SALES: Generate 5-10 realistic products with:
   * Specific product/service names or bundle tiers
-  * Market-realistic prices (include bundle pricing where relevant)
+  * Market-realistic prices per unit
   * Conservative but reasonable sales volume estimates
-  * Appropriate sales period (daily for high-volume items like food/tickets, monthly for services/subscriptions/bundles)
-
-Be biased toward productization when there is any sellable unit or bundle; only fall back to empty products when productization truly does not fit.`
+  * Appropriate sales period (daily for high-volume items like food/tickets, monthly for services/bundles)
+  
+- For SUBSCRIPTIONS: Generate 5-10 realistic subscription tiers with:
+  * Specific subscription plan names (e.g., "Basic Plan", "Pro Plan", "Enterprise")
+  * Market-realistic monthly subscription prices
+  * Conservative but reasonable subscriber count estimates
+  
+- Only leave BOTH products and subscriptions EMPTY when the revenue model truly doesn't fit either (e.g., pure commission/marketplace, advertising-only, licensing without packaging). In that case, provide a revenueModelNote explaining the better model.`
 
     const user = `Business idea: ${prompt}
 
@@ -91,8 +95,10 @@ COSTS:
 - runningCosts: 5-10 ongoing operating costs with amounts, frequency (monthly/annual), and category (use exact category ids)
 
 REVENUE:
-- If this business suits product/service sales: 5-10 products with name, price, salesVolume, and salesPeriod
-- If this business does NOT suit product sales: leave products empty [] and provide a helpful revenueModelNote
+- If this business suits product sales: generate 5-10 products with name, price, salesVolume, and salesPeriod
+- If this business suits subscriptions: generate 5-10 subscriptions with name, price (monthly), and subscribers
+- You can generate both products AND subscriptions if the business has multiple revenue streams
+- If this business does NOT suit either model: leave both empty and provide a helpful revenueModelNote
 
 Be specific to this particular business - avoid generic suggestions. Use realistic ${currency || 'USD'} amounts for this type of business.`
 

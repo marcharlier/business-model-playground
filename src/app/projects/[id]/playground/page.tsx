@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/lib/context/ProjectContext';
 import {
@@ -14,20 +14,27 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthlyProjectionChart } from '@/components/dashboard/MonthlyProjectionChart';
 import { BusinessStatusSummary } from '@/components/dashboard/BusinessStatusSummary';
 import { CostDialog } from '@/components/costs/CostDialog';
-import { ProductDialog } from '@/components/products/ProductDialog';
+import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
 import { formatCurrency } from '@/lib/utils/currency';
-import { formatProfitMargin, calculateProductTotalCost } from '@/lib/utils/financial';
+import { formatProfitMargin, calculateProductTotalCost, getSubscriptionMonthlyPrice } from '@/lib/utils/financial';
 import { calculateBreakEven, type BreakEvenResult } from '@/lib/utils/break-even';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
 import { productStorage } from '@/lib/storage/productStorage';
-import type { FixedCost, UpfrontCost, Product, AssociatedCost, ProductSales } from '@/lib/storage/types';
+import { subscriptionStorage } from '@/lib/storage/subscriptionStorage';
+import type { FixedCost, UpfrontCost, Product, Subscription, AssociatedCost, ProductSales } from '@/lib/storage/types';
 import type { CostFormData } from '@/components/costs/CostForm';
 
 export default function PlaygroundPage() {
@@ -56,6 +63,11 @@ export default function PlaygroundPage() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [isProductSubmitting, setIsProductSubmitting] = useState(false);
+
+  // Subscription dialog state
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | undefined>();
+  const [isSubscriptionSubmitting, setIsSubscriptionSubmitting] = useState(false);
 
   // Chart projection state
   const [projectionMonths, setProjectionMonths] = useState<number>(12);
@@ -94,18 +106,36 @@ export default function PlaygroundPage() {
       return total + monthlyAmount;
     }, 0);
 
-    const totalMonthlyVariableCosts = project.revenueStreams.products.reduce((total, product) => {
+    // Calculate variable costs from products
+    const productVariableCosts = project.revenueStreams.products.reduce((total, product) => {
       const productCost = calculateProductTotalCost(product);
       const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
       const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
       return total + (productCost * monthlyVolume);
     }, 0);
 
-    const totalMonthlyRevenue = project.revenueStreams.products.reduce((total, product) => {
+    // Calculate variable costs from subscriptions
+    const subscriptionVariableCosts = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+      const subscriptionCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+      return total + (subscriptionCost * subscription.subscribers);
+    }, 0);
+
+    const totalMonthlyVariableCosts = productVariableCosts + subscriptionVariableCosts;
+
+    // Calculate revenue from products
+    const productRevenue = project.revenueStreams.products.reduce((total, product) => {
       const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
       const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
       return total + (product.price * monthlyVolume);
     }, 0);
+
+    // Calculate revenue from subscriptions
+    const subscriptionRevenue = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+      const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
+      return total + (monthlyPrice * subscription.subscribers);
+    }, 0);
+
+    const totalMonthlyRevenue = productRevenue + subscriptionRevenue;
 
     const totalMonthlyOperatingCosts = totalMonthlyRunningCosts + totalMonthlyVariableCosts;
     const totalMonthlyProfit = totalMonthlyRevenue - totalMonthlyOperatingCosts;
@@ -117,7 +147,12 @@ export default function PlaygroundPage() {
       upfront: totalUpfrontCosts,
     };
 
-    const breakEven = calculateBreakEven(project.revenueStreams.products, productSales, fixedCosts);
+    const breakEven = calculateBreakEven(
+      project.revenueStreams.products, 
+      productSales, 
+      fixedCosts,
+      project.revenueStreams.subscriptions || []
+    );
 
     return {
       totalMonthlyRevenue,
@@ -219,6 +254,7 @@ export default function PlaygroundPage() {
   // Product handlers
   const handleAddProduct = () => {
     setEditingProduct(undefined);
+    setEditingSubscription(undefined);
     setProductDialogOpen(true);
   };
 
@@ -255,6 +291,7 @@ export default function PlaygroundPage() {
 
       refreshProject();
       setProductDialogOpen(false);
+      setSubscriptionDialogOpen(false);
       setEditingProduct(undefined);
     } finally {
       setIsProductSubmitting(false);
@@ -270,6 +307,58 @@ export default function PlaygroundPage() {
     setEditingProduct(undefined);
   };
 
+  // Subscription handlers
+  const handleEditSubscription = (subscription: Subscription) => {
+    setEditingSubscription(subscription);
+    setSubscriptionDialogOpen(true);
+  };
+
+  const handleSaveSubscription = (name: string, price: number, pricePeriod: 'monthly' | 'annual', subscribers: number, associatedCosts: AssociatedCost[]) => {
+    if (!projectId) return;
+
+    setIsSubscriptionSubmitting(true);
+    try {
+      if (editingSubscription) {
+        const updatedSubscription: Subscription = {
+          ...editingSubscription,
+          name,
+          price,
+          pricePeriod,
+          subscribers,
+          associatedCosts,
+        };
+        subscriptionStorage.updateSubscription(updatedSubscription, projectId);
+      } else {
+        const newSubscription: Subscription = {
+          id: crypto.randomUUID(),
+          name,
+          price,
+          pricePeriod,
+          subscribers,
+          associatedCosts,
+          projectId,
+        };
+        subscriptionStorage.createSubscription(newSubscription, projectId);
+      }
+
+      refreshProject();
+      setProductDialogOpen(false);
+      setSubscriptionDialogOpen(false);
+      setEditingSubscription(undefined);
+    } finally {
+      setIsSubscriptionSubmitting(false);
+    }
+  };
+
+  const handleDeleteSubscription = () => {
+    if (!editingSubscription || !projectId) return;
+
+    subscriptionStorage.deleteSubscription(editingSubscription.id, projectId);
+    refreshProject();
+    setSubscriptionDialogOpen(false);
+    setEditingSubscription(undefined);
+  };
+
   if (!project) {
     return <div>Loading...</div>;
   }
@@ -282,15 +371,35 @@ export default function PlaygroundPage() {
           onValueChange={handleTabChange}
           className="self-center items-center w-full lg:h-full"
         >
-          <div className="flex items-center justify-center gap-4">
-            <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
-              <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
-                Business Model
-              </TabsTrigger>
-              <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
-                Profitability Playground
-              </TabsTrigger>
-            </TabsList>
+          <div className="relative flex flex-col md:flex-row md:items-center pt-2 md:pt-0 w-full gap-3 md:gap-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-block w-full md:w-auto">
+                    <Button
+                      disabled
+                      className="h-8 w-full md:w-auto rounded-lg bg-blue-700 text-white font-hero font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <PanelLeft className="h-4 w-4" />
+                      AI Assistant
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Only on canvas page right now</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <div className="w-full md:absolute md:left-1/2 md:-translate-x-1/2 flex justify-center">
+              <TabsList className="grid min-w-[280px] grid-cols-2 rounded-full bg-background shadow-sm">
+                <TabsTrigger value="business-model" className="rounded-full text-sm font-medium">
+                  Business Model
+                </TabsTrigger>
+                <TabsTrigger value="profitability" className="rounded-full text-sm font-medium">
+                  Profitability Playground
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
           <TabsContent value="profitability" className="mt-6 outline-none w-full flex flex-col lg:flex-1 lg:min-h-0">
             {/* 2-column layout: fills remaining viewport height */}
@@ -324,6 +433,7 @@ export default function PlaygroundPage() {
                       fixedCosts={metrics.fixedCosts}
                       currency={project.currency}
                       lengthMonths={projectionMonths}
+                      subscriptions={project.revenueStreams.subscriptions || []}
                     />
                   </CardContent>
                 </Card>
@@ -421,37 +531,66 @@ export default function PlaygroundPage() {
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {project.revenueStreams.products.length === 0 ? (
+                          {project.revenueStreams.products.length === 0 && (project.revenueStreams.subscriptions || []).length === 0 ? (
                             <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-sm text-muted-foreground">
-                              No products yet
+                              No revenue streams yet
                             </div>
                           ) : (
-                            project.revenueStreams.products.map((product) => {
-                              const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
-                              const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-                              const monthlyRevenue = product.price * monthlyVolume;
-                              return (
-                                <div
-                                  key={product.id}
-                                  className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{product.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {formatCurrency(product.price, project.currency)} × {sales.volume} {sales.period} = {formatCurrency(monthlyRevenue, project.currency)}/mo
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 shrink-0"
-                                    onClick={() => handleEditProduct(product)}
+                            <>
+                              {project.revenueStreams.products.map((product) => {
+                                const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
+                                const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+                                const monthlyRevenue = product.price * monthlyVolume;
+                                return (
+                                  <div
+                                    key={product.id}
+                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              );
-                            })
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{product.name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatCurrency(product.price, project.currency)} × {sales.volume} {sales.period} = {formatCurrency(monthlyRevenue, project.currency)}/mo
+                                      </p>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 shrink-0"
+                                      onClick={() => handleEditProduct(product)}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                              {(project.revenueStreams.subscriptions || []).map((subscription) => {
+                                const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
+                                const monthlyRevenue = monthlyPrice * subscription.subscribers;
+                                const pricePeriod = subscription.pricePeriod || 'monthly';
+                                const periodLabel = pricePeriod === 'annual' ? '/yr' : '/mo';
+                                return (
+                                  <div
+                                    key={subscription.id}
+                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{subscription.name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatCurrency(subscription.price, project.currency)}{periodLabel} × {subscription.subscribers} subscribers = {formatCurrency(monthlyRevenue, project.currency)}/mo
+                                      </p>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 shrink-0"
+                                      onClick={() => handleEditSubscription(subscription)}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </>
                           )}
                         </div>
                       </div>
@@ -575,16 +714,27 @@ export default function PlaygroundPage() {
         />
       )}
 
-      {/* Product Dialog */}
+      {/* Revenue Stream Dialog - handles both products and subscriptions */}
       {project && (
-        <ProductDialog
-          open={productDialogOpen}
-          onOpenChange={setProductDialogOpen}
+        <RevenueStreamDialog
+          open={productDialogOpen || subscriptionDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setProductDialogOpen(false);
+              setSubscriptionDialogOpen(false);
+            }
+          }}
           product={editingProduct}
+          subscription={editingSubscription}
           currency={project.currency}
-          onSave={handleSaveProduct}
-          isSubmitting={isProductSubmitting}
-          onDelete={editingProduct ? handleDeleteProduct : undefined}
+          onSaveProduct={handleSaveProduct}
+          onSaveSubscription={handleSaveSubscription}
+          isSubmitting={isProductSubmitting || isSubscriptionSubmitting}
+          onDelete={
+            editingProduct ? handleDeleteProduct : 
+            editingSubscription ? handleDeleteSubscription : 
+            undefined
+          }
         />
       )}
     </section>

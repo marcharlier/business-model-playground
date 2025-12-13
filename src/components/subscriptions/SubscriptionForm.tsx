@@ -13,27 +13,27 @@ import {
 import { LongPressButton } from '@/components/ui/long-press-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type {
-  Product,
+  Subscription,
   AssociatedCost,
   Currency,
-  ProductSales,
 } from '@/lib/storage/types';
 import { ProductPriceControl } from '@/components/products/controls/ProductPriceControl';
-import { ProductSalesControl } from '@/components/products/controls/ProductSalesControl';
+import { SubscriptionSubscribersControl } from '@/components/subscriptions/controls/SubscriptionSubscribersControl';
 import {
   ProductCogsControl,
   type CostRow,
 } from '@/components/products/controls/ProductCogsControl';
 
-interface ProductFormProps {
+interface SubscriptionFormProps {
   className?: string;
-  product?: Product;
+  subscription?: Subscription;
   currency: Currency;
   onSave: (
     name: string,
     price: number,
-    associatedCosts: AssociatedCost[],
-    sales: ProductSales
+    pricePeriod: 'monthly' | 'annual',
+    subscribers: number,
+    associatedCosts: AssociatedCost[]
   ) => void;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -41,26 +41,29 @@ interface ProductFormProps {
   onDelete?: () => void;
 }
 
-export function ProductForm({
+export function SubscriptionForm({
   className,
-  product,
+  subscription,
   currency,
   onSave,
   onCancel,
   isSubmitting,
   hideCancel,
   onDelete,
-}: ProductFormProps) {
-  const [name, setName] = useState(product?.name || '');
+}: SubscriptionFormProps) {
+  const [name, setName] = useState(subscription?.name || '');
   const [price, setPrice] = useState(
-    product?.price === 0 ? '' : (product?.price || 0).toString()
+    subscription?.price === 0 ? '' : (subscription?.price || 0).toString()
   );
   const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>(
-    product?.associatedCosts || []
+    subscription?.associatedCosts || []
   );
   const [newCostRows, setNewCostRows] = useState<CostRow[]>([]);
-  const [sales, setSales] = useState<ProductSales>(
-    product?.sales || { volume: 1, period: 'monthly' }
+  const [subscribers, setSubscribers] = useState<number>(
+    subscription?.subscribers || 0
+  );
+  const [pricePeriod, setPricePeriod] = useState<'monthly' | 'annual'>(
+    subscription?.pricePeriod || 'monthly'
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -77,8 +80,8 @@ export function ProductForm({
 
     // Process new cost rows and add valid ones to associated costs
     let finalAssociatedCosts = [...associatedCosts];
-    const itemId = product?.id || '';
-    const projectId = product?.projectId || '';
+    const itemId = subscription?.id || '';
+    const projectId = subscription?.projectId || '';
 
     for (const row of newCostRows) {
       if (row.name.trim()) {
@@ -87,7 +90,7 @@ export function ProductForm({
           id: crypto.randomUUID(),
           name: row.name.trim(),
           amount: amount,
-          productId: itemId,
+          subscriptionId: itemId,
           projectId,
         };
         finalAssociatedCosts = [...finalAssociatedCosts, newCost];
@@ -100,55 +103,69 @@ export function ProductForm({
       amount: Number.parseFloat(cost.amount.toString()) || 0,
     }));
 
-    onSave(name.trim(), priceValue, finalAssociatedCosts, sales);
+    onSave(name.trim(), priceValue, pricePeriod, subscribers, finalAssociatedCosts);
   };
 
-  const hasExistingItem = !!product;
+  const hasExistingItem = !!subscription;
 
   return (
     <form onSubmit={handleSubmit} className={className}>
       <div className="space-y-4">
         <div className="bg-muted rounded-md p-3 space-y-4 w-full">
           <div className="space-y-2">
-            <Label htmlFor="product-name">Name</Label>
+            <Label htmlFor="subscription-name">Name</Label>
             <Input
-              id="product-name"
+              id="subscription-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Enter product name"
+              placeholder="Enter subscription name"
               className="bg-background"
             />
           </div>
         </div>
         <Tabs defaultValue="price" className="w-full">
           <TabsList className="w-full border mb-2">
-            <TabsTrigger value="price">Price and sales</TabsTrigger>
-            <TabsTrigger value="cogs">Unit costs</TabsTrigger>
+            <TabsTrigger value="price">Price and subscribers</TabsTrigger>
+            <TabsTrigger value="cogs">Per subscriber cost</TabsTrigger>
           </TabsList>
           <TabsContent value="price" className="space-y-4">
-            <ProductPriceControl
-              id="product-price"
-              label="Price per unit"
-              currency={currency}
-              value={price}
-              onChange={(value) => setPrice(value)}
-            />
-            <ProductSalesControl
-              id="product-sales"
-              label="Expected sales"
-              sales={sales}
-              onVolumeChange={(value) =>
-                setSales((prev) => ({ ...prev, volume: value }))
-              }
-              onPeriodChange={(period) =>
-                setSales((prev) => ({ ...prev, period }))
-              }
+            <div className="bg-muted rounded-md p-3 space-y-4">
+              <Tabs
+                value={pricePeriod}
+                onValueChange={(value) => setPricePeriod(value as 'monthly' | 'annual')}
+                className="w-full"
+              >
+                <TabsList className="h-8 w-full">
+                  <TabsTrigger value="monthly" className="px-3 py-1 text-xs">
+                    Monthly
+                  </TabsTrigger>
+                  <TabsTrigger value="annual" className="px-3 py-1 text-xs">
+                    Annual
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <ProductPriceControl
+                id="subscription-price"
+                label={pricePeriod === 'annual' 
+                  ? 'Annual subscription price' 
+                  : 'Monthly subscription price'}
+                currency={currency}
+                value={price}
+                onChange={(value) => setPrice(value)}
+                containerClassName="space-y-4"
+              />
+            </div>
+            <SubscriptionSubscribersControl
+              id="subscription-subscribers"
+              label="Monthly subscribers"
+              subscribers={subscribers}
+              onSubscribersChange={setSubscribers}
             />
           </TabsContent>
           <TabsContent value="cogs">
             <ProductCogsControl
-              label="Cost of goods (COGS)"
+              label="Per subscriber cost"
               associatedCosts={associatedCosts}
               newCostRows={newCostRows}
               currency={currency}
@@ -176,10 +193,10 @@ export function ProductForm({
           <Button
             type="submit"
             size="sm"
-            disabled={isSubmitting || !name.trim()}
+            disabled={isSubmitting || !name.trim() || subscribers <= 0}
             className={`h-9 ${hideCancel ? 'w-full' : 'flex-1'}`}
           >
-            {hasExistingItem ? 'Save changes' : 'Add product'}
+            {hasExistingItem ? 'Save changes' : 'Add subscription'}
           </Button>
         </div>
 
@@ -187,7 +204,7 @@ export function ProductForm({
           <Accordion type="single" collapsible>
             <AccordionItem value="delete">
               <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:text-destructive">
-                Delete this product?
+                Delete this subscription?
               </AccordionTrigger>
               <AccordionContent>
                 <LongPressButton
@@ -208,3 +225,4 @@ export function ProductForm({
     </form>
   );
 }
+

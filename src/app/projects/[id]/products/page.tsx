@@ -17,7 +17,7 @@ import { PencilIcon, CopyIcon, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import { useProject } from '@/lib/context/ProjectContext';
-import { ProductDialog } from '@/components/products/ProductDialog';
+import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
 
 export default function ProductsPage() {
   const params = useParams();
@@ -223,13 +223,13 @@ export default function ProductsPage() {
             </Button>
           </div>
 
-          {/* Product Dialog */}
-          <ProductDialog
+          {/* Revenue Stream Dialog */}
+          <RevenueStreamDialog
             open={isAddingNewProduct || !!editingProductId}
             onOpenChange={(open) => !open && handleCancel()}
             product={isDuplicating ? duplicatingProduct : editingProduct}
             currency={project.currency}
-            onSave={handleSave}
+            onSaveProduct={handleSave}
             isSubmitting={isSubmitting}
             onDelete={() => {
               if (!editingProductId) return;
