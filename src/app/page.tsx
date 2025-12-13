@@ -17,6 +17,23 @@ import {
 } from "@/components/ui/select";
 import { ProjectCard } from '@/components/project/ProjectCard';
 
+// Prompt shortcuts configuration
+interface PromptShortcut {
+  label: string;
+  prompt: string;
+}
+
+const PROMPT_SHORTCUTS: PromptShortcut[] = [
+  {
+    label: 'Coffee shop',
+    prompt: 'A coffee shop selling artisan coffee specialities as well as a selection of pastries and baked goods. It\'s a small selection of high quality coffees: Espresso, Flat White, Latte. The pastries and baked goods come from a local partner. The coffee shop space is used for evening events and supper clubs.',
+  },
+  {
+    label: 'Reading app with sound',
+    prompt: 'A reading app with a unique value prop of dynamic soundscapes acompanying the reading experience for better focus and transporting the user into the story. The app has a subscription business model and also an option to purchase individual book access for non-subscribers.',
+  },
+];
+
 // Canvas preview component for the hero card
 // Uses CSS Grid with 10 columns (LCM of 5 and 2) for flexible row layouts
 // Row 1-2: 5 equal columns (each card spans 2 cols)
@@ -180,12 +197,24 @@ export default function Home() {
     }
   };
 
+  const handleFillPrompt = (prompt: string) => {
+    setBusinessIdea(prompt);
+    // Optionally scroll the textarea into view on mobile
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+      setTimeout(() => {
+        textarea.focus();
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col pt-24 md:pt-20">
-      <div className="container px-4 md:px-8 max-w-7xl mx-auto py-8 sm:py-12 flex-1">
+      <div className="container px-2 md:px-8 max-w-7xl mx-auto py-8 sm:py-12 flex-1">
         {/* Hero Card */}
         <div className="mx-auto mb-8">
-          <div className="relative rounded-2xl bg-gradient-to-b from-blue-700 to-blue-950 p-8 sm:p-12">
+          <div className="relative rounded-2xl bg-gradient-to-b from-blue-700 to-blue-950 p-4 sm:p-12">
             {/* Canvas Preview - absolute positioned background layer */}
             <CanvasPreview className="absolute inset-x-0 top-0 h-1/4 md:h-3/4 bottom-0 mx-auto max-w-3xl my-8 sm:my-12 blur-[1px]" />
             
@@ -193,7 +222,7 @@ export default function Home() {
             <div className="relative z-10 pt-32">
               {/* Tagline */}
               <h2 className="text-white text-xl sm:text-2xl font-semibold text-center mb-8">
-                Build a business model using AI <br className="hidden md:block" />
+                Build a business model with AI <br className="hidden md:block" />
                 and explore pricing and profitability.
               </h2>
               
@@ -204,7 +233,7 @@ export default function Home() {
                     value={businessIdea}
                     onChange={(e) => setBusinessIdea(e.target.value)}
                     placeholder="Describe your business idea and get a filled in Business Model Canvas. For example: 'A mobile app that connects local farmers directly with restaurants for fresh produce delivery...'"
-                    className="w-full h-24 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-sm sm:text-base"
+                    className="w-full h-24 resize-none border-0 focus:outline-none focus:ring-0 text-gray-700 placeholder:text-gray-400 text-base"
                   />
                   <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
                     <div className="flex items-center gap-2 flex-1 hidden md:block">
@@ -248,17 +277,19 @@ export default function Home() {
               <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
                 <button
                   onClick={handleAddExampleProject}
-                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors"
+                  className="hidden px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors"
                 >
                   Artisan coffee shop
                 </button>
-                <button
-                  className="hidden px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors opacity-60 cursor-not-allowed"
-                  disabled
-                  title="Coming soon"
-                >
-                  B2B SaaS platform
-                </button>
+                {PROMPT_SHORTCUTS.map((shortcut) => (
+                  <button
+                    key={shortcut.label}
+                    onClick={() => handleFillPrompt(shortcut.prompt)}
+                    className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors"
+                  >
+                    {shortcut.label}
+                  </button>
+                ))}
                 <button
                   onClick={handleCreateNewProject}
                   className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-medium transition-colors flex items-center gap-2"
