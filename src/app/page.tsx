@@ -307,13 +307,15 @@ export default function Home() {
           <div className="mx-auto">
             <h2 className="text-xl font-semibold mb-4">Your projects</h2>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                            <ProjectCard
-                            key={project.id}
-                            project={project}
-                            onDelete={handleDeleteProject}
-                          />
-              ))}
+              {[...projects]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onDelete={handleDeleteProject}
+                  />
+                ))}
             </div>
           </div>
         )}
