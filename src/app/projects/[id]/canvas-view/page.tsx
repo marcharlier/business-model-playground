@@ -35,7 +35,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { CanvasSectionEditableCard } from '@/components/canvas/CanvasSectionEditableCard';
 import { CostStructureCard } from '@/components/canvas/CostStructureCard';
 import { RevenueStreamsCard } from '@/components/canvas/RevenueStreamsCard';
-import { CanvasAISuggestionsSheet } from '@/components/canvas/CanvasAISuggestionsSheet';
 import { CanvasGenerationSheet } from '@/components/canvas/CanvasGenerationSheet';
 import { CostDialog } from '@/components/costs/CostDialog';
 import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
@@ -183,15 +182,6 @@ export default function CanvasViewPage() {
   const [editingCost, setEditingCost] = useState<FixedCost | UpfrontCost | undefined>();
   const [costDialogType, setCostDialogType] = useState<'upfront' | 'operating'>('operating');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // AI suggestions sheet state
-  const [aiSuggestionsOpen, setAiSuggestionsOpen] = useState(false);
-  
-  // Prefill values for cost dialog (from AI suggestions)
-  const [prefillName, setPrefillName] = useState<string | undefined>();
-  const [prefillAmount, setPrefillAmount] = useState<string | undefined>();
-  const [prefillFrequency, setPrefillFrequency] = useState<'monthly' | 'annual' | undefined>();
-  const [prefillCategory, setPrefillCategory] = useState<string | undefined>();
 
   // Product dialog state
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -302,42 +292,12 @@ export default function CanvasViewPage() {
   const handleAddCost = () => {
     setEditingCost(undefined);
     setCostDialogType('operating');
-    // Clear any prefill values
-    setPrefillName(undefined);
-    setPrefillAmount(undefined);
-    setPrefillFrequency(undefined);
-    setPrefillCategory(undefined);
-    setCostDialogOpen(true);
-  };
-
-  const handleAISuggestions = () => {
-    setAiSuggestionsOpen(true);
-  };
-
-  const handleAddCostFromAI = (data: {
-    name: string;
-    costType: 'upfront' | 'operating';
-    categoryId?: string;
-    amount?: number;
-    frequency?: 'monthly' | 'annual';
-  }) => {
-    setEditingCost(undefined);
-    setCostDialogType(data.costType);
-    setPrefillName(data.name);
-    setPrefillAmount(data.amount !== undefined ? String(data.amount) : undefined);
-    setPrefillFrequency(data.frequency);
-    setPrefillCategory(data.categoryId);
     setCostDialogOpen(true);
   };
 
   const handleEditCost = (cost: FixedCost | UpfrontCost, type: 'upfront' | 'operating') => {
     setEditingCost(cost);
     setCostDialogType(type);
-    // Clear prefill values when editing
-    setPrefillName(undefined);
-    setPrefillAmount(undefined);
-    setPrefillFrequency(undefined);
-    setPrefillCategory(undefined);
     setCostDialogOpen(true);
   };
 
@@ -718,7 +678,6 @@ export default function CanvasViewPage() {
                         currency={project.currency}
                         onEditCost={handleEditCost}
                         onAddCost={handleAddCost}
-                        onAISuggestions={handleAISuggestions}
                       />
                     ) : (
                       <CanvasSectionCard section={sectionMap['cost-structure']!} className="h-[300px] lg:h-full min-h-[200px]" />
@@ -758,19 +717,8 @@ export default function CanvasViewPage() {
             isSubmitting={isSubmitting}
             onDelete={editingCost ? handleDeleteCost : undefined}
             toggleEnabled={true}
-            prefillName={prefillName}
-            prefillAmount={prefillAmount}
-            prefillFrequency={prefillFrequency}
-            categoryPreselected={prefillCategory}
           />
         )}
-
-        {/* AI Suggestions Sheet */}
-        <CanvasAISuggestionsSheet
-          open={aiSuggestionsOpen}
-          onOpenChange={setAiSuggestionsOpen}
-          onAddCost={handleAddCostFromAI}
-        />
 
         {/* Revenue Stream Dialog - handles both products and subscriptions */}
         {project && (
