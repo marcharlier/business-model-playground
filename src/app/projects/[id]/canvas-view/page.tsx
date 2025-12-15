@@ -14,7 +14,8 @@ import {
   CircleDollarSign,
   HandCoins,
   Pencil,
-  PanelLeft,
+  Sparkles,
+  PanelLeftClose,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -537,7 +538,11 @@ export default function CanvasViewPage() {
             <Tabs value="business-model" onValueChange={handleTabChange} className="self-center items-center w-full lg:h-full">
               <div className="relative flex flex-col md:flex-row md:items-center pt-2 md:pt-0 w-full gap-3 md:gap-0">
                 <Button className="h-8 w-full md:w-auto rounded-lg bg-blue-700 text-white font-hero font-semibold relative z-10" onClick={() => setShowGenerationSheet(!showGenerationSheet)}>
-                  <PanelLeft className="h-4 w-4" />
+                  {showGenerationSheet ? (
+                    <PanelLeftClose className="h-4 w-4" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
                   AI Assistant
                 </Button>
                 <div className="w-full md:absolute md:left-1/2 md:-translate-x-1/2 flex justify-center md:z-0">

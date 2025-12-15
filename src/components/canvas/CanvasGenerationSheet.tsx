@@ -852,7 +852,7 @@ export function CanvasGenerationSheet({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white hover:bg-white/20"
+            className="h-8 w-8 text-white hover:bg-white/20 hover:text-white"
             onClick={handleClose}
           >
             <X className="h-4 w-4" />
