@@ -89,11 +89,13 @@ function ProjectControlsInner() {
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {projects.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name} ({p.currency})
-              </SelectItem>
-            ))}
+            {[...projects]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} ({p.currency})
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
 

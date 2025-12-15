@@ -37,8 +37,6 @@ import { CostStructureCard } from '@/components/canvas/CostStructureCard';
 import { RevenueStreamsCard } from '@/components/canvas/RevenueStreamsCard';
 import { CanvasAISuggestionsSheet } from '@/components/canvas/CanvasAISuggestionsSheet';
 import { CanvasGenerationSheet } from '@/components/canvas/CanvasGenerationSheet';
-import type { CanvasGeneration } from '@/app/api/ai/generate-canvas/schema';
-import { generateUUID } from '@/lib/utils';
 import { CostDialog } from '@/components/costs/CostDialog';
 import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
 import { projectStorage } from '@/lib/storage/projectStorage';
@@ -46,6 +44,7 @@ import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
 import { productStorage } from '@/lib/storage/productStorage';
 import { subscriptionStorage } from '@/lib/storage/subscriptionStorage';
+import { chatHistoryStorage, type StoredChatMessage } from '@/lib/storage/chatHistoryStorage';
 import type { CanvasItem } from '@/lib/domain/types';
 import type { FixedCost, UpfrontCost, Product, Subscription, AssociatedCost, ProductSales } from '@/lib/storage/types';
 import type { CostFormData } from '@/components/costs/CostForm';
@@ -128,10 +127,6 @@ function CanvasSectionCard({ section, className }: CanvasSectionCardProps) {
   );
 }
 
-type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-};
-
 export default function CanvasViewPage() {
   const router = useRouter();
   const params = useParams();
@@ -139,132 +134,49 @@ export default function CanvasViewPage() {
   const projectId = params?.id as string | undefined;
   const { project, refreshProject } = useProject();
 
-  // AI generation state from URL params
+  // AI chat state
   const isGenerating = searchParams.get('generating') === 'true';
   const generationPromptFromUrl = searchParams.get('prompt') ?? '';
   const [showGenerationSheet, setShowGenerationSheet] = useState(false);
-  const [storedPrompt, setStoredPrompt] = useState<string>('');
-  // Track if we just completed generation (to prevent immediate switch to viewOnly)
-  const [justCompletedGeneration, setJustCompletedGeneration] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState<string>('');
+  const [isInitialGeneration, setIsInitialGeneration] = useState(false);
+  const [chatHistory, setChatHistory] = useState<StoredChatMessage[]>([]);
+  const [chatHistoryLoaded, setChatHistoryLoaded] = useState(false);
 
-  // Initialize generation sheet when URL params are present
+  // Load chat history from Supabase on mount
+  useEffect(() => {
+    if (!projectId || chatHistoryLoaded) return;
+
+    const loadChatHistory = async () => {
+      try {
+        const history = await chatHistoryStorage.fetchChatHistory(projectId);
+        setChatHistory(history);
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
+      } finally {
+        setChatHistoryLoaded(true);
+      }
+    };
+
+    loadChatHistory();
+  }, [projectId, chatHistoryLoaded]);
+
+  // Initialize generation sheet when URL params are present (for initial generation)
   useEffect(() => {
     if (isGenerating && generationPromptFromUrl && !showGenerationSheet) {
       const decodedPrompt = decodeURIComponent(generationPromptFromUrl);
-      setStoredPrompt(decodedPrompt);
+      setInitialPrompt(decodedPrompt);
+      setIsInitialGeneration(true);
       setShowGenerationSheet(true);
-      setJustCompletedGeneration(false); // Reset when starting new generation
       // Clear URL params to prevent re-triggering on refresh
       router.replace(`/projects/${projectId}/canvas-view`, { scroll: false });
     }
   }, [isGenerating, generationPromptFromUrl, showGenerationSheet, router, projectId]);
 
-  // Check if project was AI-generated
-  const aiGeneratedPrompt = project?.aiGeneratedFromPrompt ?? null;
-
-  // Handle streaming updates from AI generation
-  const handleGenerationUpdate = useCallback((data: DeepPartial<CanvasGeneration>) => {
-    if (!project || !projectId) return;
-
-    // Convert string arrays to CanvasItem arrays, filtering out undefined values
-    const toCanvasItems = (items: (string | undefined)[] | undefined) => 
-      items?.filter((text): text is string => typeof text === 'string').map(text => ({ id: generateUUID(), text })) ?? [];
-
-    const updatedProject = {
-      ...project,
-      partnerships: data.partnerships ? toCanvasItems(data.partnerships) : project.partnerships,
-      activities: data.activities ? toCanvasItems(data.activities) : project.activities,
-      resources: data.resources ? toCanvasItems(data.resources) : project.resources,
-      valueProposition: data.valueProposition ? toCanvasItems(data.valueProposition) : project.valueProposition,
-      customerRelationships: data.customerRelationships ? toCanvasItems(data.customerRelationships) : project.customerRelationships,
-      channels: data.channels ? toCanvasItems(data.channels) : project.channels,
-      customerSegments: data.customerSegments ? toCanvasItems(data.customerSegments) : project.customerSegments,
-    };
-
-    projectStorage.updateProject(updatedProject);
+  // Handle project changes from AI tools
+  const handleProjectChange = useCallback(() => {
     refreshProject();
-  }, [project, projectId, refreshProject]);
-
-  // Handle generation completion
-  const handleGenerationComplete = useCallback((data: CanvasGeneration) => {
-    if (!project || !projectId) return;
-
-    // Convert string arrays to CanvasItem arrays
-    const toCanvasItems = (items: string[]) => 
-      items.map(text => ({ id: generateUUID(), text }));
-
-    // Convert generated upfront costs to the correct format
-    const upfrontCosts: UpfrontCost[] = (data.upfrontCosts ?? []).map(cost => ({
-      id: generateUUID(),
-      name: cost.name,
-      amount: cost.amount,
-      projectId,
-    }));
-
-    // Convert generated running costs to the correct format
-    const fixedRunningCosts: FixedCost[] = (data.runningCosts ?? []).map(cost => ({
-      id: generateUUID(),
-      name: cost.name,
-      amount: cost.amount,
-      frequency: cost.frequency,
-      category: cost.category,
-      projectId,
-    }));
-
-    // Convert generated products to the correct format
-    const products: Product[] = (data.products ?? []).map(product => ({
-      id: generateUUID(),
-      name: product.name,
-      price: product.price,
-      associatedCosts: [],
-      projectId,
-      sales: {
-        volume: product.salesVolume,
-        period: product.salesPeriod,
-      },
-    }));
-
-    // Convert generated subscriptions to the correct format
-    const subscriptions: Subscription[] = (data.subscriptions ?? []).map(subscription => ({
-      id: generateUUID(),
-      name: subscription.name,
-      price: subscription.price,
-      pricePeriod: 'monthly' as const,
-      subscribers: subscription.subscribers,
-      associatedCosts: [],
-      projectId,
-    }));
-
-    const updatedProject = {
-      ...project,
-      name: data.projectName,
-      // Store the original prompt in description (user-typed content, no marker needed)
-      description: storedPrompt || project.description,
-      // Track that this project was AI-generated and store the original prompt
-      aiGeneratedFromPrompt: storedPrompt || undefined,
-      partnerships: toCanvasItems(data.partnerships),
-      activities: toCanvasItems(data.activities),
-      resources: toCanvasItems(data.resources),
-      valueProposition: toCanvasItems(data.valueProposition),
-      customerRelationships: toCanvasItems(data.customerRelationships),
-      channels: toCanvasItems(data.channels),
-      customerSegments: toCanvasItems(data.customerSegments),
-      // Add the generated costs and revenue streams
-      costStructure: {
-        fixedRunningCosts,
-        upfrontCosts,
-      },
-      revenueStreams: {
-        products,
-        subscriptions,
-      },
-    };
-
-    projectStorage.updateProject(updatedProject);
-    refreshProject();
-    // Mark that we just completed generation (prevents immediate switch to viewOnly)
-    setJustCompletedGeneration(true);
-  }, [project, projectId, refreshProject, storedPrompt]);
+  }, [refreshProject]);
 
   // Cost dialog state
   const [costDialogOpen, setCostDialogOpen] = useState(false);
@@ -632,26 +544,27 @@ export default function CanvasViewPage() {
 
   return (
     <section className="relative h-full flex flex-col">
-      {/* AI Canvas Generation Side Panel - Fixed position */}
-      {project && (
+      {/* AI Chat Side Panel - Fixed position */}
+      {project && projectId && chatHistoryLoaded && (
         <CanvasGenerationSheet
-          prompt={storedPrompt}
+          projectId={projectId}
+          project={project}
           currency={project.currency}
-          onUpdate={handleGenerationUpdate}
-          onComplete={handleGenerationComplete}
-          viewOnly={!!aiGeneratedPrompt && !isGenerating && !justCompletedGeneration}
-          projectDescription={aiGeneratedPrompt || project.description}
+          initialPrompt={initialPrompt}
+          isInitialGeneration={isInitialGeneration}
+          onProjectChange={handleProjectChange}
           onClose={() => {
             setShowGenerationSheet(false);
-            setJustCompletedGeneration(false);
+            setIsInitialGeneration(false);
           }}
           isOpen={showGenerationSheet}
           onOpenChange={(open) => {
             if (!open) {
               setShowGenerationSheet(false);
-              setJustCompletedGeneration(false);
+              setIsInitialGeneration(false);
             }
           }}
+          initialMessages={chatHistory}
         />
       )}
         
