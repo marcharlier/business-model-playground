@@ -17,34 +17,39 @@ export function calculateBreakEven(
   fixedCosts: { monthly: number; annual: number; upfront: number },
   subscriptions: Subscription[] = []
 ): BreakEvenResult {
-  // Calculate monthly revenue from products
+  // Calculate monthly revenue from products - handle undefined prices
   const productRevenue = products.reduce((total, product) => {
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-    return total + (product.price * monthlyVolume);
+    const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+    const volume = sales.volume ?? 0;
+    const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+    const price = product.price ?? 0;
+    return total + (price * monthlyVolume);
   }, 0);
 
-  // Calculate monthly revenue from subscriptions
+  // Calculate monthly revenue from subscriptions - handle undefined subscribers
   const subscriptionRevenue = subscriptions.reduce((total, subscription) => {
     const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
-    return total + (monthlyPrice * subscription.subscribers);
+    const subscribers = subscription.subscribers ?? 0;
+    return total + (monthlyPrice * subscribers);
   }, 0);
 
   const monthlyRevenue = productRevenue + subscriptionRevenue;
 
   // Calculate monthly variable costs (COGS) from products
   const productCogs = products.reduce((total, product) => {
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+    const volume = sales.volume ?? 0;
+    const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
     const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
     return total + (unitCost * monthlyVolume);
   }, 0);
 
   // Calculate monthly variable costs (COGS) from subscriptions
-  // For subscriptions, COGS are per subscriber per month
+  // For subscriptions, COGS are per subscriber per month - handle undefined subscribers
   const subscriptionCogs = subscriptions.reduce((total, subscription) => {
     const unitCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
-    return total + (unitCost * subscription.subscribers);
+    const subscribers = subscription.subscribers ?? 0;
+    return total + (unitCost * subscribers);
   }, 0);
 
   const monthlyCogs = productCogs + subscriptionCogs;

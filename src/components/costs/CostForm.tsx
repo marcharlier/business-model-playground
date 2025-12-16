@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +29,7 @@ type UnifiedCost = FixedCost | UpfrontCost;
 
 export interface CostFormData {
   name: string;
-  amount: number;
+  amount: number | undefined;
   costType: 'upfront' | 'operating';
   category?: string;
   frequency?: 'monthly' | 'annual';
@@ -78,8 +78,9 @@ export function CostForm({
     isEditMode ? editModeCostType : initialCostType
   );
   const [name, setName] = useState(cost?.name ?? prefillName ?? '');
+  // Initialize amount: undefined → '', 0 → '0', other → string value
   const [amount, setAmount] = useState(
-    cost?.amount ? String(cost.amount) : prefillAmount ?? ''
+    cost?.amount === undefined ? (prefillAmount ?? '') : String(cost.amount)
   );
   const [category, setCategory] = useState<string | undefined>(
     cost && 'category' in cost ? cost.category : categoryPreselected ?? 'other'
@@ -87,6 +88,22 @@ export function CostForm({
   const [frequency, setFrequency] = useState<'monthly' | 'annual'>(
     cost && 'frequency' in cost ? cost.frequency : prefillFrequency ?? 'monthly'
   );
+
+  // Auto-focus on amount field when form opens
+  useEffect(() => {
+    // Small delay to ensure dialog is fully rendered
+    const timer = setTimeout(() => {
+      const amountInput = document.getElementById('cost-amount');
+      if (amountInput) {
+        amountInput.focus();
+        // Select all text if there's a value
+        if (amountInput instanceof HTMLInputElement && amountInput.value) {
+          amountInput.select();
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle toggle between cost types
   const handleToggle = (newType: 'upfront' | 'operating') => {
@@ -109,13 +126,20 @@ export function CostForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount < 0) {
+    if (!name.trim()) {
       return;
     }
 
-    if (!name.trim()) {
-      return;
+    // Parse amount: empty string → undefined, '0' → 0, valid number → number
+    let parsedAmount: number | undefined;
+    if (amount.trim() === '') {
+      parsedAmount = undefined;
+    } else {
+      const num = parseFloat(amount);
+      if (isNaN(num) || num < 0) {
+        return;
+      }
+      parsedAmount = num;
     }
 
     const formData: CostFormData = {
@@ -133,7 +157,9 @@ export function CostForm({
     onSave(formData);
   };
 
-  const isValid = name.trim() && amount && !isNaN(parseFloat(amount)) && parseFloat(amount) >= 0;
+  // Validation: name required, amount optional (but if provided must be valid)
+  const amountIsValid = amount.trim() === '' || (!isNaN(parseFloat(amount)) && parseFloat(amount) >= 0);
+  const isValid = name.trim() && amountIsValid;
 
   return (
     <form onSubmit={handleSubmit} className={className}>

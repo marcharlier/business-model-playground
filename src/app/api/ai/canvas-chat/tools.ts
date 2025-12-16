@@ -51,11 +51,11 @@ export const removeCanvasItemsTool = tool({
 // ============================================
 
 export const addCostTool = tool({
-  description: `Add a new cost to the project. Can be either an upfront (one-time) cost or a running (recurring) cost.`,
+  description: `Add a new cost to the project. Can be either an upfront (one-time) cost or a running (recurring) cost. Amount is optional - omit it to create a suggestion that the user can fill in later.`,
   inputSchema: z.object({
     costType: z.enum(['upfront', 'running']).describe('Type of cost - upfront for one-time costs, running for recurring costs'),
     name: z.string().describe('Name of the cost'),
-    amount: z.number().positive().describe('Cost amount in the project currency'),
+    amount: z.number().nonnegative().optional().describe('Cost amount in the project currency (optional - omit to create a suggestion)'),
     frequency: z.enum(['monthly', 'annual']).optional().describe('Required for running costs - how often this cost recurs'),
     category: z.enum(CATEGORY_IDS).optional().describe(`Required for running costs - category of the cost. Options: ${CATEGORY_IDS.join(', ')}`),
   }),
@@ -88,12 +88,12 @@ export const removeCostTool = tool({
 // ============================================
 
 export const addProductTool = tool({
-  description: `Add a new product (revenue stream) to the project. Products represent items or services sold for a price.`,
+  description: `Add a new product (revenue stream) to the project. Products represent items or services sold for a price. Price and sales values are optional - omit them to create a suggestion that the user can fill in later.`,
   inputSchema: z.object({
     name: z.string().describe('Name of the product'),
-    price: z.number().nonnegative().describe('Price per unit'),
-    salesVolume: z.number().positive().describe('Expected sales volume'),
-    salesPeriod: z.enum(['monthly', 'daily']).describe('Period for the sales volume - daily for high-volume items, monthly for services'),
+    price: z.number().nonnegative().optional().describe('Price per unit (optional - omit to create a suggestion)'),
+    salesVolume: z.number().nonnegative().optional().describe('Expected sales volume (optional - omit to create a suggestion)'),
+    salesPeriod: z.enum(['monthly', 'daily']).optional().describe('Period for the sales volume - daily for high-volume items, monthly for services'),
   }),
 });
 
@@ -122,12 +122,12 @@ export const removeProductTool = tool({
 // ============================================
 
 export const addSubscriptionTool = tool({
-  description: `Add a new subscription (recurring revenue stream) to the project. Subscriptions represent recurring monthly or annual payments from subscribers.`,
+  description: `Add a new subscription (recurring revenue stream) to the project. Subscriptions represent recurring monthly or annual payments from subscribers. Price and subscriber count are optional - omit them to create a suggestion that the user can fill in later.`,
   inputSchema: z.object({
     name: z.string().describe('Name of the subscription plan'),
-    price: z.number().nonnegative().describe('Subscription price'),
+    price: z.number().nonnegative().optional().describe('Subscription price (optional - omit to create a suggestion)'),
     pricePeriod: z.enum(['monthly', 'annual']).default('monthly').describe('Billing period for the subscription'),
-    subscribers: z.number().nonnegative().describe('Expected number of subscribers'),
+    subscribers: z.number().nonnegative().optional().describe('Expected number of subscribers (optional - omit to create a suggestion)'),
   }),
 });
 
@@ -156,7 +156,7 @@ export const removeSubscriptionTool = tool({
 // ============================================
 
 export const generateCanvasTool = tool({
-  description: `Generate a complete business model canvas with all sections, costs, and revenue streams. Use this for initial canvas generation from a business idea description.`,
+  description: `Generate a complete business model canvas with all sections, costs, and revenue streams. Use this for initial canvas generation from a business idea description. Financial values (amounts, prices, sales volumes, subscribers) should be omitted to create suggestions that users can fill in later via the Profitability Playground.`,
   inputSchema: z.object({
     projectName: z.string().describe('A catchy 3-word name for this business idea'),
     partnerships: z.array(z.string()).max(10).describe('Key partnerships needed for the business (5-10 items)'),
@@ -168,25 +168,18 @@ export const generateCanvasTool = tool({
     customerSegments: z.array(z.string()).max(10).describe('Target customer segments (5-10 items)'),
     upfrontCosts: z.array(z.object({
       name: z.string(),
-      amount: z.number().positive(),
-    })).max(10).describe('One-time startup costs'),
+    })).max(10).describe('One-time startup costs - names only, no amounts'),
     runningCosts: z.array(z.object({
       name: z.string(),
-      amount: z.number().positive(),
       frequency: z.enum(['monthly', 'annual']),
       category: z.enum(CATEGORY_IDS),
-    })).max(10).describe('Ongoing operating costs'),
+    })).max(10).describe('Ongoing operating costs - names, frequency, and category only, no amounts'),
     products: z.array(z.object({
       name: z.string(),
-      price: z.number().positive(),
-      salesVolume: z.number().positive(),
-      salesPeriod: z.enum(['monthly', 'daily']),
-    })).max(10).optional().describe('Products or services with pricing'),
+    })).max(10).optional().describe('Products or services - names only, no pricing or sales data'),
     subscriptions: z.array(z.object({
       name: z.string(),
-      price: z.number().positive(),
-      subscribers: z.number().positive(),
-    })).max(10).optional().describe('Subscription revenue streams'),
+    })).max(10).optional().describe('Subscription revenue streams - names only, no pricing or subscriber data'),
     revenueModelNote: z.string().optional().describe('Note if the business needs a different revenue model'),
   }),
 });

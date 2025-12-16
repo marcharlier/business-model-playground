@@ -200,7 +200,7 @@ export function CanvasSectionEditableCard({
                     role="button"
                     tabIndex={0}
                   >
-                    <span className="min-w-0 line-clamp-2">{item.text}</span>
+                    <span className={cn("min-w-0", title === "Value Proposition" ? "line-clamp-4" : "line-clamp-2")}>{item.text}</span>
                     <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   </div>
                 ))

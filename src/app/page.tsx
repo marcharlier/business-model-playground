@@ -141,12 +141,12 @@ export default function Home() {
       coffeeShopExample.currency
     );
     
-    const productsWithSales = coffeeShopExample.revenueStreams.products.map(product => ({
-      ...product,
+    const revenueItems = (coffeeShopExample.revenueStreams.items || []).map(item => ({
+      ...item,
       projectId: newProject.id,
-      associatedCosts: product.associatedCosts.map(cost => ({
+      associatedCosts: item.associatedCosts.map(cost => ({
         ...cost,
-        productId: product.id,
+        revenueStreamId: item.id,
         projectId: newProject.id
       }))
     }));
@@ -165,8 +165,7 @@ export default function Home() {
         }))
       },
       revenueStreams: {
-        products: productsWithSales,
-        subscriptions: []
+        items: revenueItems
       },
       partnerships: coffeeShopExample.partnerships ?? [],
       activities: coffeeShopExample.activities ?? [],

@@ -36,11 +36,12 @@ export default function ProjectsList() {
     );
     
     // Update the project with the example data
-    const productsWithSales = coffeeShopExample.revenueStreams.products.map(product => ({
-      ...product,
+    const revenueItems = (coffeeShopExample.revenueStreams.items || []).map(item => ({
+      ...item,
       projectId: newProject.id,
-      associatedCosts: product.associatedCosts.map(cost => ({
+      associatedCosts: item.associatedCosts.map(cost => ({
         ...cost,
+        revenueStreamId: item.id,
         projectId: newProject.id
       }))
     }));
@@ -59,8 +60,7 @@ export default function ProjectsList() {
         }))
       },
       revenueStreams: {
-        products: productsWithSales,
-        subscriptions: []
+        items: revenueItems
       },
       partnerships: coffeeShopExample.partnerships,
       activities: coffeeShopExample.activities,

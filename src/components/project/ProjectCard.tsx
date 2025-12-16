@@ -56,7 +56,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
         </Badge>
         <span className="text-muted-foreground">
           {project.costStructure.fixedRunningCosts.length} fixed costs,{' '}
-          {project.revenueStreams.products.length} products
+          {(project.revenueStreams.items || []).length} revenue streams
         </span>
       </div>
       {isHovered && showDeleteButton && (

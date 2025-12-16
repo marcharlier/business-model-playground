@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,9 +30,9 @@ interface SubscriptionFormProps {
   currency: Currency;
   onSave: (
     name: string,
-    price: number,
+    price: number | undefined,
     pricePeriod: 'monthly' | 'annual',
-    subscribers: number,
+    subscribers: number | undefined,
     associatedCosts: AssociatedCost[]
   ) => void;
   onCancel: () => void;
@@ -52,19 +52,37 @@ export function SubscriptionForm({
   onDelete,
 }: SubscriptionFormProps) {
   const [name, setName] = useState(subscription?.name || '');
+  // Initialize price: undefined → '', 0 → '0', other → string value
   const [price, setPrice] = useState(
-    subscription?.price === 0 ? '' : (subscription?.price || 0).toString()
+    subscription?.price === undefined ? '' : subscription.price.toString()
   );
   const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>(
     subscription?.associatedCosts || []
   );
   const [newCostRows, setNewCostRows] = useState<CostRow[]>([]);
-  const [subscribers, setSubscribers] = useState<number>(
-    subscription?.subscribers || 0
+  // Initialize subscribers: can be undefined
+  const [subscribers, setSubscribers] = useState<number | undefined>(
+    subscription?.subscribers
   );
   const [pricePeriod, setPricePeriod] = useState<'monthly' | 'annual'>(
     subscription?.pricePeriod || 'monthly'
   );
+
+  // Auto-focus on price field when form opens
+  useEffect(() => {
+    // Small delay to ensure dialog is fully rendered
+    const timer = setTimeout(() => {
+      const priceInput = document.getElementById('subscription-price');
+      if (priceInput) {
+        priceInput.focus();
+        // Select all text if there's a value
+        if (priceInput instanceof HTMLInputElement && priceInput.value) {
+          priceInput.select();
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +91,16 @@ export function SubscriptionForm({
       return;
     }
 
-    const priceValue = price.trim() ? Number.parseFloat(price) : 0;
-    if (Number.isNaN(priceValue) || priceValue < 0) {
-      return;
+    // Parse price: empty string → undefined, '0' → 0, valid number → number
+    let priceValue: number | undefined;
+    if (price.trim() === '') {
+      priceValue = undefined;
+    } else {
+      const num = Number.parseFloat(price);
+      if (Number.isNaN(num) || num < 0) {
+        return;
+      }
+      priceValue = num;
     }
 
     // Process new cost rows and add valid ones to associated costs
@@ -158,7 +183,7 @@ export function SubscriptionForm({
             </div>
             <SubscriptionSubscribersControl
               id="subscription-subscribers"
-              label="Monthly subscribers"
+              label="Subscribers"
               subscribers={subscribers}
               onSubscribersChange={setSubscribers}
             />
@@ -193,7 +218,7 @@ export function SubscriptionForm({
           <Button
             type="submit"
             size="sm"
-            disabled={isSubmitting || !name.trim() || subscribers <= 0}
+            disabled={isSubmitting || !name.trim()}
             className={`h-9 ${hideCancel ? 'w-full' : 'flex-1'}`}
           >
             {hasExistingItem ? 'Save changes' : 'Add subscription'}

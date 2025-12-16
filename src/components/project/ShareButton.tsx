@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Trash2, Copy, Share } from 'lucide-react';
+import { RefreshCw, Trash2, Copy, Share, Check } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -18,6 +18,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { sharedProjectStorage } from '@/lib/storage/sharedProjectStorage';
 import { avatarStorage } from '@/lib/storage/avatarStorage';
@@ -41,6 +43,8 @@ export function ShareButton({ project }: ShareButtonProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [sharedInfo, setSharedInfo] = useState<SharedProjectInfo | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { refreshProject } = useProject();
 
@@ -49,6 +53,7 @@ export function ShareButton({ project }: ShareButtonProps) {
     const fetchSharedInfo = async () => {
       if (project.sharedId) {
         try {
+          setError(null);
           const sharedProject = await sharedProjectStorage.getSharedProject(project.sharedId);
           setSharedInfo({
             name: sharedProject.projectData.name,
@@ -79,6 +84,13 @@ export function ShareButton({ project }: ShareButtonProps) {
     }
   }, [open, project.sharedId, project, refreshProject]);
 
+  // Clear error when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setError(null);
+    }
+  }, [open]);
+
   // Set initial shareUrl if project is already shared
   useEffect(() => {
     if (project.sharedId) {
@@ -89,6 +101,7 @@ export function ShareButton({ project }: ShareButtonProps) {
   const handleCreateShare = async () => {
     try {
       setIsSharing(true);
+      setError(null);
       const authorAvatar = await avatarStorage.getAvatar();
       
       const sharedProject = await sharedProjectStorage.createSharedProject(
@@ -118,6 +131,10 @@ export function ShareButton({ project }: ShareButtonProps) {
       console.log('Successfully created new shared project:', sharedProject.id);
     } catch (error) {
       console.error('Error creating shared project:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to create shared project. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsSharing(false);
     }
@@ -128,6 +145,7 @@ export function ShareButton({ project }: ShareButtonProps) {
 
     try {
       setIsUpdating(true);
+      setError(null);
       
       // Get the latest project data
       const latestProject = projectStorage.getProjectById(project.id);
@@ -149,6 +167,10 @@ export function ShareButton({ project }: ShareButtonProps) {
       console.log('Successfully updated shared project:', sharedProject.id);
     } catch (error) {
       console.error('Error updating shared project:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to update shared project. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -159,6 +181,7 @@ export function ShareButton({ project }: ShareButtonProps) {
     
     try {
       setIsRemoving(true);
+      setError(null);
       await sharedProjectStorage.deleteSharedProject(project.sharedId);
       
       // Remove sharedId from local project
@@ -175,6 +198,10 @@ export function ShareButton({ project }: ShareButtonProps) {
       setOpen(false); // Close the dialog/drawer after removing
     } catch (error) {
       console.error('Error removing share:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to remove shared project. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsRemoving(false);
     }
@@ -185,6 +212,10 @@ export function ShareButton({ project }: ShareButtonProps) {
     
     try {
       await navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true);
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
     } catch (error) {
       console.error('Error copying to clipboard:', error);
     }
@@ -193,7 +224,13 @@ export function ShareButton({ project }: ShareButtonProps) {
   const content = (
     <>
       <div className="space-y-4">
-      {sharedInfo && (
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {sharedInfo && (
         <div className="space-y-2 bg-muted p-4 rounded-md">
           <h3 className="font-medium">{sharedInfo?.name || project.name}</h3>
           <div className="text-sm text-muted-foreground space-y-1">
@@ -215,10 +252,18 @@ export function ShareButton({ project }: ShareButtonProps) {
                   type="text"
                   value={shareUrl}
                   readOnly
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
-                <Button onClick={handleCopyLink} variant="outline" size="icon">
-                  <Copy className="h-4 w-4" />
+                <Button onClick={handleCopyLink} variant="outline" size="default">
+                  {isCopied ? (
+                    <>
+                      <Check className="h-4 w-4" />Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />Copy link
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

@@ -46,8 +46,12 @@ export function CurrencyInput({
     }
   };
 
-  const displayValue = value === 0 ? '' : value;
-  const placeholder = showFree ? 'Free' : '0.00';
+  // Distinguish between undefined/empty string and explicit 0:
+  // - undefined or '' → show empty (placeholder visible)
+  // - 0 → show '0' (explicit free/zero)
+  // - other numbers → show the number
+  const displayValue = value === undefined || value === '' ? '' : value;
+  const placeholder = showFree ? 'Set a price' : 'Enter amount';
 
   return (
     <div className="space-y-2">

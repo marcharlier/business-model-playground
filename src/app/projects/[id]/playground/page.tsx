@@ -27,14 +27,14 @@ import { MonthlyProjectionChart } from '@/components/dashboard/MonthlyProjection
 import { BusinessStatusSummary } from '@/components/dashboard/BusinessStatusSummary';
 import { CostDialog } from '@/components/costs/CostDialog';
 import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
+import type { RevenueStreamInput } from '@/components/revenue/RevenueStreamForm';
 import { formatCurrency } from '@/lib/utils/currency';
-import { formatProfitMargin, calculateProductTotalCost, getSubscriptionMonthlyPrice } from '@/lib/utils/financial';
+import { formatProfitMargin, getSubscriptionMonthlyPrice } from '@/lib/utils/financial';
 import { calculateBreakEven, type BreakEvenResult } from '@/lib/utils/break-even';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
-import { productStorage } from '@/lib/storage/productStorage';
-import { subscriptionStorage } from '@/lib/storage/subscriptionStorage';
-import type { FixedCost, UpfrontCost, Product, Subscription, AssociatedCost, ProductSales } from '@/lib/storage/types';
+import { revenueStreamStorage } from '@/lib/storage/revenueStreamStorage';
+import type { FixedCost, UpfrontCost, RevenueStream, ProductRevenueStream, SubscriptionRevenueStream, ProductSales } from '@/lib/storage/types';
 import type { CostFormData } from '@/components/costs/CostForm';
 
 export default function PlaygroundPage() {
@@ -43,14 +43,20 @@ export default function PlaygroundPage() {
   const projectId = params?.id as string | undefined;
   const { project, refreshProject } = useProject();
 
-  // Derive product sales directly from project - automatically stays in sync
-  const productSales = useMemo(() => {
-    if (!project) return {};
+  // Derive products and subscriptions from revenue stream items
+  const { products, subscriptions, productSales } = useMemo(() => {
+    if (!project) return { products: [], subscriptions: [], productSales: {} };
+    
+    const items = project.revenueStreams.items || [];
+    const products = items.filter((r): r is ProductRevenueStream => r.type === 'product');
+    const subscriptions = items.filter((r): r is SubscriptionRevenueStream => r.type === 'subscription');
+    
     const sales: Record<string, ProductSales> = {};
-    for (const product of project.revenueStreams.products) {
+    for (const product of products) {
       sales[product.id] = product.sales || { volume: 1, period: 'monthly' };
     }
-    return sales;
+    
+    return { products, subscriptions, productSales: sales };
   }, [project]);
 
   // Cost dialog state
@@ -59,15 +65,10 @@ export default function PlaygroundPage() {
   const [costDialogType, setCostDialogType] = useState<'upfront' | 'operating'>('operating');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Product dialog state
-  const [productDialogOpen, setProductDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
-  const [isProductSubmitting, setIsProductSubmitting] = useState(false);
-
-  // Subscription dialog state
-  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
-  const [editingSubscription, setEditingSubscription] = useState<Subscription | undefined>();
-  const [isSubscriptionSubmitting, setIsSubscriptionSubmitting] = useState(false);
+  // Revenue stream dialog state (unified)
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [editingRevenueStream, setEditingRevenueStream] = useState<RevenueStream | undefined>();
+  const [isRevenueSubmitting, setIsRevenueSubmitting] = useState(false);
 
   // Chart projection state
   const [projectionMonths, setProjectionMonths] = useState<number>(12);
@@ -89,50 +90,58 @@ export default function PlaygroundPage() {
 
     // Calculate monthly fixed costs (only true monthly costs)
     const totalMonthlyFixedCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
-      return cost.frequency === 'monthly' ? total + cost.amount : total;
+      const amount = cost.amount ?? 0;
+      return cost.frequency === 'monthly' ? total + amount : total;
     }, 0);
 
     // Calculate annual fixed costs
     const totalAnnualFixedCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
-      return cost.frequency === 'annual' ? total + cost.amount : total;
+      const amount = cost.amount ?? 0;
+      return cost.frequency === 'annual' ? total + amount : total;
     }, 0);
 
     // Calculate upfront costs
-    const totalUpfrontCosts = (project.costStructure.upfrontCosts || []).reduce((sum, c) => sum + (c?.amount || 0), 0);
+    const totalUpfrontCosts = (project.costStructure.upfrontCosts || []).reduce((sum, c) => sum + (c?.amount ?? 0), 0);
 
-    // Calculate total monthly running costs (for display - includes annual amortized)
+    // Calculate total monthly running costs (includes annual amortized)
     const totalMonthlyRunningCosts = project.costStructure.fixedRunningCosts.reduce((total, cost) => {
-      const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
+      const amount = cost.amount ?? 0;
+      const monthlyAmount = cost.frequency === 'annual' ? amount / 12 : amount;
       return total + monthlyAmount;
     }, 0);
 
     // Calculate variable costs from products
-    const productVariableCosts = project.revenueStreams.products.reduce((total, product) => {
-      const productCost = calculateProductTotalCost(product);
-      const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    const productVariableCosts = products.reduce((total, product) => {
+      const productCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+      const sales = productSales[product.id] || product.sales || { volume: 0, period: 'monthly' };
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
       return total + (productCost * monthlyVolume);
     }, 0);
 
     // Calculate variable costs from subscriptions
-    const subscriptionVariableCosts = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+    const subscriptionVariableCosts = subscriptions.reduce((total, subscription) => {
       const subscriptionCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
-      return total + (subscriptionCost * subscription.subscribers);
+      const subscribers = subscription.subscribers ?? 0;
+      return total + (subscriptionCost * subscribers);
     }, 0);
 
     const totalMonthlyVariableCosts = productVariableCosts + subscriptionVariableCosts;
 
     // Calculate revenue from products
-    const productRevenue = project.revenueStreams.products.reduce((total, product) => {
-      const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-      return total + (product.price * monthlyVolume);
+    const productRevenue = products.reduce((total, product) => {
+      const sales = productSales[product.id] || product.sales || { volume: 0, period: 'monthly' };
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+      const price = product.price ?? 0;
+      return total + (price * monthlyVolume);
     }, 0);
 
     // Calculate revenue from subscriptions
-    const subscriptionRevenue = (project.revenueStreams.subscriptions || []).reduce((total, subscription) => {
+    const subscriptionRevenue = subscriptions.reduce((total, subscription) => {
       const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
-      return total + (monthlyPrice * subscription.subscribers);
+      const subscribers = subscription.subscribers ?? 0;
+      return total + (monthlyPrice * subscribers);
     }, 0);
 
     const totalMonthlyRevenue = productRevenue + subscriptionRevenue;
@@ -148,10 +157,10 @@ export default function PlaygroundPage() {
     };
 
     const breakEven = calculateBreakEven(
-      project.revenueStreams.products, 
+      products, 
       productSales, 
       fixedCosts,
-      project.revenueStreams.subscriptions || []
+      subscriptions
     );
 
     return {
@@ -164,7 +173,7 @@ export default function PlaygroundPage() {
       fixedCosts,
       breakEven,
     };
-  }, [project, productSales]);
+  }, [project, products, subscriptions, productSales]);
 
   const handleTabChange = (value: string) => {
     if (value === 'business-model' && projectId) {
@@ -251,112 +260,57 @@ export default function PlaygroundPage() {
     setEditingCost(undefined);
   };
 
-  // Product handlers
-  const handleAddProduct = () => {
-    setEditingProduct(undefined);
-    setEditingSubscription(undefined);
-    setProductDialogOpen(true);
+  // Revenue stream handlers (unified)
+  const handleAddRevenueStream = () => {
+    setEditingRevenueStream(undefined);
+    setRevenueDialogOpen(true);
   };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setProductDialogOpen(true);
+  const handleEditRevenueStream = (item: RevenueStream) => {
+    setEditingRevenueStream(item);
+    setRevenueDialogOpen(true);
   };
 
-  const handleSaveProduct = (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => {
+  const handleSaveRevenueStream = (input: RevenueStreamInput) => {
     if (!projectId) return;
 
-    setIsProductSubmitting(true);
+    setIsRevenueSubmitting(true);
     try {
-      if (editingProduct) {
-        const updatedProduct: Product = {
-          ...editingProduct,
-          name,
-          price,
-          associatedCosts,
-          sales,
-        };
-        productStorage.updateProduct(updatedProduct, projectId);
-      } else {
-        const newProduct: Product = {
-          id: crypto.randomUUID(),
-          name,
-          price,
-          associatedCosts,
-          sales,
+      // Build the full revenue stream object
+      const item: RevenueStream = {
+        ...input,
+        id: input.id || crypto.randomUUID(),
+        projectId,
+        associatedCosts: input.associatedCosts.map(cost => ({
+          ...cost,
+          revenueStreamId: input.id || '',
           projectId,
-        };
-        productStorage.createProduct(newProduct, projectId);
+        })),
+      } as RevenueStream;
+
+      if (editingRevenueStream) {
+        // Update existing - this handles type changes seamlessly
+        revenueStreamStorage.updateRevenueStream(item, projectId);
+      } else {
+        // Create new
+        revenueStreamStorage.createRevenueStream(item, projectId);
       }
 
       refreshProject();
-      setProductDialogOpen(false);
-      setSubscriptionDialogOpen(false);
-      setEditingProduct(undefined);
+      setRevenueDialogOpen(false);
+      setEditingRevenueStream(undefined);
     } finally {
-      setIsProductSubmitting(false);
+      setIsRevenueSubmitting(false);
     }
   };
 
-  const handleDeleteProduct = () => {
-    if (!editingProduct || !projectId) return;
+  const handleDeleteRevenueStream = () => {
+    if (!editingRevenueStream || !projectId) return;
 
-    productStorage.deleteProduct(editingProduct.id, projectId);
+    revenueStreamStorage.deleteRevenueStream(editingRevenueStream.id, projectId);
     refreshProject();
-    setProductDialogOpen(false);
-    setEditingProduct(undefined);
-  };
-
-  // Subscription handlers
-  const handleEditSubscription = (subscription: Subscription) => {
-    setEditingSubscription(subscription);
-    setSubscriptionDialogOpen(true);
-  };
-
-  const handleSaveSubscription = (name: string, price: number, pricePeriod: 'monthly' | 'annual', subscribers: number, associatedCosts: AssociatedCost[]) => {
-    if (!projectId) return;
-
-    setIsSubscriptionSubmitting(true);
-    try {
-      if (editingSubscription) {
-        const updatedSubscription: Subscription = {
-          ...editingSubscription,
-          name,
-          price,
-          pricePeriod,
-          subscribers,
-          associatedCosts,
-        };
-        subscriptionStorage.updateSubscription(updatedSubscription, projectId);
-      } else {
-        const newSubscription: Subscription = {
-          id: crypto.randomUUID(),
-          name,
-          price,
-          pricePeriod,
-          subscribers,
-          associatedCosts,
-          projectId,
-        };
-        subscriptionStorage.createSubscription(newSubscription, projectId);
-      }
-
-      refreshProject();
-      setProductDialogOpen(false);
-      setSubscriptionDialogOpen(false);
-      setEditingSubscription(undefined);
-    } finally {
-      setIsSubscriptionSubmitting(false);
-    }
-  };
-
-  const handleDeleteSubscription = () => {
-    if (!editingSubscription || !projectId) return;
-
-    subscriptionStorage.deleteSubscription(editingSubscription.id, projectId);
-    refreshProject();
-    setSubscriptionDialogOpen(false);
-    setEditingSubscription(undefined);
+    setRevenueDialogOpen(false);
+    setEditingRevenueStream(undefined);
   };
 
   if (!project) {
@@ -428,12 +382,12 @@ export default function PlaygroundPage() {
                   </CardHeader>
                   <CardContent className="flex-1 min-h-0">
                     <MonthlyProjectionChart
-                      products={project.revenueStreams.products}
+                      products={products}
                       productSales={productSales}
                       fixedCosts={metrics.fixedCosts}
                       currency={project.currency}
                       lengthMonths={projectionMonths}
-                      subscriptions={project.revenueStreams.subscriptions || []}
+                      subscriptions={subscriptions}
                     />
                   </CardContent>
                 </Card>
@@ -521,72 +475,121 @@ export default function PlaygroundPage() {
                 <CardContent className="flex-1 min-h-0 p-0 border-t border-border/20 overflow-hidden">
                   <ScrollArea className="h-full w-full">
                     <div className="p-6 space-y-6">
-                      {/* Products Section */}
+                      {/* Revenue Streams Section */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-sm">Revenue Streams</h3>
-                          <Button variant="ghost" size="sm" onClick={handleAddProduct} className="h-7 gap-1 text-xs">
+                          <Button variant="ghost" size="sm" onClick={handleAddRevenueStream} className="h-7 gap-1 text-xs">
                             <Plus className="h-3.5 w-3.5" />
                             Add
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {project.revenueStreams.products.length === 0 && (project.revenueStreams.subscriptions || []).length === 0 ? (
+                          {products.length === 0 && subscriptions.length === 0 ? (
                             <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-sm text-muted-foreground">
                               No revenue streams yet
                             </div>
                           ) : (
                             <>
-                              {project.revenueStreams.products.map((product) => {
-                                const sales = productSales[product.id] || product.sales || { volume: 1, period: 'monthly' };
-                                const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-                                const monthlyRevenue = product.price * monthlyVolume;
+                              {products.map((product) => {
+                                const isIncomplete = product.price === undefined || product.price === null;
+                                const sales = productSales[product.id] || product.sales || { volume: 0, period: 'monthly' };
+                                const volume = sales.volume ?? 0;
+                                const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+                                const monthlyRevenue = (product.price ?? 0) * monthlyVolume;
                                 return (
                                   <div
                                     key={product.id}
-                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
+                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                    onClick={() => handleEditRevenueStream(product)}
                                   >
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium truncate">{product.name}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {formatCurrency(product.price, project.currency)} × {sales.volume} {sales.period} = {formatCurrency(monthlyRevenue, project.currency)}/mo
-                                      </p>
+                                      {isIncomplete ? (
+                                        <p className="text-xs text-muted-foreground italic">Click to set price and sales</p>
+                                      ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                          {formatCurrency(product.price!, project.currency)} × {volume} {sales.period} = {formatCurrency(monthlyRevenue, project.currency)}/mo
+                                        </p>
+                                      )}
                                     </div>
+                                    {isIncomplete ? (
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="icon"
-                                      className="h-7 w-7 shrink-0"
-                                      onClick={() => handleEditProduct(product)}
+                                      className="h-7 shrink-0 w-fit p-2 bg-blue-100 text-blue-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditRevenueStream(product);
+                                      }}
                                     >
-                                      <Pencil className="h-3.5 w-3.5" />
+                                      <Pencil className="h-3.5 w-3.5" /> Set price
                                     </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditRevenueStream(product);
+                                        }}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
                                   </div>
                                 );
                               })}
-                              {(project.revenueStreams.subscriptions || []).map((subscription) => {
+                              {subscriptions.map((subscription) => {
+                                const isIncomplete = 
+                                  (subscription.price === undefined || subscription.price === null) ||
+                                  (subscription.subscribers === undefined || subscription.subscribers === null);
                                 const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
-                                const monthlyRevenue = monthlyPrice * subscription.subscribers;
+                                const monthlyRevenue = monthlyPrice * (subscription.subscribers ?? 0);
                                 const pricePeriod = subscription.pricePeriod || 'monthly';
                                 const periodLabel = pricePeriod === 'annual' ? '/yr' : '/mo';
                                 return (
                                   <div
                                     key={subscription.id}
-                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
+                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                    onClick={() => handleEditRevenueStream(subscription)}
                                   >
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium truncate">{subscription.name}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {formatCurrency(subscription.price, project.currency)}{periodLabel} × {subscription.subscribers} subscribers = {formatCurrency(monthlyRevenue, project.currency)}/mo
-                                      </p>
+                                      {isIncomplete ? (
+                                        <p className="text-xs text-muted-foreground italic">Click to set price and subscribers</p>
+                                      ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                          {formatCurrency(subscription.price!, project.currency)}{periodLabel} × {subscription.subscribers} subscribers = {formatCurrency(monthlyRevenue, project.currency)}/mo
+                                        </p>
+                                      )}
                                     </div>
+                                    {isIncomplete ? (
                                     <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 shrink-0 w-fit p-2 bg-blue-100 text-blue-700"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditRevenueStream(subscription);
+                                    }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" /> Set price
+                                  </Button>
+                                    ) : (
+                                      <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-7 w-7 shrink-0"
-                                      onClick={() => handleEditSubscription(subscription)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditRevenueStream(subscription);
+                                      }}
                                     >
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -613,26 +616,49 @@ export default function PlaygroundPage() {
                             </div>
                           ) : (
                             project.costStructure.fixedRunningCosts.map((cost) => {
+                              const isIncomplete = cost.amount === undefined || cost.amount === null;
                               const cadence = cost.frequency === 'monthly' ? '/mo' : '/yr';
                               return (
                                 <div
                                   key={cost.id}
-                                  className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
+                                  className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                  onClick={() => handleEditCost(cost, 'operating')}
                                 >
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{cost.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {formatCurrency(cost.amount, project.currency)}{cadence}
-                                    </p>
+                                    {isIncomplete ? (
+                                      <p className="text-xs text-muted-foreground italic">Click to set amount</p>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatCurrency(cost.amount!, project.currency)}{cadence}
+                                      </p>
+                                    )}
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 shrink-0"
-                                    onClick={() => handleEditCost(cost, 'operating')}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
+                                  {isIncomplete ? (
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 shrink-0 w-fit p-2 bg-blue-100 text-blue-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditCost(cost, 'operating');
+                                      }}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" /> Set amount
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 shrink-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditCost(cost, 'operating');
+                                      }}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
                                 </div>
                               );
                             })
@@ -666,27 +692,52 @@ export default function PlaygroundPage() {
                               No upfront costs yet
                             </div>
                           ) : (
-                            (project.costStructure.upfrontCosts ?? []).map((cost) => (
-                              <div
-                                key={cost.id}
-                                className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{cost.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatCurrency(cost.amount, project.currency)} one-time
-                                  </p>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 shrink-0"
+                            (project.costStructure.upfrontCosts ?? []).map((cost) => {
+                              const isIncomplete = cost.amount === undefined || cost.amount === null;
+                              return (
+                                <div
+                                  key={cost.id}
+                                  className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
                                   onClick={() => handleEditCost(cost, 'upfront')}
                                 >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            ))
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{cost.name}</p>
+                                    {isIncomplete ? (
+                                      <p className="text-xs text-muted-foreground italic">Click to set amount</p>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatCurrency(cost.amount!, project.currency)} one-time
+                                      </p>
+                                    )}
+                                  </div>
+                                  {isIncomplete ? (
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 shrink-0 w-fit p-2 bg-blue-100 text-blue-700"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditCost(cost, 'upfront');
+                                      }}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" /> Set amount
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 shrink-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditCost(cost, 'upfront');
+                                      }}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })
                           )}
                         </div>
                       </div>
@@ -714,27 +765,21 @@ export default function PlaygroundPage() {
         />
       )}
 
-      {/* Revenue Stream Dialog - handles both products and subscriptions */}
+      {/* Revenue Stream Dialog (unified) */}
       {project && (
         <RevenueStreamDialog
-          open={productDialogOpen || subscriptionDialogOpen}
+          open={revenueDialogOpen}
           onOpenChange={(open) => {
             if (!open) {
-              setProductDialogOpen(false);
-              setSubscriptionDialogOpen(false);
+              setRevenueDialogOpen(false);
+              setEditingRevenueStream(undefined);
             }
           }}
-          product={editingProduct}
-          subscription={editingSubscription}
+          revenueStream={editingRevenueStream}
           currency={project.currency}
-          onSaveProduct={handleSaveProduct}
-          onSaveSubscription={handleSaveSubscription}
-          isSubmitting={isProductSubmitting || isSubscriptionSubmitting}
-          onDelete={
-            editingProduct ? handleDeleteProduct : 
-            editingSubscription ? handleDeleteSubscription : 
-            undefined
-          }
+          onSave={handleSaveRevenueStream}
+          isSubmitting={isRevenueSubmitting}
+          onDelete={editingRevenueStream ? handleDeleteRevenueStream : undefined}
         />
       )}
     </section>

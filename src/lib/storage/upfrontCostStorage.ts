@@ -8,7 +8,7 @@ export const upfrontCostStorage = {
     return project?.costStructure.upfrontCosts || [];
   },
 
-  createUpfrontCost: (projectId: string, name: string, amount: number): UpfrontCost => {
+  createUpfrontCost: (projectId: string, name: string, amount: number | undefined): UpfrontCost => {
     const project = projectStorage.getProjectById(projectId);
     if (!project) throw new Error(`Project with ID ${projectId} not found`);
     const newCost: UpfrontCost = { id: generateUUID(), name, amount, projectId } as UpfrontCost;

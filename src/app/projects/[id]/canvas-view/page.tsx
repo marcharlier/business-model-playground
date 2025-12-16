@@ -39,14 +39,14 @@ import { RevenueStreamsCard } from '@/components/canvas/RevenueStreamsCard';
 import { CanvasGenerationSheet } from '@/components/canvas/CanvasGenerationSheet';
 import { CostDialog } from '@/components/costs/CostDialog';
 import { RevenueStreamDialog } from '@/components/revenue/RevenueStreamDialog';
+import type { RevenueStreamInput } from '@/components/revenue/RevenueStreamForm';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { fixedCostStorage } from '@/lib/storage/fixedCostStorage';
 import { upfrontCostStorage } from '@/lib/storage/upfrontCostStorage';
-import { productStorage } from '@/lib/storage/productStorage';
-import { subscriptionStorage } from '@/lib/storage/subscriptionStorage';
+import { revenueStreamStorage } from '@/lib/storage/revenueStreamStorage';
 import { chatHistoryStorage, type StoredChatMessage } from '@/lib/storage/chatHistoryStorage';
 import type { CanvasItem } from '@/lib/domain/types';
-import type { FixedCost, UpfrontCost, Product, Subscription, AssociatedCost, ProductSales } from '@/lib/storage/types';
+import type { FixedCost, UpfrontCost, RevenueStream, ProductRevenueStream, SubscriptionRevenueStream } from '@/lib/storage/types';
 import type { CostFormData } from '@/components/costs/CostForm';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
@@ -184,15 +184,10 @@ export default function CanvasViewPage() {
   const [costDialogType, setCostDialogType] = useState<'upfront' | 'operating'>('operating');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Product dialog state
-  const [productDialogOpen, setProductDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
-  const [isProductSubmitting, setIsProductSubmitting] = useState(false);
-
-  // Subscription dialog state
-  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
-  const [editingSubscription, setEditingSubscription] = useState<Subscription | undefined>();
-  const [isSubscriptionSubmitting, setIsSubscriptionSubmitting] = useState(false);
+  // Revenue stream dialog state (unified)
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [editingRevenueStream, setEditingRevenueStream] = useState<RevenueStream | undefined>();
+  const [isRevenueSubmitting, setIsRevenueSubmitting] = useState(false);
 
   const placeholder = 'Coming soon...';
   const costStructureItems = useMemo(() => {
@@ -214,29 +209,30 @@ export default function CanvasViewPage() {
     if (!project) return [];
 
     const { revenueStreams, currency } = project;
-    const items: string[] = [];
+    const displayItems: string[] = [];
 
-    // Add products
-    revenueStreams.products.forEach((product) => {
-      const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
-      const salesText = product.sales
-        ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'} sales`
-        : 'No sales data';
-      const margin = formatProfitMargin(calculateProfitMargin(product));
+    // Process all revenue stream items
+    (revenueStreams.items || []).forEach((item) => {
+      if (item.type === 'product') {
+        const product = item as ProductRevenueStream;
+        const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
+        const salesText = product.sales
+          ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'} sales`
+          : 'No sales data';
+        const margin = formatProfitMargin(calculateProfitMargin(product));
 
-      items.push(`${product.name} • ${priceText} • ${salesText} • ${margin} margin`);
+        displayItems.push(`${product.name} • ${priceText} • ${salesText} • ${margin} margin`);
+      } else {
+        const subscription = item as SubscriptionRevenueStream;
+        const priceText = subscription.price === 0 ? 'Free' : formatCurrency(subscription.price, currency);
+        const subscribersText = `${subscription.subscribers} subscriber${subscription.subscribers !== 1 ? 's' : ''}`;
+        const margin = formatProfitMargin(calculateSubscriptionProfitMargin(subscription));
+
+        displayItems.push(`${subscription.name} • ${priceText}/mo • ${subscribersText} • ${margin} margin`);
+      }
     });
 
-    // Add subscriptions
-    (revenueStreams.subscriptions || []).forEach((subscription) => {
-      const priceText = subscription.price === 0 ? 'Free' : formatCurrency(subscription.price, currency);
-      const subscribersText = `${subscription.subscribers} subscriber${subscription.subscribers !== 1 ? 's' : ''}`;
-      const margin = formatProfitMargin(calculateSubscriptionProfitMargin(subscription));
-
-      items.push(`${subscription.name} • ${priceText}/mo • ${subscribersText} • ${margin} margin`);
-    });
-
-    return items;
+    return displayItems;
   }, [project]);
 
   const sections = useMemo(() => {
@@ -383,119 +379,57 @@ export default function CanvasViewPage() {
     setEditingCost(undefined);
   };
 
-  // Product handlers
-  const handleAddProduct = () => {
-    setEditingProduct(undefined);
-    setEditingSubscription(undefined);
-    setProductDialogOpen(true);
-    setSubscriptionDialogOpen(false); // Ensure subscription dialog is closed
+  // Revenue stream handlers (unified)
+  const handleAddRevenueStream = () => {
+    setEditingRevenueStream(undefined);
+    setRevenueDialogOpen(true);
   };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setEditingSubscription(undefined); // Clear subscription when editing product
-    setProductDialogOpen(true);
-    setSubscriptionDialogOpen(false); // Ensure subscription dialog is closed
+  const handleEditRevenueStream = (item: RevenueStream) => {
+    setEditingRevenueStream(item);
+    setRevenueDialogOpen(true);
   };
 
-  const handleSaveProduct = (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => {
+  const handleSaveRevenueStream = (input: RevenueStreamInput) => {
     if (!projectId) return;
 
-    setIsProductSubmitting(true);
+    setIsRevenueSubmitting(true);
     try {
-      if (editingProduct) {
-        // Update existing product
-        const updatedProduct: Product = {
-          ...editingProduct,
-          name,
-          price,
-          associatedCosts,
-          sales,
-        };
-        productStorage.updateProduct(updatedProduct, projectId);
-      } else {
-        // Create new product
-        const newProduct: Product = {
-          id: crypto.randomUUID(),
-          name,
-          price,
-          associatedCosts,
-          sales,
+      // Build the full revenue stream object
+      const item: RevenueStream = {
+        ...input,
+        id: input.id || crypto.randomUUID(),
+        projectId,
+        associatedCosts: input.associatedCosts.map(cost => ({
+          ...cost,
+          revenueStreamId: input.id || '',
           projectId,
-        };
-        productStorage.createProduct(newProduct, projectId);
+        })),
+      } as RevenueStream;
+
+      if (editingRevenueStream) {
+        // Update existing - handles type changes seamlessly
+        revenueStreamStorage.updateRevenueStream(item, projectId);
+      } else {
+        // Create new
+        revenueStreamStorage.createRevenueStream(item, projectId);
       }
 
       refreshProject();
-      setProductDialogOpen(false);
-      setSubscriptionDialogOpen(false);
-      setEditingProduct(undefined);
+      setRevenueDialogOpen(false);
+      setEditingRevenueStream(undefined);
     } finally {
-      setIsProductSubmitting(false);
+      setIsRevenueSubmitting(false);
     }
   };
 
-  const handleDeleteProduct = () => {
-    if (!editingProduct || !projectId) return;
+  const handleDeleteRevenueStream = () => {
+    if (!editingRevenueStream || !projectId) return;
 
-    productStorage.deleteProduct(editingProduct.id, projectId);
+    revenueStreamStorage.deleteRevenueStream(editingRevenueStream.id, projectId);
     refreshProject();
-    setProductDialogOpen(false);
-    setEditingProduct(undefined);
-  };
-
-  // Subscription handlers
-  const handleEditSubscription = (subscription: Subscription) => {
-    setEditingSubscription(subscription);
-    setEditingProduct(undefined); // Clear product when editing subscription
-    setSubscriptionDialogOpen(true);
-    setProductDialogOpen(false); // Ensure product dialog is closed
-  };
-
-  const handleSaveSubscription = (name: string, price: number, pricePeriod: 'monthly' | 'annual', subscribers: number, associatedCosts: AssociatedCost[]) => {
-    if (!projectId) return;
-
-    setIsSubscriptionSubmitting(true);
-    try {
-      if (editingSubscription) {
-        const updatedSubscription: Subscription = {
-          ...editingSubscription,
-          name,
-          price,
-          pricePeriod,
-          subscribers,
-          associatedCosts,
-        };
-        subscriptionStorage.updateSubscription(updatedSubscription, projectId);
-      } else {
-        const newSubscription: Subscription = {
-          id: crypto.randomUUID(),
-          name,
-          price,
-          pricePeriod,
-          subscribers,
-          associatedCosts,
-          projectId,
-        };
-        subscriptionStorage.createSubscription(newSubscription, projectId);
-      }
-
-      refreshProject();
-      setProductDialogOpen(false);
-      setSubscriptionDialogOpen(false);
-      setEditingSubscription(undefined);
-    } finally {
-      setIsSubscriptionSubmitting(false);
-    }
-  };
-
-  const handleDeleteSubscription = () => {
-    if (!editingSubscription || !projectId) return;
-
-    subscriptionStorage.deleteSubscription(editingSubscription.id, projectId);
-    refreshProject();
-    setSubscriptionDialogOpen(false);
-    setEditingSubscription(undefined);
+    setRevenueDialogOpen(false);
+    setEditingRevenueStream(undefined);
   };
 
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -694,12 +628,10 @@ export default function CanvasViewPage() {
                     {project ? (
                       <RevenueStreamsCard
                         className="h-[300px] lg:h-full min-h-[200px]"
-                        products={project.revenueStreams.products}
-                        subscriptions={project.revenueStreams.subscriptions || []}
+                        items={project.revenueStreams.items || []}
                         currency={project.currency}
-                        onEditProduct={handleEditProduct}
-                        onEditSubscription={handleEditSubscription}
-                        onAddProduct={handleAddProduct}
+                        onEditItem={handleEditRevenueStream}
+                        onAddItem={handleAddRevenueStream}
                       />
                     ) : (
                       <CanvasSectionCard section={sectionMap['revenue-streams']!} className="h-[300px] lg:h-full min-h-[200px]" />
@@ -725,27 +657,21 @@ export default function CanvasViewPage() {
           />
         )}
 
-        {/* Revenue Stream Dialog - handles both products and subscriptions */}
+        {/* Revenue Stream Dialog (unified) */}
         {project && (
           <RevenueStreamDialog
-            open={productDialogOpen || subscriptionDialogOpen}
+            open={revenueDialogOpen}
             onOpenChange={(open) => {
               if (!open) {
-                setProductDialogOpen(false);
-                setSubscriptionDialogOpen(false);
+                setRevenueDialogOpen(false);
+                setEditingRevenueStream(undefined);
               }
             }}
-            product={editingProduct}
-            subscription={editingSubscription}
+            revenueStream={editingRevenueStream}
             currency={project.currency}
-            onSaveProduct={handleSaveProduct}
-            onSaveSubscription={handleSaveSubscription}
-            isSubmitting={isProductSubmitting || isSubscriptionSubmitting}
-            onDelete={
-              editingProduct ? handleDeleteProduct : 
-              editingSubscription ? handleDeleteSubscription : 
-              undefined
-            }
+            onSave={handleSaveRevenueStream}
+            isSubmitting={isRevenueSubmitting}
+            onDelete={editingRevenueStream ? handleDeleteRevenueStream : undefined}
           />
         )}
       </div>

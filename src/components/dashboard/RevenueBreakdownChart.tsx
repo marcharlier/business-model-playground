@@ -23,10 +23,12 @@ export function RevenueBreakdownChart({
   // Memoize data to prevent unnecessary re-renders
   const data = useMemo(() => {
     return products.map(product => {
-      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+      const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
       const costs = product.associatedCosts.reduce((total, cost) => total + cost.amount, 0) * monthlyVolume;
-      const profit = product.price * monthlyVolume - costs;
+      const price = product.price ?? 0;
+      const profit = price * monthlyVolume - costs;
       
       return {
         name: product.name,

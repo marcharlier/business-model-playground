@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,7 +31,7 @@ interface ProductFormProps {
   currency: Currency;
   onSave: (
     name: string,
-    price: number,
+    price: number | undefined,
     associatedCosts: AssociatedCost[],
     sales: ProductSales
   ) => void;
@@ -52,16 +52,34 @@ export function ProductForm({
   onDelete,
 }: ProductFormProps) {
   const [name, setName] = useState(product?.name || '');
+  // Initialize price: undefined → '', 0 → '0', other → string value
   const [price, setPrice] = useState(
-    product?.price === 0 ? '' : (product?.price || 0).toString()
+    product?.price === undefined ? '' : product.price.toString()
   );
   const [associatedCosts, setAssociatedCosts] = useState<AssociatedCost[]>(
     product?.associatedCosts || []
   );
   const [newCostRows, setNewCostRows] = useState<CostRow[]>([]);
+  // Initialize sales with volume that can be undefined
   const [sales, setSales] = useState<ProductSales>(
-    product?.sales || { volume: 1, period: 'monthly' }
+    product?.sales || { volume: undefined, period: 'monthly' }
   );
+
+  // Auto-focus on price field when form opens
+  useEffect(() => {
+    // Small delay to ensure dialog is fully rendered
+    const timer = setTimeout(() => {
+      const priceInput = document.getElementById('product-price');
+      if (priceInput) {
+        priceInput.focus();
+        // Select all text if there's a value
+        if (priceInput instanceof HTMLInputElement && priceInput.value) {
+          priceInput.select();
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,9 +88,16 @@ export function ProductForm({
       return;
     }
 
-    const priceValue = price.trim() ? Number.parseFloat(price) : 0;
-    if (Number.isNaN(priceValue) || priceValue < 0) {
-      return;
+    // Parse price: empty string → undefined, '0' → 0, valid number → number
+    let priceValue: number | undefined;
+    if (price.trim() === '') {
+      priceValue = undefined;
+    } else {
+      const num = Number.parseFloat(price);
+      if (Number.isNaN(num) || num < 0) {
+        return;
+      }
+      priceValue = num;
     }
 
     // Process new cost rows and add valid ones to associated costs
@@ -138,7 +163,7 @@ export function ProductForm({
               id="product-sales"
               label="Expected sales"
               sales={sales}
-              onVolumeChange={(value) =>
+              onVolumeChange={(value: number | undefined) =>
                 setSales((prev) => ({ ...prev, volume: value }))
               }
               onPeriodChange={(period) =>

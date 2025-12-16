@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { HandCoins, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils/currency';
-import { calculateProfitMargin, formatProfitMargin, calculateSubscriptionProfitMargin } from '@/lib/utils/financial';
+import { formatProfitMargin } from '@/lib/utils/financial';
 import {
   Card,
   CardContent,
@@ -15,95 +15,116 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Product, Subscription, Currency } from '@/lib/storage/types';
+import type { RevenueStream, ProductRevenueStream, SubscriptionRevenueStream, Currency } from '@/lib/storage/types';
 
-interface RevenueStreamItem {
+interface RevenueStreamDisplayItem {
   id: string;
   name: string;
   displayText: string;
-  type: 'product' | 'subscription';
-  item: Product | Subscription;
+  item: RevenueStream;
 }
 
 interface RevenueStreamsCardProps {
   className?: string;
-  products: Product[];
-  subscriptions?: Subscription[];
+  items: RevenueStream[];
   currency: Currency;
-  onEditProduct: (product: Product) => void;
-  onEditSubscription?: (subscription: Subscription) => void;
-  onAddProduct: () => void;
+  onEditItem: (item: RevenueStream) => void;
+  onAddItem: () => void;
+}
+
+function calculateProductProfitMargin(product: ProductRevenueStream): number {
+  const price = product.price ?? 0;
+  if (price === 0) return 0;
+  const totalCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+  return ((price - totalCost) / price) * 100;
+}
+
+function calculateSubscriptionProfitMargin(subscription: SubscriptionRevenueStream): number {
+  const price = subscription.price ?? 0;
+  if (price === 0) return 0;
+  const totalCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+  return ((price - totalCost) / price) * 100;
 }
 
 export function RevenueStreamsCard({
   className,
-  products,
-  subscriptions = [],
+  items,
   currency,
-  onEditProduct,
-  onEditSubscription,
-  onAddProduct,
+  onEditItem,
+  onAddItem,
 }: RevenueStreamsCardProps) {
   const Icon = HandCoins;
 
-  const revenueStreams: RevenueStreamItem[] = useMemo(() => {
-    const items: RevenueStreamItem[] = [];
+  const revenueStreams: RevenueStreamDisplayItem[] = useMemo(() => {
+    return items.map((item) => {
+      if (item.type === 'product') {
+        const product = item as ProductRevenueStream;
+        // Check if product is incomplete (suggestion mode)
+        const isIncomplete = product.price === undefined || product.price === null;
+        
+        if (isIncomplete) {
+          return {
+            id: product.id,
+            name: product.name,
+            displayText: product.name,
+            item,
+          };
+        }
 
-    // Add products
-    products.forEach((product) => {
-      const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
-      const salesText = product.sales
-        ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'}`
-        : '';
-      const margin = formatProfitMargin(calculateProfitMargin(product));
+        const priceText = product.price === 0 ? 'Free' : formatCurrency(product.price, currency);
+        const salesText = product.sales
+          ? `${product.sales.volume} ${product.sales.period === 'monthly' ? 'monthly' : 'daily'}`
+          : '';
+        const margin = formatProfitMargin(calculateProductProfitMargin(product));
 
-      const parts = [product.name, priceText];
-      if (salesText) parts.push(salesText);
-      parts.push(`${margin} margin`);
+        const parts = [product.name, priceText];
+        if (salesText) parts.push(salesText);
+        parts.push(`${margin} margin`);
 
-      items.push({
-        id: product.id,
-        name: product.name,
-        displayText: parts.join(' • '),
-        type: 'product',
-        item: product,
-      });
+        return {
+          id: product.id,
+          name: product.name,
+          displayText: parts.join(' • '),
+          item,
+        };
+      } else {
+        const subscription = item as SubscriptionRevenueStream;
+        // Check if subscription is incomplete (suggestion mode)
+        const isIncomplete = 
+          (subscription.price === undefined || subscription.price === null) ||
+          (subscription.subscribers === undefined || subscription.subscribers === null);
+        
+        if (isIncomplete) {
+          return {
+            id: subscription.id,
+            name: subscription.name,
+            displayText: subscription.name,
+            item,
+          };
+        }
+
+        const priceText = subscription.price === 0 ? 'Free' : formatCurrency(subscription.price, currency);
+        const pricePeriod = subscription.pricePeriod || 'monthly';
+        const periodLabel = pricePeriod === 'annual' ? '/yr' : '/mo';
+        const subscribersText = `${subscription.subscribers} subscriber${subscription.subscribers !== 1 ? 's' : ''}`;
+        const margin = formatProfitMargin(calculateSubscriptionProfitMargin(subscription));
+
+        const parts = [
+          subscription.name,
+          `${priceText}${periodLabel}`,
+          subscribersText,
+          `${margin} margin`
+        ];
+
+        return {
+          id: subscription.id,
+          name: subscription.name,
+          displayText: parts.join(' • '),
+          item,
+        };
+      }
     });
-
-    // Add subscriptions
-    subscriptions.forEach((subscription) => {
-      const priceText = subscription.price === 0 ? 'Free' : formatCurrency(subscription.price, currency);
-      const pricePeriod = subscription.pricePeriod || 'monthly';
-      const periodLabel = pricePeriod === 'annual' ? '/yr' : '/mo';
-      const subscribersText = `${subscription.subscribers} subscriber${subscription.subscribers !== 1 ? 's' : ''}`;
-      const margin = formatProfitMargin(calculateSubscriptionProfitMargin(subscription));
-
-      const parts = [
-        subscription.name,
-        `${priceText}${periodLabel}`,
-        subscribersText,
-        `${margin} margin`
-      ];
-
-      items.push({
-        id: subscription.id,
-        name: subscription.name,
-        displayText: parts.join(' • '),
-        type: 'subscription',
-        item: subscription,
-      });
-    });
-
-    return items;
-  }, [products, subscriptions, currency]);
-
-  const handleItemClick = (item: RevenueStreamItem) => {
-    if (item.type === 'product') {
-      onEditProduct(item.item as Product);
-    } else if (item.type === 'subscription' && onEditSubscription) {
-      onEditSubscription(item.item as Subscription);
-    }
-  };
+  }, [items, currency]);
 
   return (
     <Card
@@ -124,13 +145,13 @@ export function RevenueStreamsCard({
         <ScrollArea className="flex-1 min-h-0">
           <div className="flex flex-col gap-2 pr-2">
             {revenueStreams.length > 0 ? (
-              revenueStreams.map((item, index) => (
+              revenueStreams.map((displayItem, index) => (
                 <button
-                  key={`${item.type}-${item.id}-${index}`}
-                  onClick={() => handleItemClick(item)}
+                  key={`${displayItem.item.type}-${displayItem.id}-${index}`}
+                  onClick={() => onEditItem(displayItem.item)}
                   className="flex min-w-0 items-center justify-between gap-2 rounded-sm bg-muted/80 px-1 py-1 text-xs font-medium text-muted-foreground hover:bg-blue-100 transition-colors cursor-pointer"
                 >
-                  <span className="min-w-0 truncate text-left">{item.displayText}</span>
+                  <span className="min-w-0 truncate text-left">{displayItem.displayText}</span>
                   <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </button>
               ))
@@ -147,7 +168,7 @@ export function RevenueStreamsCard({
         <Button
           variant="ghost"
           size="sm"
-          onClick={onAddProduct}
+          onClick={onAddItem}
           className="h-8 w-full justify-center rounded-lg border border-border bg-background text-xs font-medium text-foreground shadow-none"
         >
           <Plus className="h-4 w-4 mr-1" />

@@ -46,33 +46,35 @@ Category reference:
 ${categoriesList}
 
 REVENUE STREAMS GUIDELINES:
+- Generate unified revenueStreams array with type field to distinguish between products and subscriptions
 - CHOOSE BETWEEN PRODUCT SALES AND SUBSCRIPTIONS based on the business model:
   
-  USE PRODUCT SALES when:
+  USE type="product" when:
   * Customers buy discrete units (products, sessions, tickets, credit/token packs, classes, seats, bundles, fixed-scope services)
   * Revenue comes from one-time or repeat purchases of specific items
   * Examples: retail, food service, e-commerce, events, workshops, consulting packages, prepaid credits
   
-  USE SUBSCRIPTIONS when:
+  USE type="subscription" when:
   * Business model is primarily recurring monthly subscriptions (SaaS, memberships, monthly services)
   * Customers pay a recurring fee for ongoing access to a service or product
   * Revenue is predictable and recurring rather than transaction-based
   * Examples: SaaS software, gym memberships, streaming services, monthly box subscriptions, maintenance contracts
   
-  YOU CAN USE BOTH if the business has multiple revenue streams (e.g., a SaaS with subscription plans AND one-time setup fees as products)
+  YOU CAN MIX BOTH types in revenueStreams if the business has multiple revenue models
   
-- For PRODUCT SALES: Generate 5-10 realistic products with:
+- For type="product": Include name, type, price, salesVolume, and salesPeriod
   * Specific product/service names or bundle tiers
   * Market-realistic prices per unit
   * Conservative but reasonable sales volume estimates
   * Appropriate sales period (daily for high-volume items like food/tickets, monthly for services/bundles)
   
-- For SUBSCRIPTIONS: Generate 5-10 realistic subscription tiers with:
+- For type="subscription": Include name, type, price, pricePeriod, and subscribers
   * Specific subscription plan names (e.g., "Basic Plan", "Pro Plan", "Enterprise")
-  * Market-realistic monthly subscription prices
+  * Market-realistic subscription prices
+  * Billing period (monthly or annual)
   * Conservative but reasonable subscriber count estimates
   
-- Only leave BOTH products and subscriptions EMPTY when the revenue model truly doesn't fit either (e.g., pure commission/marketplace, advertising-only, licensing without packaging). In that case, provide a revenueModelNote explaining the better model.`
+- Only leave revenueStreams EMPTY when the revenue model truly doesn't fit either (e.g., pure commission/marketplace, advertising-only, licensing without packaging). In that case, provide a revenueModelNote explaining the better model.`
 
     const user = `Business idea: ${prompt}
 
@@ -94,11 +96,12 @@ COSTS:
 - upfrontCosts: 5-10 one-time startup costs with realistic ${currency || 'USD'} amounts
 - runningCosts: 5-10 ongoing operating costs with amounts, frequency (monthly/annual), and category (use exact category ids)
 
-REVENUE:
-- If this business suits product sales: generate 5-10 products with name, price, salesVolume, and salesPeriod
-- If this business suits subscriptions: generate 5-10 subscriptions with name, price (monthly), and subscribers
-- You can generate both products AND subscriptions if the business has multiple revenue streams
-- If this business does NOT suit either model: leave both empty and provide a helpful revenueModelNote
+REVENUE (use unified revenueStreams array):
+- Generate 5-10 revenue streams in the revenueStreams array
+- For product sales: use type="product" with name, price, salesVolume, and salesPeriod
+- For subscriptions: use type="subscription" with name, price, pricePeriod (monthly/annual), and subscribers
+- You can mix both types in the same revenueStreams array if the business has multiple revenue models
+- If this business does NOT suit either model: leave revenueStreams empty and provide a helpful revenueModelNote
 
 Be specific to this particular business - avoid generic suggestions. Use realistic ${currency || 'USD'} amounts for this type of business.`
 

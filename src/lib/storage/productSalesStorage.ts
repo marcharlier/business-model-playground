@@ -1,4 +1,4 @@
-import type { Project, ProductSales } from './types';
+import type { Project, ProductSales, RevenueStream } from './types';
 import { projectStorage } from './projectStorage';
 
 export const productSalesStorage = {
@@ -8,9 +8,9 @@ export const productSalesStorage = {
     
     // Extract sales from products in revenueStreams
     const sales: Record<string, ProductSales> = {};
-    project.revenueStreams.products.forEach((product) => {
-      if (product.sales) {
-        sales[product.id] = product.sales;
+    (project.revenueStreams.items || []).forEach((item: RevenueStream) => {
+      if (item.type === 'product' && item.sales) {
+        sales[item.id] = item.sales;
       }
     });
     return sales;
@@ -21,19 +21,16 @@ export const productSalesStorage = {
     if (!project) throw new Error(`Project with ID ${projectId} not found`);
     
     // Update the product's sales field in revenueStreams
-    const updatedProducts = project.revenueStreams.products.map((product) =>
-      product.id === productId ? { ...product, sales } : product
+    const updatedItems = (project.revenueStreams.items || []).map((item: RevenueStream) =>
+      item.type === 'product' && item.id === productId ? { ...item, sales } : item
     );
     
     const updatedProject: Project = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        products: updatedProducts,
+        items: updatedItems,
       },
     };
     projectStorage.updateProject(updatedProject);
   },
 };
-
-

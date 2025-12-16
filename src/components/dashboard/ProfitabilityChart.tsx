@@ -26,13 +26,16 @@ export function ProfitabilityChart({
   const data = useMemo(() => {
     const revenue = products.reduce((total, product) => {
       const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-      return total + (product.price * monthlyVolume);
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+      const price = product.price ?? 0;
+      return total + (price * monthlyVolume);
     }, 0);
 
     const variableCosts = products.reduce((total, product) => {
       const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
       const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
       return total + (unitCost * monthlyVolume);
     }, 0);

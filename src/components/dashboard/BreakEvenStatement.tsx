@@ -14,14 +14,16 @@ interface BreakEvenStatementProps {
 // Helper function to calculate totals like the dashboard does
 function calculateFixedCostTotals(fixedCosts: FixedCost[], upfrontCosts: UpfrontCost[]) {
   const totalMonthlyFixedCosts = fixedCosts.reduce((total, cost) => {
-    return cost.frequency === 'monthly' ? total + cost.amount : total;
+    const amount = cost.amount ?? 0;
+    return cost.frequency === 'monthly' ? total + amount : total;
   }, 0);
 
   const totalAnnualFixedCosts = fixedCosts.reduce((total, cost) => {
-    return cost.frequency === 'annual' ? total + cost.amount : total;
+    const amount = cost.amount ?? 0;
+    return cost.frequency === 'annual' ? total + amount : total;
   }, 0);
 
-  const totalUpfrontFixedCosts = upfrontCosts.reduce((total, cost) => total + cost.amount, 0);
+  const totalUpfrontFixedCosts = upfrontCosts.reduce((total, cost) => total + (cost.amount ?? 0), 0);
 
   return {
     monthly: totalMonthlyFixedCosts,

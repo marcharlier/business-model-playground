@@ -10,11 +10,15 @@ export function calculateProductTotalCost(product: Product): number {
 /**
  * Calculate the profit margin for a product as a percentage
  * Returns a number between 0 and 100
+ * Returns 0 if price is not set (suggestion mode)
  */
 export function calculateProfitMargin(product: Product): number {
-  const totalCost = calculateProductTotalCost(product);
-  if (product.price === 0) return 0;
+  // Handle incomplete products (suggestion mode)
+  if (product.price === undefined || product.price === null || product.price === 0) {
+    return 0;
+  }
   
+  const totalCost = calculateProductTotalCost(product);
   const profit = product.price - totalCost;
   return (profit / product.price) * 100;
 }
@@ -46,8 +50,13 @@ export function calculateSubscriptionTotalCost(subscription: Subscription): numb
 
 /**
  * Get the monthly price for a subscription, converting annual prices to monthly
+ * Returns 0 if price is not set (suggestion mode)
  */
 export function getSubscriptionMonthlyPrice(subscription: Subscription): number {
+  // Handle incomplete subscriptions (suggestion mode)
+  if (subscription.price === undefined || subscription.price === null) {
+    return 0;
+  }
   return subscription.pricePeriod === 'annual' 
     ? subscription.price / 12 
     : subscription.price;
@@ -56,8 +65,14 @@ export function getSubscriptionMonthlyPrice(subscription: Subscription): number 
 /**
  * Calculate the profit margin for a subscription as a percentage
  * Returns a number between 0 and 100
+ * Returns 0 if price is not set (suggestion mode)
  */
 export function calculateSubscriptionProfitMargin(subscription: Subscription): number {
+  // Handle incomplete subscriptions (suggestion mode)
+  if (subscription.price === undefined || subscription.price === null) {
+    return 0;
+  }
+  
   const totalCost = calculateSubscriptionTotalCost(subscription);
   const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
   if (monthlyPrice === 0) return 0;

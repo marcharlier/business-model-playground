@@ -6,11 +6,12 @@ import { Minus, Plus } from 'lucide-react';
 import type { ProductSales } from '@/lib/storage/types';
 import { useMemo } from 'react';
 import { Slider } from '@/components/ui/slider';
+
 interface ProductSalesControlProps {
   id: string;
   label?: string;
   sales: ProductSales;
-  onVolumeChange: (value: number) => void;
+  onVolumeChange: (value: number | undefined) => void;
   onPeriodChange: (period: ProductSales['period']) => void;
   minVolume?: number;
   step?: number;
@@ -27,12 +28,17 @@ export function ProductSalesControl({
   step = 1,
   disabled = false,
 }: ProductSalesControlProps) {
-  const displayValue = useMemo(() => (sales.volume === 0 ? '' : sales.volume), [sales.volume]);
+  // Display: undefined → '', 0 → '0', other → number
+  const displayValue = useMemo(() => {
+    if (sales.volume === undefined) return '';
+    return sales.volume;
+  }, [sales.volume]);
 
   const handleAdjust = (direction: 'increase' | 'decrease') => {
     if (disabled) return;
+    const currentVolume = sales.volume ?? 0;
     const delta = direction === 'increase' ? step : -step;
-    const nextValue = Math.max(minVolume, (sales.volume || 0) + delta);
+    const nextValue = Math.max(minVolume, currentVolume + delta);
     onVolumeChange(nextValue);
   };
 
@@ -54,7 +60,7 @@ export function ProductSalesControl({
         </TabsList>
       </Tabs>
       <Slider
-        value={[sales.volume]}
+        value={[sales.volume ?? 0]}
         onValueChange={(value) => onVolumeChange(value[0])}
         min={minVolume}
         max={1000}
@@ -68,7 +74,7 @@ export function ProductSalesControl({
           className="h-10 w-full text-muted-foreground"
           type="button"
           onClick={() => handleAdjust('decrease')}
-          disabled={disabled || sales.volume <= minVolume}
+          disabled={disabled || (sales.volume ?? 0) <= minVolume}
         >
           <Minus className="h-4 w-4" />
         </Button>
@@ -79,10 +85,17 @@ export function ProductSalesControl({
             min={minVolume}
             step={step}
             value={displayValue}
-            placeholder="0"
+            placeholder="Enter volume"
             onChange={(e) => {
-              const value = e.target.value === '' ? 0 : Math.max(minVolume, Number.parseInt(e.target.value, 10) || 0);
-              onVolumeChange(value);
+              // Empty string → undefined, '0' → 0, other → parsed number
+              if (e.target.value === '') {
+                onVolumeChange(undefined);
+              } else {
+                const parsed = Number.parseInt(e.target.value, 10);
+                if (!isNaN(parsed)) {
+                  onVolumeChange(Math.max(minVolume, parsed));
+                }
+              }
             }}
             className="h-10 text-base w-full bg-background text-center md:pl-[26px]"
             disabled={disabled}

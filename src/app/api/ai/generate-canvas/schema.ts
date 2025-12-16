@@ -18,7 +18,20 @@ const runningCostSchema = z.object({
   category: z.enum(CATEGORY_IDS).describe(`Category of the cost. Must be one of: ${CATEGORY_IDS.join(", ")}`),
 })
 
-// Product/revenue stream structure
+// Unified revenue stream structure
+const revenueStreamSchema = z.object({
+  name: z.string().describe("Name of the revenue stream (product or subscription)"),
+  type: z.enum(["product", "subscription"]).describe("Type of revenue stream - 'product' for one-time sales, 'subscription' for recurring revenue"),
+  // Product-specific fields (optional)
+  price: z.number().positive().optional().describe("Price per unit (for products) or subscription price (for subscriptions)"),
+  salesVolume: z.number().positive().optional().describe("Expected sales volume (only for product type)"),
+  salesPeriod: z.enum(["monthly", "daily"]).optional().describe("Period for the sales volume (only for product type)"),
+  // Subscription-specific fields (optional)
+  pricePeriod: z.enum(["monthly", "annual"]).optional().describe("Billing period for subscriptions (only for subscription type)"),
+  subscribers: z.number().positive().optional().describe("Number of expected subscribers (only for subscription type)"),
+})
+
+// Legacy schemas - kept for backward compatibility during transition
 const productSchema = z.object({
   name: z.string().describe("Name of the product or service"),
   price: z.number().positive().describe("Price per unit"),
@@ -26,7 +39,6 @@ const productSchema = z.object({
   salesPeriod: z.enum(["monthly", "daily"]).describe("Period for the sales volume"),
 })
 
-// Subscription revenue stream structure
 const subscriptionSchema = z.object({
   name: z.string().describe("Name of the subscription service"),
   price: z.number().positive().describe("Monthly subscription price"),
@@ -74,18 +86,23 @@ export const canvasGenerationSchema = z.object({
     .array(runningCostSchema)
     .max(10)
     .describe("Ongoing operating costs (5-10 items)"),
-  // Revenue streams - products (can be empty if business doesn't suit product sales model)
+  // Unified revenue streams
+  revenueStreams: z
+    .array(revenueStreamSchema)
+    .max(10)
+    .optional()
+    .describe("Revenue streams - can be products (one-time sales) or subscriptions (recurring). Use type field to distinguish. (5-10 items)"),
+  // Legacy fields - kept for backward compatibility
   products: z
     .array(productSchema)
     .max(10)
     .optional()
-    .describe("Products or services with pricing and expected sales volumes (5-10 items, or empty if not applicable)"),
-  // Revenue streams - subscriptions (can be empty if business doesn't suit subscription model)
+    .describe("DEPRECATED: Use revenueStreams with type='product' instead. Products or services with pricing and expected sales volumes"),
   subscriptions: z
     .array(subscriptionSchema)
     .max(10)
     .optional()
-    .describe("Subscription services with monthly pricing and subscriber counts (5-10 items, or empty if not applicable)"),
+    .describe("DEPRECATED: Use revenueStreams with type='subscription' instead. Subscription services with monthly pricing and subscriber counts"),
   // Flag for non-product-sales businesses
   revenueModelNote: z
     .string()
@@ -96,5 +113,7 @@ export const canvasGenerationSchema = z.object({
 export type CanvasGeneration = z.infer<typeof canvasGenerationSchema>
 export type UpfrontCostGeneration = z.infer<typeof upfrontCostSchema>
 export type RunningCostGeneration = z.infer<typeof runningCostSchema>
+export type RevenueStreamGeneration = z.infer<typeof revenueStreamSchema>
+// Legacy types
 export type ProductGeneration = z.infer<typeof productSchema>
 export type SubscriptionGeneration = z.infer<typeof subscriptionSchema>

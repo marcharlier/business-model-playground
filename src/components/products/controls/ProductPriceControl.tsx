@@ -9,7 +9,7 @@ interface ProductPriceControlProps {
   id: string;
   currency: Currency;
   label?: string;
-  value: string;
+  value: string; // '' = undefined/unset, '0' = free, other = price
   onChange: (value: string) => void;
   adjustPercent?: number;
   showFree?: boolean;

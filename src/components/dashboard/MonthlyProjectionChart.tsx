@@ -44,33 +44,38 @@ function calculateProjectionData(
 ): ProjectionData {
   const months = Array.from({ length: lengthMonths }, (_, i) => i + 1);
   
-  // Calculate base monthly revenue from products (one month's worth)
+  // Calculate base monthly revenue from products (one month's worth) - handle undefined prices
   const productRevenue = products.reduce((total, product) => {
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-    return total + (product.price * monthlyVolume);
+    const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+    const volume = sales.volume ?? 0;
+    const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+    const price = product.price ?? 0;
+    return total + (price * monthlyVolume);
   }, 0);
 
-  // Calculate base monthly revenue from subscriptions
+  // Calculate base monthly revenue from subscriptions - handle undefined subscribers
   const subscriptionRevenue = subscriptions.reduce((total, subscription) => {
     const monthlyPrice = getSubscriptionMonthlyPrice(subscription);
-    return total + (monthlyPrice * subscription.subscribers);
+    const subscribers = subscription.subscribers ?? 0;
+    return total + (monthlyPrice * subscribers);
   }, 0);
 
   const baseMonthlyRevenue = productRevenue + subscriptionRevenue;
 
   // Calculate base monthly variable costs from products (one month's worth)
   const productVariableCosts = products.reduce((total, product) => {
-    const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+    const volume = sales.volume ?? 0;
+    const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
     const unitCost = product.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
     return total + (unitCost * monthlyVolume);
   }, 0);
 
-  // Calculate base monthly variable costs from subscriptions
+  // Calculate base monthly variable costs from subscriptions - handle undefined subscribers
   const subscriptionVariableCosts = subscriptions.reduce((total, subscription) => {
     const unitCost = subscription.associatedCosts.reduce((sum, cost) => sum + cost.amount, 0);
-    return total + (unitCost * subscription.subscribers);
+    const subscribers = subscription.subscribers ?? 0;
+    return total + (unitCost * subscribers);
   }, 0);
 
   const baseMonthlyVariableCosts = productVariableCosts + subscriptionVariableCosts;

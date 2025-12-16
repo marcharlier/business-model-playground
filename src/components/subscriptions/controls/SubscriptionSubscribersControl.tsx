@@ -8,8 +8,8 @@ import { Slider } from '@/components/ui/slider';
 interface SubscriptionSubscribersControlProps {
   id: string;
   label?: string;
-  subscribers: number;
-  onSubscribersChange: (value: number) => void;
+  subscribers: number | undefined;
+  onSubscribersChange: (value: number | undefined) => void;
   minSubscribers?: number;
   step?: number;
   disabled?: boolean;
@@ -17,19 +17,24 @@ interface SubscriptionSubscribersControlProps {
 
 export function SubscriptionSubscribersControl({
   id,
-  label = 'Monthly subscribers',
+  label = 'Subscribers',
   subscribers,
   onSubscribersChange,
   minSubscribers = 0,
   step = 1,
   disabled = false,
 }: SubscriptionSubscribersControlProps) {
-  const displayValue = useMemo(() => (subscribers === 0 ? '' : subscribers), [subscribers]);
+  // Display: undefined → '', 0 → '0', other → number
+  const displayValue = useMemo(() => {
+    if (subscribers === undefined) return '';
+    return subscribers;
+  }, [subscribers]);
 
   const handleAdjust = (direction: 'increase' | 'decrease') => {
     if (disabled) return;
+    const currentSubscribers = subscribers ?? 0;
     const delta = direction === 'increase' ? step : -step;
-    const nextValue = Math.max(minSubscribers, (subscribers || 0) + delta);
+    const nextValue = Math.max(minSubscribers, currentSubscribers + delta);
     onSubscribersChange(nextValue);
   };
 
@@ -37,7 +42,7 @@ export function SubscriptionSubscribersControl({
     <div className="bg-muted rounded-md p-3 space-y-4 w-full">
       <Label htmlFor={id}>{label}</Label>
       <Slider
-        value={[subscribers]}
+        value={[subscribers ?? 0]}
         onValueChange={(value) => onSubscribersChange(value[0])}
         min={minSubscribers}
         max={10000}
@@ -51,7 +56,7 @@ export function SubscriptionSubscribersControl({
           className="h-10 w-full text-muted-foreground"
           type="button"
           onClick={() => handleAdjust('decrease')}
-          disabled={disabled || subscribers <= minSubscribers}
+          disabled={disabled || (subscribers ?? 0) <= minSubscribers}
         >
           <Minus className="h-4 w-4" />
         </Button>
@@ -62,10 +67,17 @@ export function SubscriptionSubscribersControl({
             min={minSubscribers}
             step={step}
             value={displayValue}
-            placeholder="0"
+            placeholder="Enter subscribers"
             onChange={(e) => {
-              const value = e.target.value === '' ? 0 : Math.max(minSubscribers, Number.parseInt(e.target.value, 10) || 0);
-              onSubscribersChange(value);
+              // Empty string → undefined, '0' → 0, other → parsed number
+              if (e.target.value === '') {
+                onSubscribersChange(undefined);
+              } else {
+                const parsed = Number.parseInt(e.target.value, 10);
+                if (!isNaN(parsed)) {
+                  onSubscribersChange(Math.max(minSubscribers, parsed));
+                }
+              }
             }}
             className="h-10 text-base w-full bg-background text-center md:pl-[26px]"
             disabled={disabled}

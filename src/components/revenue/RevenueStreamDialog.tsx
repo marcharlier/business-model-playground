@@ -16,17 +16,15 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
-import { RevenueStreamForm } from './RevenueStreamForm';
-import type { Product, Subscription, AssociatedCost, Currency, ProductSales } from '@/lib/storage/types';
+import { RevenueStreamForm, type RevenueStreamInput } from './RevenueStreamForm';
+import type { RevenueStream, Currency } from '@/lib/storage/types';
 
 interface RevenueStreamDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product?: Product;
-  subscription?: Subscription;
+  revenueStream?: RevenueStream;
   currency: Currency;
-  onSaveProduct?: (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => void;
-  onSaveSubscription?: (name: string, price: number, pricePeriod: 'monthly' | 'annual', subscribers: number, associatedCosts: AssociatedCost[]) => void;
+  onSave: (item: RevenueStreamInput) => void;
   isSubmitting: boolean;
   onDelete?: () => void;
 }
@@ -34,16 +32,14 @@ interface RevenueStreamDialogProps {
 export function RevenueStreamDialog({
   open,
   onOpenChange,
-  product,
-  subscription,
+  revenueStream,
   currency,
-  onSaveProduct,
-  onSaveSubscription,
+  onSave,
   isSubmitting,
   onDelete
 }: RevenueStreamDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const hasExistingItem = !!product || !!subscription;
+  const hasExistingItem = !!revenueStream;
 
   if (isDesktop) {
     return (
@@ -58,11 +54,9 @@ export function RevenueStreamDialog({
             </DialogDescription>
           </DialogHeader>
           <RevenueStreamForm
-            product={product}
-            subscription={subscription}
+            revenueStream={revenueStream}
             currency={currency}
-            onSaveProduct={onSaveProduct}
-            onSaveSubscription={onSaveSubscription}
+            onSave={onSave}
             onCancel={() => onOpenChange(false)}
             isSubmitting={isSubmitting}
             onDelete={onDelete}
@@ -85,11 +79,9 @@ export function RevenueStreamDialog({
         </DrawerHeader>
         <div className="px-4">
           <RevenueStreamForm
-            product={product}
-            subscription={subscription}
+            revenueStream={revenueStream}
             currency={currency}
-            onSaveProduct={onSaveProduct}
-            onSaveSubscription={onSaveSubscription}
+            onSave={onSave}
             onCancel={() => onOpenChange(false)}
             isSubmitting={isSubmitting}
             hideCancel

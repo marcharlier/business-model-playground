@@ -1,4 +1,4 @@
-import type { Subscription } from './types';
+import type { Subscription, RevenueStream, SubscriptionRevenueStream } from './types';
 import { projectStorage } from './projectStorage';
 import { generateUUID } from '@/lib/utils';
 
@@ -9,11 +9,16 @@ class SubscriptionStorage {
       throw new Error(`Project with ID ${projectId} not found`);
     }
 
+    // Convert legacy Subscription to SubscriptionRevenueStream for revenueStreams.items
+    const subscriptionWithType: SubscriptionRevenueStream = { 
+      ...subscription, 
+      type: 'subscription' as const 
+    };
+
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        subscriptions: [...(project.revenueStreams.subscriptions || []), subscription]
+        items: [...(project.revenueStreams.items || []), subscriptionWithType]
       }
     };
 
@@ -26,31 +31,30 @@ class SubscriptionStorage {
       throw new Error(`Project with ID ${projectId} not found`);
     }
 
-    const updatedSubscriptions = (project.revenueStreams.subscriptions || []).map(s => 
-      s.id === subscription.id ? subscription : s
+    const updatedItems = (project.revenueStreams.items || []).map((item: RevenueStream) => 
+      item.id === subscription.id ? { ...subscription, type: 'subscription' as const } as SubscriptionRevenueStream : item
     );
 
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        subscriptions: updatedSubscriptions
+        items: updatedItems
       }
     };
 
     projectStorage.updateProject(updatedProject);
   }
 
-  getSubscriptions(projectId: string): Subscription[] {
+  getSubscriptions(projectId: string): SubscriptionRevenueStream[] {
     const project = projectStorage.getProjectById(projectId);
     if (!project) {
       console.error('Project not found:', projectId);
       return [];
     }
-    return project.revenueStreams.subscriptions || [];
+    return (project.revenueStreams.items || []).filter((item: RevenueStream): item is SubscriptionRevenueStream => item.type === 'subscription');
   }
 
-  duplicateSubscription(subscriptionId: string, projectId: string): Subscription | null {
+  duplicateSubscription(subscriptionId: string, projectId: string): SubscriptionRevenueStream | null {
     console.log('Duplicating subscription:', subscriptionId);
     const project = projectStorage.getProjectById(projectId);
     if (!project) {
@@ -58,23 +62,24 @@ class SubscriptionStorage {
       return null;
     }
 
-    const subscription = (project.revenueStreams.subscriptions || []).find(s => s.id === subscriptionId);
+    const subscription = (project.revenueStreams.items || []).find((item: RevenueStream): item is SubscriptionRevenueStream => item.type === 'subscription' && item.id === subscriptionId);
     if (!subscription) {
       console.log('Subscription not found:', subscriptionId);
       return null;
     }
 
     const newId = generateUUID();
-    const newSubscription: Subscription = {
+    const newSubscription: SubscriptionRevenueStream = {
       id: newId,
       name: `${subscription.name} (Copy)`,
+      type: 'subscription' as const,
       price: subscription.price,
       pricePeriod: subscription.pricePeriod || 'monthly',
       subscribers: subscription.subscribers,
-      associatedCosts: subscription.associatedCosts.map(cost => ({
+      associatedCosts: subscription.associatedCosts.map((cost) => ({
         ...cost,
         id: generateUUID(),
-        subscriptionId: newId,
+        revenueStreamId: newId,
         projectId
       })),
       projectId
@@ -83,8 +88,7 @@ class SubscriptionStorage {
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        subscriptions: [...(project.revenueStreams.subscriptions || []), newSubscription]
+        items: [...(project.revenueStreams.items || []), newSubscription]
       }
     };
     projectStorage.updateProject(updatedProject);
@@ -101,12 +105,11 @@ class SubscriptionStorage {
       return false;
     }
 
-    const updatedSubscriptions = (project.revenueStreams.subscriptions || []).filter(s => s.id !== subscriptionId);
+    const updatedItems = (project.revenueStreams.items || []).filter((item: RevenueStream) => item.id !== subscriptionId);
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        subscriptions: updatedSubscriptions
+        items: updatedItems
       }
     };
     projectStorage.updateProject(updatedProject);
@@ -117,4 +120,3 @@ class SubscriptionStorage {
 }
 
 export const subscriptionStorage = new SubscriptionStorage();
-

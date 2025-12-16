@@ -24,7 +24,7 @@ interface ProductDialogProps {
   onOpenChange: (open: boolean) => void;
   product?: Product;
   currency: Currency;
-  onSave: (name: string, price: number, associatedCosts: AssociatedCost[], sales: ProductSales) => void;
+  onSave: (name: string, price: number | undefined, associatedCosts: AssociatedCost[], sales: ProductSales) => void;
   isSubmitting: boolean;
   onDelete?: () => void;
 }

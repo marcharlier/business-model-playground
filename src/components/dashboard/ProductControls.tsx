@@ -24,7 +24,7 @@ interface ProductControlsProps {
   products: Product[];
   productSales: Record<string, ProductSales>;
   currency: Currency;
-  onSalesVolumeChange: (productId: string, value: number) => void;
+  onSalesVolumeChange: (productId: string, value: number | undefined) => void;
   onSalesPeriodChange: (productId: string, period: 'monthly' | 'daily') => void;
   onPriceChange: (productId: string, value: string) => void;
   totalMonthlyFixedCosts: number;
@@ -36,7 +36,7 @@ interface ProductControlFormProps {
   sales: ProductSales;
   currency: Currency;
   onPriceChange: (productId: string, value: string) => void;
-  onSalesVolumeChange: (productId: string, value: number) => void;
+  onSalesVolumeChange: (productId: string, value: number | undefined) => void;
   onSalesPeriodChange: (productId: string, period: 'monthly' | 'daily') => void;
   calculateBreakEven: (product: Product, period: 'monthly' | 'daily') => number;
   upfrontRecoupText?: string;
@@ -53,7 +53,9 @@ function ProductControlForm({
   upfrontRecoupText
 }: ProductControlFormProps) {
   // Derive input value from product.price - no need for separate state sync
-  const inputValue = product.price === 0 ? '' : product.price.toString();
+  // Handle undefined price (suggestion mode)
+  const price = product.price ?? 0;
+  const inputValue = price === 0 ? '' : price.toString();
 
   const handlePriceChange = useCallback(
     (nextValue: string) => {
@@ -105,21 +107,23 @@ export function ProductControls({
 }: ProductControlsProps) {
   const [openDrawerId, setOpenDrawerId] = useState<string | null>(null);
 
-  // Calculate break-even point for each product
+  // Calculate break-even point for each product - handle undefined prices
   const calculateBreakEven = (product: Product, period: 'monthly' | 'daily') => {
     const variableCost = calculateProductTotalCost(product);
-    if (product.price <= variableCost) return Number.POSITIVE_INFINITY;
+    const price = product.price ?? 0;
+    if (price <= variableCost) return Number.POSITIVE_INFINITY;
     
-    const breakEvenPoint = Math.ceil(totalMonthlyFixedCosts / (product.price - variableCost));
+    const breakEvenPoint = Math.ceil(totalMonthlyFixedCosts / (price - variableCost));
     return period === 'daily' ? Math.ceil(breakEvenPoint / 30) : breakEvenPoint;
   };
 
-  // Calculate average product margin
+  // Calculate average product margin - handle undefined prices
   const calculateAverageMargin = () => {
     if (products.length === 0) return 0;
     
     const totalMargin = products.reduce((sum, product) => {
-      const revenue = product.price * (productSales[product.id]?.volume || 1);
+      const price = product.price ?? 0;
+      const revenue = price * (productSales[product.id]?.volume || 1);
       const costs = calculateProductTotalCost(product) * (productSales[product.id]?.volume || 1);
       const profit = revenue - costs;
       return sum + (revenue > 0 ? (profit / revenue) * 100 : 0);
@@ -130,24 +134,28 @@ export function ProductControls({
 
   const averageMargin = calculateAverageMargin();
   const getMarginStatus = () => {
-    // Calculate total monthly fixed costs (monthly + annual amortized)
-    const totalMonthlyFixedCosts = project.costStructure.fixedRunningCosts.reduce((total: number, cost: { frequency: string; amount: number }) => {
-      const monthlyAmount = cost.frequency === 'annual' ? cost.amount / 12 : cost.amount;
+    // Calculate total monthly fixed costs (monthly + annual amortized) - handle undefined amounts
+    const totalMonthlyFixedCosts = project.costStructure.fixedRunningCosts.reduce((total: number, cost) => {
+      const amount = cost.amount ?? 0;
+      const monthlyAmount = cost.frequency === 'annual' ? amount / 12 : amount;
       return total + monthlyAmount;
     }, 0);
 
-    // Calculate total monthly revenue
+    // Calculate total monthly revenue - handle undefined prices
     const totalMonthlyRevenue = products.reduce((total: number, product: Product) => {
-      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-      return total + (product.price * monthlyVolume);
+      const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+      const price = product.price ?? 0;
+      return total + (price * monthlyVolume);
     }, 0);
 
     // Calculate total monthly variable costs
     const totalMonthlyVariableCosts = products.reduce((total: number, product: Product) => {
       const productCost = calculateProductTotalCost(product);
-      const sales = productSales[product.id] || { volume: 1, period: 'monthly' };
-      const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+      const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
+      const volume = sales.volume ?? 0;
+      const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
       return total + (productCost * monthlyVolume);
     }, 0);
 
@@ -183,21 +191,27 @@ export function ProductControls({
 
   const marginStatus = getMarginStatus();
 
-  // Compute upfront recoup text at the scenario level
+  // Compute upfront recoup text at the scenario level - handle undefined amounts
   const upfrontTotals = {
-    upfront: (project.costStructure.upfrontCosts || []).reduce((sum, c) => sum + c.amount, 0),
-    monthlyFixed: project.costStructure.fixedRunningCosts.reduce((sum, cost) => sum + (cost.frequency === 'annual' ? cost.amount / 12 : cost.amount), 0),
+    upfront: (project.costStructure.upfrontCosts || []).reduce((sum, c) => sum + (c.amount ?? 0), 0),
+    monthlyFixed: project.costStructure.fixedRunningCosts.reduce((sum, cost) => {
+      const amount = cost.amount ?? 0;
+      return sum + (cost.frequency === 'annual' ? amount / 12 : amount);
+    }, 0),
   };
 
   const totalMonthlyRevenueAll = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
-    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
-    return total + product.price * monthlyVolume;
+    const volume = sales.volume ?? 0;
+    const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
+    const price = product.price ?? 0;
+    return total + price * monthlyVolume;
   }, 0);
 
   const totalMonthlyVariableAll = products.reduce((total, product) => {
     const sales = productSales[product.id] || { volume: 0, period: 'monthly' };
-    const monthlyVolume = sales.period === 'monthly' ? sales.volume : sales.volume * 30;
+    const volume = sales.volume ?? 0;
+    const monthlyVolume = sales.period === 'monthly' ? volume : volume * 30;
     const unitCost = calculateProductTotalCost(product);
     return total + unitCost * monthlyVolume;
   }, 0);
@@ -214,8 +228,10 @@ export function ProductControls({
   }
 
   const renderProductCard = (product: Product, sales: ProductSales) => {
-    const revenue = product.price * sales.volume;
-    const costs = calculateProductTotalCost(product) * sales.volume;
+    const price = product.price ?? 0;
+    const volume = sales.volume ?? 0;
+    const revenue = price * volume;
+    const costs = calculateProductTotalCost(product) * volume;
     const profit = revenue - costs;
     const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
@@ -226,7 +242,7 @@ export function ProductControls({
             <div>
               <p className="font-medium">{product.name}</p>
               <p className="text-sm text-muted-foreground">
-                {product.price === 0 ? 'Free' : formatCurrency(product.price, currency)} • {sales.volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
+                {price === 0 ? 'Free' : formatCurrency(price, currency)} • {volume} {sales.period === 'monthly' ? 'monthly' : 'daily'} sales • {formatProfitMargin(profitMargin)} margin
               </p>
             </div>
             <div className="flex items-center space-x-2">

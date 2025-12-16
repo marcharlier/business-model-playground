@@ -6,8 +6,13 @@ const currencySymbols: Record<Currency, string> = {
   EUR: '€',
 };
 
-export const formatCurrency = (amount: number, currency: Currency): string => {
+export const formatCurrency = (amount: number | undefined | null, currency: Currency): string => {
   const symbol = currencySymbols[currency];
+  
+  // Handle undefined/null values (suggestion mode)
+  if (amount === undefined || amount === null) {
+    return `${symbol}--`;
+  }
   
   // Format with 2 decimal places and thousands separators
   const formattedAmount = new Intl.NumberFormat('en-US', {

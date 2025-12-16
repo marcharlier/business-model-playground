@@ -1,4 +1,4 @@
-import type { Product } from './types';
+import type { Product, RevenueStream, ProductRevenueStream } from './types';
 import { projectStorage } from './projectStorage';
 import { generateUUID } from '@/lib/utils';
 
@@ -9,11 +9,16 @@ class ProductStorage {
       throw new Error(`Project with ID ${projectId} not found`);
     }
 
+    // Convert legacy Product to ProductRevenueStream for revenueStreams.items
+    const productWithType: ProductRevenueStream = { 
+      ...product, 
+      type: 'product' as const 
+    };
+
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        products: [...project.revenueStreams.products, product]
+        items: [...(project.revenueStreams.items || []), productWithType]
       }
     };
 
@@ -26,31 +31,30 @@ class ProductStorage {
       throw new Error(`Project with ID ${projectId} not found`);
     }
 
-    const updatedProducts = project.revenueStreams.products.map(p => 
-      p.id === product.id ? product : p
+    const updatedItems = (project.revenueStreams.items || []).map((item: RevenueStream) => 
+      item.id === product.id ? { ...product, type: 'product' as const } as ProductRevenueStream : item
     );
 
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        products: updatedProducts
+        items: updatedItems
       }
     };
 
     projectStorage.updateProject(updatedProject);
   }
 
-  getProducts(projectId: string): Product[] {
+  getProducts(projectId: string): ProductRevenueStream[] {
     const project = projectStorage.getProjectById(projectId);
     if (!project) {
       console.error('Project not found:', projectId);
       return [];
     }
-    return project.revenueStreams.products || [];
+    return (project.revenueStreams.items || []).filter((item: RevenueStream): item is ProductRevenueStream => item.type === 'product');
   }
 
-  duplicateProduct(productId: string, projectId: string): Product | null {
+  duplicateProduct(productId: string, projectId: string): ProductRevenueStream | null {
     console.log('Duplicating product:', productId);
     const project = projectStorage.getProjectById(projectId);
     if (!project) {
@@ -58,21 +62,22 @@ class ProductStorage {
       return null;
     }
 
-    const product = (project.revenueStreams.products || []).find(p => p.id === productId);
+    const product = (project.revenueStreams.items || []).find((item: RevenueStream): item is ProductRevenueStream => item.type === 'product' && item.id === productId);
     if (!product) {
       console.log('Product not found:', productId);
       return null;
     }
 
     const newId = generateUUID();
-    const newProduct: Product = {
+    const newProduct: ProductRevenueStream = {
       id: newId,
       name: `${product.name} (Copy)`,
+      type: 'product' as const,
       price: product.price,
-      associatedCosts: product.associatedCosts.map(cost => ({
+      associatedCosts: product.associatedCosts.map((cost) => ({
         ...cost,
         id: generateUUID(),
-        productId: newId,
+        revenueStreamId: newId,
         projectId
       })),
       projectId,
@@ -82,8 +87,7 @@ class ProductStorage {
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        products: [...(project.revenueStreams.products || []), newProduct]
+        items: [...(project.revenueStreams.items || []), newProduct]
       }
     };
     projectStorage.updateProject(updatedProject);
@@ -100,12 +104,11 @@ class ProductStorage {
       return false;
     }
 
-    const updatedProducts = (project.revenueStreams.products || []).filter(p => p.id !== productId);
+    const updatedItems = (project.revenueStreams.items || []).filter((item: RevenueStream) => item.id !== productId);
     const updatedProject = {
       ...project,
       revenueStreams: {
-        ...project.revenueStreams,
-        products: updatedProducts
+        items: updatedItems
       }
     };
     projectStorage.updateProject(updatedProject);
@@ -115,4 +118,4 @@ class ProductStorage {
   }
 }
 
-export const productStorage = new ProductStorage(); 
+export const productStorage = new ProductStorage();

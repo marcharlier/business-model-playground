@@ -1,7 +1,7 @@
 import type { Project } from "../storage/types";
 
 export const coffeeShopExample: Project = {
-  version: 2,
+  version: 3,
   id: "example-coffee-shop",
   name: "☕️ Coffee Shop Example",
   description: "A coffee shop selling artisan coffee specialities as well as a selection of pastries and baked goods.",
@@ -69,8 +69,9 @@ export const coffeeShopExample: Project = {
     ]
   },
   revenueStreams: {
-    products: [
+    items: [
       {
+        type: "product",
         id: "espresso",
         name: "☕️ Espresso",
         price: 2.50,
@@ -84,19 +85,20 @@ export const coffeeShopExample: Project = {
             id: "espresso-beans",
             name: "Coffee Beans",
             amount: 0.30,
-            productId: "espresso",
+            revenueStreamId: "espresso",
             projectId: "example-coffee-shop"
           },
           {
             id: "espresso-cup",
             name: "Cup & Lid",
             amount: 0.15,
-            productId: "espresso",
+            revenueStreamId: "espresso",
             projectId: "example-coffee-shop"
           }
         ]
       },
       {
+        type: "product",
         id: "cappuccino",
         name: "☕️🥛 Cappuccino",
         price: 3.50,
@@ -110,26 +112,27 @@ export const coffeeShopExample: Project = {
             id: "cappuccino-beans",
             name: "Coffee Beans",
             amount: 0.30,
-            productId: "cappuccino",
+            revenueStreamId: "cappuccino",
             projectId: "example-coffee-shop"
           },
           {
             id: "cappuccino-milk",
             name: "Milk",
             amount: 0.25,
-            productId: "cappuccino",
+            revenueStreamId: "cappuccino",
             projectId: "example-coffee-shop"
           },
           {
             id: "cappuccino-cup",
             name: "Cup & Lid",
             amount: 0.15,
-            productId: "cappuccino",
+            revenueStreamId: "cappuccino",
             projectId: "example-coffee-shop"
           }
         ]
       },
       {
+        type: "product",
         id: "croissant",
         name: "🥐 Croissant",
         price: 2.80,
@@ -143,20 +146,19 @@ export const coffeeShopExample: Project = {
             id: "croissant-cost",
             name: "Wholesale Croissant Cost",
             amount: 0.80,
-            productId: "croissant",
+            revenueStreamId: "croissant",
             projectId: "example-coffee-shop"
           },
           {
             id: "croissant-packaging",
             name: "Packaging",
             amount: 0.10,
-            productId: "croissant",
+            revenueStreamId: "croissant",
             projectId: "example-coffee-shop"
           }
         ]
       }
     ]
-    , subscriptions: []
   },
   partnerships: [
     {
@@ -240,4 +242,4 @@ export const coffeeShopExample: Project = {
       text: "Office catering for nearby startups"
     }
   ]
-}; 
+};

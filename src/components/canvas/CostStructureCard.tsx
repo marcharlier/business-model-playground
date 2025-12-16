@@ -45,6 +45,14 @@ export function CostStructureCard({
 
   const costsWithTypes: CostWithType[] = useMemo(() => {
     const operating = operatingCosts.map((cost) => {
+      // Show name-only if amount is not set (suggestion mode)
+      if (cost.amount === undefined || cost.amount === null) {
+        return {
+          cost,
+          type: 'operating' as const,
+          displayText: `${cost.name} - (Operating cost)`,
+        };
+      }
       const cadence = cost.frequency === 'monthly' ? 'per month' : 'per year';
       return {
         cost,
@@ -53,11 +61,21 @@ export function CostStructureCard({
       };
     });
 
-    const upfront = upfrontCosts.map((cost) => ({
-      cost,
-      type: 'upfront' as const,
-      displayText: `${cost.name} - ${formatCurrency(cost.amount, currency)} upfront`,
-    }));
+    const upfront = upfrontCosts.map((cost) => {
+      // Show name-only if amount is not set (suggestion mode)
+      if (cost.amount === undefined || cost.amount === null) {
+        return {
+          cost,
+          type: 'upfront' as const,
+          displayText: `${cost.name} - (Upfront cost)`,
+        };
+      }
+      return {
+        cost,
+        type: 'upfront' as const,
+        displayText: `${cost.name} - ${formatCurrency(cost.amount, currency)} upfront`,
+      };
+    });
 
     return [...operating, ...upfront];
   }, [operatingCosts, upfrontCosts, currency]);
@@ -109,7 +127,7 @@ export function CostStructureCard({
             className="h-8 flex-1 justify-center rounded-lg border border-border bg-background text-xs font-medium text-foreground shadow-none"
           >
             <Plus className="h-4 w-4 mr-1" />
-            Add
+            Add costs
           </Button>
         </div>
       </CardFooter>

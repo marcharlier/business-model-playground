@@ -18,7 +18,7 @@ export const fixedCostStorage = {
   createFixedCost: (
     projectId: string, 
     name: string, 
-    amount: number, 
+    amount: number | undefined, 
     frequency: FixedCost['frequency'],
     category: string
   ): FixedCost => {

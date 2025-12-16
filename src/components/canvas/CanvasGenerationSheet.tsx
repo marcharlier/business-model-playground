@@ -23,8 +23,9 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { chatHistoryStorage, type StoredChatMessage } from '@/lib/storage/chatHistoryStorage';
-import type { Project, CanvasItem, FixedCost, UpfrontCost, Product, Subscription } from '@/lib/storage/types';
+import type { Project, CanvasItem, FixedCost, UpfrontCost, RevenueStream, ProductRevenueStream, SubscriptionRevenueStream } from '@/lib/storage/types';
 import type { CanvasSection } from '@/app/api/ai/canvas-chat/tools';
+import { TextShimmer } from '../ui/text-shimmer';
 
 interface CanvasGenerationSheetProps {
   /** Project ID for tool execution and chat history */
@@ -196,7 +197,7 @@ export function CanvasGenerationSheet({
           const { costType, name, amount, frequency, category } = args as { 
             costType: 'upfront' | 'running'; 
             name: string; 
-            amount: number; 
+            amount?: number; 
             frequency?: 'monthly' | 'annual'; 
             category?: string 
           };
@@ -206,7 +207,7 @@ export function CanvasGenerationSheet({
               ...(updatedProject.costStructure.upfrontCosts || []),
               newCost,
             ];
-            changes.push(`Added upfront cost: ${name}`);
+            changes.push(`Added upfront cost: ${name}${amount === undefined ? ' (suggestion)' : ''}`);
           } else {
             const newCost: FixedCost = { 
               id: generateUUID(), 
@@ -220,7 +221,7 @@ export function CanvasGenerationSheet({
               ...updatedProject.costStructure.fixedRunningCosts,
               newCost,
             ];
-            changes.push(`Added running cost: ${name}`);
+            changes.push(`Added running cost: ${name}${amount === undefined ? ' (suggestion)' : ''}`);
           }
           break;
         }
@@ -266,23 +267,28 @@ export function CanvasGenerationSheet({
         case 'add_product': {
           const { name, price, salesVolume, salesPeriod } = args as { 
             name: string; 
-            price: number; 
-            salesVolume: number; 
-            salesPeriod: 'monthly' | 'daily' 
+            price?: number; 
+            salesVolume?: number; 
+            salesPeriod?: 'monthly' | 'daily' 
           };
-          const newProduct: Product = {
+          const newProduct: ProductRevenueStream = {
+            type: 'product',
             id: generateUUID(),
             name,
             price,
             associatedCosts: [],
             projectId,
-            sales: { volume: salesVolume, period: salesPeriod },
+            // Only create sales object if we have at least volume or period
+            sales: (salesVolume !== undefined || salesPeriod !== undefined) 
+              ? { volume: salesVolume ?? 0, period: salesPeriod ?? 'monthly' } 
+              : undefined,
           };
-          updatedProject.revenueStreams.products = [
-            ...updatedProject.revenueStreams.products,
+          updatedProject.revenueStreams.items = [
+            ...(updatedProject.revenueStreams.items || []),
             newProduct,
           ];
-          changes.push(`Added product: ${name}`);
+          const isSuggestion = price === undefined && salesVolume === undefined;
+          changes.push(`Added product: ${name}${isSuggestion ? ' (suggestion)' : ''}`);
           break;
         }
 
@@ -291,29 +297,30 @@ export function CanvasGenerationSheet({
             nameMatch: string; 
             updates: { name?: string; price?: number; salesVolume?: number; salesPeriod?: 'monthly' | 'daily' } 
           };
-          updatedProject.revenueStreams.products = updatedProject.revenueStreams.products.map(product =>
-            product.name.toLowerCase().includes(nameMatch.toLowerCase())
-              ? {
-                  ...product,
-                  ...(updates.name && { name: updates.name }),
-                  ...(updates.price !== undefined && { price: updates.price }),
-                  ...(updates.salesVolume !== undefined || updates.salesPeriod ? {
-                    sales: {
-                      volume: updates.salesVolume ?? product.sales?.volume ?? 0,
-                      period: updates.salesPeriod ?? product.sales?.period ?? 'monthly',
-                    },
-                  } : {}),
-                }
-              : product
-          );
+          updatedProject.revenueStreams.items = (updatedProject.revenueStreams.items || []).map(item => {
+            if (item.type !== 'product') return item;
+            const product = item as ProductRevenueStream;
+            if (!product.name.toLowerCase().includes(nameMatch.toLowerCase())) return item;
+            return {
+              ...product,
+              ...(updates.name && { name: updates.name }),
+              ...(updates.price !== undefined && { price: updates.price }),
+              ...(updates.salesVolume !== undefined || updates.salesPeriod ? {
+                sales: {
+                  volume: updates.salesVolume ?? product.sales?.volume ?? 0,
+                  period: updates.salesPeriod ?? product.sales?.period ?? 'monthly',
+                },
+              } : {}),
+            };
+          });
           changes.push(`Updated product matching "${nameMatch}"`);
           break;
         }
 
         case 'remove_product': {
           const { nameMatch } = args as { nameMatch: string };
-          updatedProject.revenueStreams.products = updatedProject.revenueStreams.products.filter(
-            product => !product.name.toLowerCase().includes(nameMatch.toLowerCase())
+          updatedProject.revenueStreams.items = (updatedProject.revenueStreams.items || []).filter(
+            item => item.type !== 'product' || !item.name.toLowerCase().includes(nameMatch.toLowerCase())
           );
           changes.push(`Removed product matching "${nameMatch}"`);
           break;
@@ -322,24 +329,26 @@ export function CanvasGenerationSheet({
         case 'add_subscription': {
           const { name, price, pricePeriod, subscribers } = args as { 
             name: string; 
-            price: number; 
-            pricePeriod: 'monthly' | 'annual'; 
-            subscribers: number 
+            price?: number; 
+            pricePeriod?: 'monthly' | 'annual'; 
+            subscribers?: number 
           };
-          const newSubscription: Subscription = {
+          const newSubscription: SubscriptionRevenueStream = {
+            type: 'subscription',
             id: generateUUID(),
             name,
             price,
-            pricePeriod,
+            pricePeriod: pricePeriod ?? 'monthly',
             subscribers,
             associatedCosts: [],
             projectId,
           };
-          updatedProject.revenueStreams.subscriptions = [
-            ...(updatedProject.revenueStreams.subscriptions || []),
+          updatedProject.revenueStreams.items = [
+            ...(updatedProject.revenueStreams.items || []),
             newSubscription,
           ];
-          changes.push(`Added subscription: ${name}`);
+          const isSuggestion = price === undefined && subscribers === undefined;
+          changes.push(`Added subscription: ${name}${isSuggestion ? ' (suggestion)' : ''}`);
           break;
         }
 
@@ -348,19 +357,20 @@ export function CanvasGenerationSheet({
             nameMatch: string; 
             updates: { name?: string; price?: number; pricePeriod?: 'monthly' | 'annual'; subscribers?: number } 
           };
-          updatedProject.revenueStreams.subscriptions = (updatedProject.revenueStreams.subscriptions || []).map(sub =>
-            sub.name.toLowerCase().includes(nameMatch.toLowerCase())
-              ? { ...sub, ...updates }
-              : sub
-          );
+          updatedProject.revenueStreams.items = (updatedProject.revenueStreams.items || []).map(item => {
+            if (item.type !== 'subscription') return item;
+            const sub = item as SubscriptionRevenueStream;
+            if (!sub.name.toLowerCase().includes(nameMatch.toLowerCase())) return item;
+            return { ...sub, ...updates };
+          });
           changes.push(`Updated subscription matching "${nameMatch}"`);
           break;
         }
 
         case 'remove_subscription': {
           const { nameMatch } = args as { nameMatch: string };
-          updatedProject.revenueStreams.subscriptions = (updatedProject.revenueStreams.subscriptions || []).filter(
-            sub => !sub.name.toLowerCase().includes(nameMatch.toLowerCase())
+          updatedProject.revenueStreams.items = (updatedProject.revenueStreams.items || []).filter(
+            item => item.type !== 'subscription' || !item.name.toLowerCase().includes(nameMatch.toLowerCase())
           );
           changes.push(`Removed subscription matching "${nameMatch}"`);
           break;
@@ -382,10 +392,10 @@ export function CanvasGenerationSheet({
             customerRelationships?: string[];
             channels?: string[];
             customerSegments?: string[];
-            upfrontCosts?: Array<{ name: string; amount: number }>;
-            runningCosts?: Array<{ name: string; amount: number; frequency: 'monthly' | 'annual'; category: string }>;
-            products?: Array<{ name: string; price: number; salesVolume: number; salesPeriod: 'monthly' | 'daily' }>;
-            subscriptions?: Array<{ name: string; price: number; subscribers: number }>;
+            upfrontCosts?: Array<{ name: string; amount?: number }>;
+            runningCosts?: Array<{ name: string; amount?: number; frequency: 'monthly' | 'annual'; category: string }>;
+            products?: Array<{ name: string; price?: number; salesVolume?: number; salesPeriod?: 'monthly' | 'daily' }>;
+            subscriptions?: Array<{ name: string; price?: number; subscribers?: number }>;
             revenueModelNote?: string;
           };
           
@@ -395,43 +405,51 @@ export function CanvasGenerationSheet({
           const toCanvasItems = (items?: string[]): CanvasItem[] => 
             (items || []).map(text => ({ id: generateUUID(), text }));
 
-          // Convert costs with fallback to empty arrays
+          // Convert costs with fallback to empty arrays - amount is now optional
           const upfrontCosts: UpfrontCost[] = (input.upfrontCosts || []).map(c => ({
             id: generateUUID(),
             name: c.name,
-            amount: c.amount,
+            amount: c.amount, // Can be undefined (suggestion mode)
             projectId,
           }));
 
           const fixedRunningCosts: FixedCost[] = (input.runningCosts || []).map(c => ({
             id: generateUUID(),
             name: c.name,
-            amount: c.amount,
+            amount: c.amount, // Can be undefined (suggestion mode)
             frequency: c.frequency,
             category: c.category,
             projectId,
           }));
 
-          // Convert products
-          const products: Product[] = (input.products || []).map(p => ({
+          // Convert products to unified revenue stream items
+          const productItems: RevenueStream[] = (input.products || []).map(p => ({
+            type: 'product' as const,
             id: generateUUID(),
             name: p.name,
-            price: p.price,
+            price: p.price, // Can be undefined (suggestion mode)
             associatedCosts: [],
             projectId,
-            sales: { volume: p.salesVolume, period: p.salesPeriod },
+            // Only create sales if we have values, otherwise leave undefined
+            sales: (p.salesVolume !== undefined || p.salesPeriod !== undefined)
+              ? { volume: p.salesVolume ?? 0, period: p.salesPeriod ?? 'monthly' }
+              : undefined,
           }));
 
-          // Convert subscriptions
-          const subscriptions: Subscription[] = (input.subscriptions || []).map(s => ({
+          // Convert subscriptions to unified revenue stream items
+          const subscriptionItems: RevenueStream[] = (input.subscriptions || []).map(s => ({
+            type: 'subscription' as const,
             id: generateUUID(),
             name: s.name,
-            price: s.price,
+            price: s.price, // Can be undefined (suggestion mode)
             pricePeriod: 'monthly' as const,
-            subscribers: s.subscribers,
+            subscribers: s.subscribers, // Can be undefined (suggestion mode)
             associatedCosts: [],
             projectId,
           }));
+
+          // Combine all revenue stream items
+          const revenueItems: RevenueStream[] = [...productItems, ...subscriptionItems];
 
           updatedProject = {
             ...updatedProject,
@@ -446,7 +464,7 @@ export function CanvasGenerationSheet({
             channels: toCanvasItems(input.channels),
             customerSegments: toCanvasItems(input.customerSegments),
             costStructure: { fixedRunningCosts, upfrontCosts },
-            revenueStreams: { products, subscriptions },
+            revenueStreams: { items: revenueItems },
           };
 
           // Build a comprehensive summary
@@ -465,16 +483,16 @@ export function CanvasGenerationSheet({
           ].filter(Boolean);
           
           if (canvasSections.length > 0) {
-            summaryParts.push(`The canvas includes ${canvasSections.join(', ')}.`);
+            summaryParts.push(`\n\nThe canvas includes ${canvasSections.join(', ')}.`);
           }
           
           // Costs summary
           const costParts: string[] = [];
           if (upfrontCosts.length > 0) {
-            costParts.push(`${upfrontCosts.length} startup costs`);
+            costParts.push(`${upfrontCosts.length} startup cost suggestions`);
           }
           if (fixedRunningCosts.length > 0) {
-            costParts.push(`${fixedRunningCosts.length} operating costs`);
+            costParts.push(`${fixedRunningCosts.length} operating cost suggestions`);
           }
           if (costParts.length > 0) {
             summaryParts.push(`For costs, I've identified ${costParts.join(' and ')}.`);
@@ -482,11 +500,11 @@ export function CanvasGenerationSheet({
           
           // Revenue summary
           const revenueParts: string[] = [];
-          if (products.length > 0) {
-            revenueParts.push(`${products.length} products`);
+          if (productItems.length > 0) {
+            revenueParts.push(`${productItems.length} product suggestions`);
           }
-          if (subscriptions.length > 0) {
-            revenueParts.push(`${subscriptions.length} subscription plans`);
+          if (subscriptionItems.length > 0) {
+            revenueParts.push(`${subscriptionItems.length} subscription suggestions`);
           }
           if (revenueParts.length > 0) {
             summaryParts.push(`Revenue streams include ${revenueParts.join(' and ')}.`);
@@ -497,7 +515,8 @@ export function CanvasGenerationSheet({
             summaryParts.push(`Note: ${input.revenueModelNote}`);
           }
           
-          summaryParts.push(`Feel free to ask me to refine any section or add more details!`);
+          // Guide user to Profitability Playground (on its own paragraph)
+          summaryParts.push(`\n\nHead over to the **Profitability Playground** to add financial values and see your business projections come to life!`);
 
           changes.push(summaryParts.join(' '));
           break;
@@ -780,6 +799,17 @@ export function CanvasGenerationSheet({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-scroll to bottom when sheet opens
+  useEffect(() => {
+    if (isOpen) {
+      // Use a small timeout to ensure content is rendered
+      const timeoutId = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isOpen]);
+
   // Start initial generation if needed
   useEffect(() => {
     if (!isInitialGeneration || hasStartedInitialGenRef.current || !initialPrompt) return;
@@ -897,7 +927,7 @@ export function CanvasGenerationSheet({
               <MessageContent>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Thinking...</span>
+                  <TextShimmer as="span" duration={1}>Thinking...</TextShimmer>
                 </div>
               </MessageContent>
             </Message>

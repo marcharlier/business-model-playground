@@ -7,24 +7,56 @@ export const CanvasItem = z.object({
   text: z.string(),
 });
 
+// Associated cost for revenue streams - uses revenueStreamId for unified model
 export const AssociatedCost = z.object({
   id: z.string(),
   name: z.string(),
   amount: z.number().nonnegative(),
+  revenueStreamId: z.string().optional(),
+  // Legacy fields - kept for backward compatibility during migration
   productId: z.string().optional(),
   subscriptionId: z.string().optional(),
   projectId: z.string(),
 });
 
 export const ProductSales = z.object({
-  volume: z.number().nonnegative(),
+  volume: z.number().nonnegative().optional(),
   period: z.enum(['monthly', 'daily']),
 });
 
+// Unified Revenue Stream - discriminated union by type
+const RevenueStreamBase = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number().nonnegative().optional(),
+  associatedCosts: z.array(AssociatedCost),
+  projectId: z.string(),
+});
+
+// Product revenue stream (one-time sales)
+export const ProductRevenueStream = RevenueStreamBase.extend({
+  type: z.literal('product'),
+  sales: ProductSales.optional(),
+});
+
+// Subscription revenue stream (recurring)
+export const SubscriptionRevenueStream = RevenueStreamBase.extend({
+  type: z.literal('subscription'),
+  pricePeriod: z.enum(['monthly', 'annual']).default('monthly'),
+  subscribers: z.number().nonnegative().optional(),
+});
+
+// Unified RevenueStream type (discriminated union)
+export const RevenueStream = z.discriminatedUnion('type', [
+  ProductRevenueStream,
+  SubscriptionRevenueStream,
+]);
+
+// Legacy types - kept for v2 migration compatibility
 export const Product = z.object({
   id: z.string(),
   name: z.string(),
-  price: z.number().nonnegative(),
+  price: z.number().nonnegative().optional(),
   associatedCosts: z.array(AssociatedCost),
   projectId: z.string(),
   sales: ProductSales.optional(),
@@ -33,9 +65,9 @@ export const Product = z.object({
 export const Subscription = z.object({
   id: z.string(),
   name: z.string(),
-  price: z.number().nonnegative(),
+  price: z.number().nonnegative().optional(),
   pricePeriod: z.enum(['monthly', 'annual']).default('monthly'),
-  subscribers: z.number().nonnegative(),
+  subscribers: z.number().nonnegative().optional(),
   associatedCosts: z.array(AssociatedCost),
   projectId: z.string(),
 });
@@ -44,7 +76,7 @@ export const Subscription = z.object({
 export const FixedCost = z.object({
   id: z.string(),
   name: z.string(),
-  amount: z.number().nonnegative(),
+  amount: z.number().nonnegative().optional(),
   frequency: z.enum(['monthly', 'annual']),
   category: z.string(),
   projectId: z.string(),
@@ -53,7 +85,7 @@ export const FixedCost = z.object({
 export const UpfrontCost = z.object({
   id: z.string(),
   name: z.string(),
-  amount: z.number().nonnegative(),
+  amount: z.number().nonnegative().optional(),
   projectId: z.string(),
 });
 
@@ -62,13 +94,19 @@ export const CostStructure = z.object({
   upfrontCosts: z.array(UpfrontCost).default([]),
 });
 
+// Version 3: Unified revenue streams with items[]
 export const RevenueStreams = z.object({
+  items: z.array(RevenueStream).default([]),
+});
+
+// Legacy RevenueStreams for v2 migration
+export const RevenueStreamsV2 = z.object({
   products: z.array(Product),
   subscriptions: z.array(Subscription).default([]),
 });
 
 export const Project = z.object({
-  version: z.literal(2),
+  version: z.literal(3),
   id: z.string(),
   name: z.string(),
   // Optional short description of the business. Capped to ~2 paragraphs.
