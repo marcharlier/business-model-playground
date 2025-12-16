@@ -843,8 +843,8 @@ export function CanvasGenerationSheet({
   // Content component - shared between mobile and desktop
   const renderContent = () => (
     <>
-      {/* Header */}
-      <div className="px-4 py-4 border-b flex-shrink-0 bg-blue-700 rounded-t-lg md:rounded-t-xl">
+      {/* Header - fixed height, never grows */}
+      <div className="px-4 py-4 border-b shrink-0 grow-0 basis-auto bg-blue-700 rounded-t-lg md:rounded-t-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-normal font-hero font-semibold text-white">AI Assistant</h2>
@@ -860,7 +860,8 @@ export function CanvasGenerationSheet({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
+      {/* Chat messages - fills available space, scrollable */}
+      <ScrollArea className="flex-1 min-h-0 overflow-y-auto" ref={scrollAreaRef}>
         <div className="space-y-4 p-4">
           {/* Welcome message if no messages */}
           {messages.length === 0 && !isLoading && !initialPrompt && (
@@ -936,8 +937,8 @@ export function CanvasGenerationSheet({
         </div>
       </ScrollArea>
 
-      {/* Prompt Input */}
-      <div className="border-t p-4 flex-shrink-0">
+      {/* Prompt Input - fixed height area, never grows beyond max */}
+      <div className="border-t p-4 shrink-0 grow-0 basis-auto">
         <PromptInput
           onSubmit={handleSubmit}
           className={cn(!usage.canUse && 'opacity-50')}
@@ -952,6 +953,7 @@ export function CanvasGenerationSheet({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={!usage.canUse || isLoading}
+              className="max-h-24"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -977,6 +979,8 @@ export function CanvasGenerationSheet({
     return (
       <Drawer
         open={isOpen}
+        repositionInputs={false}
+        fixed
         onOpenChange={(open) => {
           if (!open) {
             handleClose();
@@ -989,7 +993,10 @@ export function CanvasGenerationSheet({
           }
         }}
       >
-        <DrawerContent className="h-[90vh] flex flex-col overflow-hidden [&>div:first-child]:hidden border-none shadow-xl">
+        <DrawerContent
+          hideHandle
+          className="!h-[85dvh] !max-h-[85dvh] flex flex-col overflow-hidden border-none shadow-xl after:!hidden"
+        >
           <DrawerTitle className="sr-only">AI Assistant</DrawerTitle>
           {renderContent()}
         </DrawerContent>
