@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { projectStorage } from '@/lib/storage/projectStorage';
 import { cloudProjectStorage } from '@/lib/storage/cloudProjectStorage';
+import { sharedProjectStorage } from '@/lib/storage/sharedProjectStorage';
 import type { Project } from '@/lib/storage/types';
 
 // Simple store for projects with subscription support
@@ -65,10 +66,25 @@ export function useProjects() {
 
   /**
    * Delete a project from both local and cloud storage.
+   * Also cleans up any associated shared_projects entry if the project was shared.
    * Updates local state immediately for responsive UI.
    */
   const deleteProject = useCallback(async (projectId: string) => {
     try {
+      // Get the project first to check if it has a sharedId
+      const project = projectStorage.getProjectById(projectId);
+      
+      // If the project has a sharedId, delete the shared project entry first
+      if (project?.sharedId) {
+        try {
+          await sharedProjectStorage.deleteSharedProject(project.sharedId);
+        } catch (error) {
+          // Log but don't fail the deletion if shared project cleanup fails
+          // (e.g., if it was already deleted or user doesn't have permission)
+          console.warn('Error deleting shared project entry:', error);
+        }
+      }
+      
       // Delete from local storage
       projectStorage.deleteProject(projectId);
       
