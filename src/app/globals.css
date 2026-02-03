@@ -73,6 +73,9 @@
   .link {
     @apply text-blue-700 underline hover:text-blue-700/80 transition-colors duration-200;
   }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-hero;
+  }
 } 
 
 @keyframes dialog-enter {

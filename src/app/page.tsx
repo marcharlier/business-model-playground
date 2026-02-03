@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Plus } from 'lucide-react';
 import { projectStorage } from '@/lib/storage/projectStorage';
@@ -16,6 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectCard } from '@/components/project/ProjectCard';
+import { TestimonialCard } from '@/components/ui/testimonial-card';
+import {
+  ExploreWithAISection,
+  BusinessModelCanvasSection,
+  AIBuddySection,
+  BreakEvenSection,
+  GoDeeperAISection,
+  PricingCostsSection,
+} from '@/components/home';
 
 // Prompt shortcuts configuration
 interface PromptShortcut {
@@ -93,6 +102,7 @@ function CanvasPreview({ className }: { className?: string }) {
 
 export default function Home() {
   const { projects, deleteProject } = useProjects();
+  const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [businessIdea, setBusinessIdea] = useState('');
   const [currency, setCurrency] = useState<Currency>('GBP');
@@ -208,6 +218,14 @@ export default function Home() {
     }
   };
 
+  const handleGetStarted = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollDuration = 400;
+    setTimeout(() => {
+      promptInputRef.current?.focus();
+    }, scrollDuration);
+  };
+
   return (
     <div className="flex-1 flex flex-col pt-24 md:pt-20">
       <div className="container px-2 md:px-8 max-w-7xl mx-auto py-8 sm:py-12 flex-1">
@@ -220,7 +238,7 @@ export default function Home() {
             {/* Content layer - positioned on top of canvas */}
             <div className="relative z-10 pt-32">
               {/* Tagline */}
-              <h2 className="text-white text-xl sm:text-2xl font-semibold text-center mb-8">
+              <h2 className="text-white font-hero text-xl sm:text-5xl font-semibold text-center mb-12">
                 Build a business model with AI <br className="hidden md:block" />
                 and explore pricing and profitability.
               </h2>
@@ -229,6 +247,7 @@ export default function Home() {
               <div className="max-w-2xl mx-auto">
                 <div className="bg-white rounded-xl p-4 shadow-lg">
                   <textarea
+                    ref={promptInputRef}
                     value={businessIdea}
                     onChange={(e) => setBusinessIdea(e.target.value)}
                     placeholder="Describe your business idea and get a filled in Business Model Canvas. For example: 'A mobile app that connects local farmers directly with restaurants for fresh produce delivery...'"
@@ -303,7 +322,7 @@ export default function Home() {
 
         {/* Projects Section - Only show if user has projects */}
         {!isLoading && projects.length > 0 && (
-          <div className="mx-auto">
+          <div className="mx-auto mb-8">
             <h2 className="text-xl font-semibold mb-4">Your projects</h2>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {[...projects]
@@ -318,6 +337,68 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* Explainer sections - flex on mobile (order controls sequence), columns on desktop */}
+        <div className="flex flex-col lg:block lg:columns-2 gap-x-8 sm:gap-x-10 mt-8 sm:mt-12 [&>*]:mb-8 [&>*]:sm:mb-10 [&>*:last-child]:mb-0 [&>*]:break-inside-avoid">
+          <div className="order-1">
+            <ExploreWithAISection />
+          </div>
+          <div className="order-3">
+            <AIBuddySection />
+          </div>
+          <div className="order-5">
+            <GoDeeperAISection />
+          </div>
+          <div className="order-2">
+            <BusinessModelCanvasSection />
+          </div>
+          <div className="order-4">
+            <BreakEvenSection />
+          </div>
+          <div className="order-6">
+            <PricingCostsSection />
+          </div>
+        </div>
+
+        {/* Praise Section */}
+        <div className="mx-auto mt-12">
+          <h2 className="text-xl font-semibold mb-4">What people are saying</h2>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <TestimonialCard
+              quote="Love it, used it on a client project."
+              name="Melissa Clark"
+              title="Strategy Director @ And Jump"
+              avatarImage="/testimonials/Melissa.jpeg"
+            />
+            <TestimonialCard
+              quote="Nice tool. I like your thinking."
+              name="Alec Boere"
+              title="Partner @ Valliance"
+              avatarImage="/testimonials/Alec.jpeg"
+            />
+            <TestimonialCard
+              quote="Super cool."
+              name="Shareq Husain"
+              title="COO @ JustMoveIn"
+              avatarImage="/testimonials/Shareq.jpeg"
+            />
+            <TestimonialCard
+              quote="Love it. Useful in education too."
+              name="Matt Shannon"
+              title="Product & Design Leader"
+              avatarImage="/testimonials/Matt.jpeg"
+            />
+          </div>
+          <div className="flex justify-center mt-12 mb-8 bg-blue-900 rounded-xl p-6">
+            <Button
+              size="lg"
+              onClick={handleGetStarted}
+              className="text-lg px-10 py-6 rounded-full bg-white/80 hover:bg-white text-blue-900 font-semibold animate-pulse hover:animate-none"
+            >
+              Try it yourself
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

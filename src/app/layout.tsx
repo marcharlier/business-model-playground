@@ -1,5 +1,5 @@
 import "./globals.css"
-import { Inter, Figtree } from "next/font/google"
+import { Inter, Figtree, Poetsen_One } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { AppBarWrapper } from "@/components/ui/app-bar-wrapper"
 import { FooterWrapper } from "@/components/ui/footer-wrapper"
@@ -9,6 +9,11 @@ import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" })
+const poetsenOne = Poetsen_One({ 
+  subsets: ["latin"], 
+  weight: "400",
+  variable: "--font-poetsen-one" 
+})
 
 export const metadata = {
   title: 'Business Model Playground',
@@ -29,7 +34,8 @@ export default function RootLayout({
       <body className={cn(
         "min-h-screen bg-background font-sans antialiased flex flex-col bg-[#E4E4E4]",
         inter.variable,
-        figtree.variable
+        figtree.variable,
+        poetsenOne.variable
       )}>
         <ThemeProvider>
           <LayoutWrapper>
