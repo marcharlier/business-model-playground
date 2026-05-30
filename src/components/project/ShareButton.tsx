@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Trash2, Copy, Share, Check } from 'lucide-react';
+import { RefreshCw, Trash2, Copy, Share, Check, Ban } from 'lucide-react';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -322,10 +322,10 @@ export function ShareButton({ project }: ShareButtonProps) {
               Share a current snapshot of your project with others via a link.
             </DialogDescription>
           </DialogHeader>
-          <ul className="list-disc pl-4 text-sm text-muted-foreground">
-                <li>Others can import a copy of your project to their workspace.</li>
-                <li>You can update this snapshot when you like.</li>
-                <li>The snapshot data will be stored in a secure database.</li>
+          <ul className="list-none pb-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4" />Others can import a copy of your project to their workspace.</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4" />You can update this snapshot when you like.</li>
+                <li className="flex items-center gap-2"><Ban className="h-4 w-4" />Your chat history will not be shared.</li>
             </ul>
           {content}
         </DialogContent>
@@ -346,11 +346,11 @@ export function ShareButton({ project }: ShareButtonProps) {
           </DrawerDescription>
         </DrawerHeader>
         <div className="px-4">
-          <ul className="list-disc pl-4 text-xs text-muted-foreground mb-2 text-left">
-            <li>Others can import a copy of your project to their workspace.</li>
-            <li>You can update this snapshot when you like.</li>
-            <li>The snapshot data will be stored in a secure database.</li>
-          </ul>
+        <ul className="list-none pb-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4" />Others can import a copy of your project to their workspace.</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4" />You can update this snapshot when you like.</li>
+                <li className="flex items-center gap-2"><Ban className="h-4 w-4" />Your chat history will not be shared.</li>
+            </ul>
           {content}
         </div>
         <DrawerFooter>
