@@ -471,6 +471,12 @@ export default function PlaygroundPage() {
     }
   };
 
+  const handleOperatingCostFrequencyChange = (cost: FixedCost, frequency: FixedCost['frequency']) => {
+    if (!projectId) return;
+    fixedCostStorage.updateFixedCost(projectId, { ...cost, frequency });
+    refreshProject();
+  };
+
   if (!project) {
     return <div>Loading...</div>;
   }
@@ -754,8 +760,10 @@ export default function PlaygroundPage() {
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
-                                              'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px]',
-                                              sales.period === 'daily' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                              'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px] transition-colors hover:border-0 hover:border-r hover:border-border',
+                                              sales.period === 'daily'
+                                                ? 'bg-foreground text-background hover:bg-foreground hover:text-background'
+                                                : 'hover:bg-muted hover:text-foreground'
                                             )}
                                             type="button"
                                             onClick={() => handleProductPeriodChange(product, 'daily')}
@@ -766,8 +774,10 @@ export default function PlaygroundPage() {
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
-                                              'h-full w-[22px] rounded-none px-0 text-[11px]',
-                                              sales.period === 'monthly' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                              'h-full w-[22px] rounded-none px-0 text-[11px] transition-colors hover:border-0',
+                                              sales.period === 'monthly'
+                                                ? 'bg-foreground text-background hover:bg-foreground hover:text-background'
+                                                : 'hover:bg-muted hover:text-foreground'
                                             )}
                                             type="button"
                                             onClick={() => handleProductPeriodChange(product, 'monthly')}
@@ -833,7 +843,7 @@ export default function PlaygroundPage() {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                            className="h-full w-6 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
                                             type="button"
                                             onClick={() => handleSubscriptionPriceAdjust(subscription, 'decrease')}
                                           >
@@ -854,7 +864,7 @@ export default function PlaygroundPage() {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                            className="h-full w-6 rounded-none text-muted-foreground hover:bg-muted"
                                             type="button"
                                             onClick={() => handleSubscriptionPriceAdjust(subscription, 'increase')}
                                           >
@@ -865,7 +875,7 @@ export default function PlaygroundPage() {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                            className="h-full w-6 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
                                             type="button"
                                             onClick={() => handleSubscriptionSubscribersAdjust(subscription, 'decrease')}
                                             disabled={(subscription.subscribers ?? 0) <= 0}
@@ -883,7 +893,7 @@ export default function PlaygroundPage() {
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                            className="h-full w-6 rounded-none text-muted-foreground hover:bg-muted"
                                             type="button"
                                             onClick={() => handleSubscriptionSubscribersAdjust(subscription, 'increase')}
                                           >
@@ -895,8 +905,10 @@ export default function PlaygroundPage() {
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
-                                              'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px]',
-                                              pricePeriod === 'monthly' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                              'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px] transition-colors hover:border-0 hover:border-r hover:border-border',
+                                              pricePeriod === 'monthly'
+                                                ? 'bg-foreground text-background hover:bg-foreground hover:text-background'
+                                                : 'hover:bg-muted hover:text-foreground'
                                             )}
                                             type="button"
                                             onClick={() => handleSubscriptionPricePeriodChange(subscription, 'monthly')}
@@ -907,8 +919,10 @@ export default function PlaygroundPage() {
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
-                                              'h-full w-[22px] rounded-none px-0 text-[11px]',
-                                              pricePeriod === 'annual' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                              'h-full w-[22px] rounded-none px-0 text-[11px] transition-colors hover:border-0',
+                                              pricePeriod === 'annual'
+                                                ? 'bg-foreground text-background hover:bg-foreground hover:text-background'
+                                                : 'hover:bg-muted hover:text-foreground'
                                             )}
                                             type="button"
                                             onClick={() => handleSubscriptionPricePeriodChange(subscription, 'annual')}
@@ -991,7 +1005,7 @@ export default function PlaygroundPage() {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                          className="h-full w-6 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
                                           type="button"
                                           onClick={() => handleCostAmountAdjust(cost, 'decrease')}
                                         >
@@ -1012,11 +1026,41 @@ export default function PlaygroundPage() {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                          className="h-full w-6 rounded-none text-muted-foreground hover:bg-muted"
                                           type="button"
                                           onClick={() => handleCostAmountAdjust(cost, 'increase')}
                                         >
                                           <span className="text-[10px]">+5%</span>
+                                        </Button>
+                                      </div>
+                                      <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className={cn(
+                                            'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px] transition-colors hover:border-0 hover:border-r hover:border-border',
+                                            cost.frequency === 'monthly'
+                                              ? 'bg-foreground text-background hover:bg-foreground hover:text-background'
+                                              : 'hover:bg-muted hover:text-foreground'
+                                          )}
+                                          type="button"
+                                          onClick={() => handleOperatingCostFrequencyChange(cost, 'monthly')}
+                                        >
+                                          M
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className={cn(
+                                            'h-full w-[22px] rounded-none px-0 text-[11px] transition-colors hover:border-0',
+                                            cost.frequency === 'annual'
+                                              ? 'bg-foreground text-background hover:bg-foreground hover:text-background'
+                                              : 'hover:bg-muted hover:text-foreground'
+                                          )}
+                                          type="button"
+                                          onClick={() => handleOperatingCostFrequencyChange(cost, 'annual')}
+                                        >
+                                          Y
                                         </Button>
                                       </div>
                                       <Button
@@ -1101,7 +1145,7 @@ export default function PlaygroundPage() {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                          className="h-full w-6 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
                                           type="button"
                                           onClick={() => handleCostAmountAdjust(cost, 'decrease')}
                                         >
@@ -1122,7 +1166,7 @@ export default function PlaygroundPage() {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                          className="h-full w-6 rounded-none text-muted-foreground hover:bg-muted"
                                           type="button"
                                           onClick={() => handleCostAmountAdjust(cost, 'increase')}
                                         >
