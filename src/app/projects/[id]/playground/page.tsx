@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Pencil, Plus, PanelLeft } from 'lucide-react';
+import { Pencil, Plus, PanelLeft, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/lib/context/ProjectContext';
 import {
@@ -23,6 +23,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { MonthlyProjectionChart } from '@/components/dashboard/MonthlyProjectionChart';
 import { BusinessStatusSummary } from '@/components/dashboard/BusinessStatusSummary';
 import { CostDialog } from '@/components/costs/CostDialog';
@@ -313,6 +314,111 @@ export default function PlaygroundPage() {
     setEditingRevenueStream(undefined);
   };
 
+  const persistRevenueStreamUpdate = (updatedStream: RevenueStream) => {
+    if (!projectId) return;
+    revenueStreamStorage.updateRevenueStream(updatedStream, projectId);
+    refreshProject();
+  };
+
+  const handleProductPriceInputChange = (product: ProductRevenueStream, value: string) => {
+    if (value === '') {
+      persistRevenueStreamUpdate({ ...product, price: undefined });
+      return;
+    }
+
+    const parsedPrice = Number.parseFloat(value);
+    if (Number.isNaN(parsedPrice)) return;
+    persistRevenueStreamUpdate({ ...product, price: Math.max(0, parsedPrice) });
+  };
+
+  const handleProductPriceAdjust = (product: ProductRevenueStream, direction: 'increase' | 'decrease') => {
+    const currentPrice = product.price ?? 0;
+    const factor = 0.05;
+    const multiplier = direction === 'increase' ? 1 + factor : 1 - factor;
+    const adjusted = Math.max(0, Number.parseFloat((currentPrice * multiplier).toFixed(2)));
+    persistRevenueStreamUpdate({ ...product, price: adjusted === 0 ? undefined : adjusted });
+  };
+
+  const handleProductVolumeInputChange = (product: ProductRevenueStream, value: string) => {
+    const currentSales = product.sales || { volume: 0, period: 'monthly' as const };
+    if (value === '') {
+      persistRevenueStreamUpdate({ ...product, sales: { ...currentSales, volume: undefined } });
+      return;
+    }
+
+    const parsedVolume = Number.parseInt(value, 10);
+    if (Number.isNaN(parsedVolume)) return;
+    persistRevenueStreamUpdate({
+      ...product,
+      sales: { ...currentSales, volume: Math.max(0, parsedVolume) },
+    });
+  };
+
+  const handleProductVolumeAdjust = (product: ProductRevenueStream, direction: 'increase' | 'decrease') => {
+    const currentSales = product.sales || { volume: 0, period: 'monthly' as const };
+    const currentVolume = currentSales.volume ?? 0;
+    const delta = direction === 'increase' ? 1 : -1;
+    persistRevenueStreamUpdate({
+      ...product,
+      sales: { ...currentSales, volume: Math.max(0, currentVolume + delta) },
+    });
+  };
+
+  const handleProductPeriodChange = (product: ProductRevenueStream, period: ProductSales['period']) => {
+    const currentSales = product.sales || { volume: 0, period: 'monthly' as const };
+    persistRevenueStreamUpdate({
+      ...product,
+      sales: { ...currentSales, period },
+    });
+  };
+
+  const updateOperatingCostAmount = (cost: FixedCost, amount: number | undefined) => {
+    if (!projectId) return;
+    fixedCostStorage.updateFixedCost(projectId, { ...cost, amount });
+    refreshProject();
+  };
+
+  const updateUpfrontCostAmount = (cost: UpfrontCost, amount: number | undefined) => {
+    if (!projectId) return;
+    upfrontCostStorage.updateUpfrontCost(projectId, { ...cost, amount });
+    refreshProject();
+  };
+
+  const handleCostAmountInputChange = (cost: FixedCost | UpfrontCost, value: string) => {
+    if (value === '') {
+      if ('category' in cost) {
+        updateOperatingCostAmount(cost, undefined);
+      } else {
+        updateUpfrontCostAmount(cost, undefined);
+      }
+      return;
+    }
+
+    const parsedAmount = Number.parseFloat(value);
+    if (Number.isNaN(parsedAmount)) return;
+    const nextAmount = Math.max(0, parsedAmount);
+
+    if ('category' in cost) {
+      updateOperatingCostAmount(cost, nextAmount);
+    } else {
+      updateUpfrontCostAmount(cost, nextAmount);
+    }
+  };
+
+  const handleCostAmountAdjust = (cost: FixedCost | UpfrontCost, direction: 'increase' | 'decrease') => {
+    const currentAmount = cost.amount ?? 0;
+    const factor = 0.05;
+    const multiplier = direction === 'increase' ? 1 + factor : 1 - factor;
+    const adjusted = Math.max(0, Number.parseFloat((currentAmount * multiplier).toFixed(2)));
+    const nextAmount = adjusted === 0 ? undefined : adjusted;
+
+    if ('category' in cost) {
+      updateOperatingCostAmount(cost, nextAmount);
+    } else {
+      updateUpfrontCostAmount(cost, nextAmount);
+    }
+  };
+
   if (!project) {
     return <div>Loading...</div>;
   }
@@ -500,7 +606,7 @@ export default function PlaygroundPage() {
                                 return (
                                   <div
                                     key={product.id}
-                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                    className="group flex items-center justify-between gap-2 rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
                                     onClick={() => handleEditRevenueStream(product)}
                                   >
                                     <div className="flex-1 min-w-0">
@@ -526,17 +632,106 @@ export default function PlaygroundPage() {
                                       <Pencil className="h-3.5 w-3.5" /> Set price
                                     </Button>
                                     ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditRevenueStream(product);
-                                        }}
+                                      <div
+                                        className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                                        onClick={(e) => e.stopPropagation()}
                                       >
-                                        <Pencil className="h-3.5 w-3.5" />
-                                      </Button>
+                                        <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-6 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleProductPriceAdjust(product, 'decrease')}
+                                          >
+                                            <span className="text-[10px]">-5%</span>
+                                          </Button>
+                                          <div className="relative flex h-full w-[74px] items-center border-r border-border">
+                                            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
+                                              {project.currency === 'GBP' ? '£' : project.currency === 'EUR' ? '€' : '$'}
+                                            </span>
+                                            <Input
+                                              type="text"
+                                              inputMode="decimal"
+                                              value={product.price === undefined ? '' : product.price.toString()}
+                                              onChange={(e) => handleProductPriceInputChange(product, e.target.value)}
+                                              className="h-full w-full rounded-none border-0 bg-transparent pl-5 pr-1 text-center text-xs shadow-none focus-visible:ring-0"
+                                            />
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-6 rounded-none text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleProductPriceAdjust(product, 'increase')}
+                                          >
+                                            <span className="text-[10px]">+5%</span>
+                                          </Button>
+                                        </div>
+                                        <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-6 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleProductVolumeAdjust(product, 'decrease')}
+                                            disabled={(sales.volume ?? 0) <= 0}
+                                          >
+                                            <Minus className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            step={1}
+                                            value={sales.volume === undefined ? '' : sales.volume}
+                                            onChange={(e) => handleProductVolumeInputChange(product, e.target.value)}
+                                            className="h-full w-[58px] rounded-none border-0 border-r border-border bg-transparent px-1 text-center text-xs shadow-none focus-visible:ring-0"
+                                          />
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-6 rounded-none text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleProductVolumeAdjust(product, 'increase')}
+                                          >
+                                            <Plus className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                        <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                              'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px]',
+                                              sales.period === 'daily' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                            )}
+                                            type="button"
+                                            onClick={() => handleProductPeriodChange(product, 'daily')}
+                                          >
+                                            D
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                              'h-full w-[22px] rounded-none px-0 text-[11px]',
+                                              sales.period === 'monthly' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                            )}
+                                            type="button"
+                                            onClick={() => handleProductPeriodChange(product, 'monthly')}
+                                          >
+                                            M
+                                          </Button>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 shrink-0"
+                                          onClick={() => handleEditRevenueStream(product)}
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
                                     )}
                                   </div>
                                 );
@@ -621,7 +816,7 @@ export default function PlaygroundPage() {
                               return (
                                 <div
                                   key={cost.id}
-                                  className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                  className="group flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
                                   onClick={() => handleEditCost(cost, 'operating')}
                                 >
                                   <div className="flex-1 min-w-0">
@@ -647,17 +842,51 @@ export default function PlaygroundPage() {
                                       <Pencil className="h-3.5 w-3.5" /> Set amount
                                     </Button>
                                   ) : (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 shrink-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditCost(cost, 'operating');
-                                      }}
+                                    <div
+                                      className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      <Pencil className="h-3.5 w-3.5" />
-                                    </Button>
+                                      <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                          type="button"
+                                          onClick={() => handleCostAmountAdjust(cost, 'decrease')}
+                                        >
+                                          <span className="text-[10px]">-5%</span>
+                                        </Button>
+                                        <div className="relative flex h-full w-[74px] items-center border-r border-border">
+                                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
+                                            {project.currency === 'GBP' ? '£' : project.currency === 'EUR' ? '€' : '$'}
+                                          </span>
+                                          <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={cost.amount === undefined ? '' : cost.amount.toString()}
+                                            onChange={(e) => handleCostAmountInputChange(cost, e.target.value)}
+                                            className="h-full w-full rounded-none border-0 bg-transparent pl-5 pr-1 text-center text-xs shadow-none focus-visible:ring-0"
+                                          />
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                          type="button"
+                                          onClick={() => handleCostAmountAdjust(cost, 'increase')}
+                                        >
+                                          <span className="text-[10px]">+5%</span>
+                                        </Button>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0"
+                                        onClick={() => handleEditCost(cost, 'operating')}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
                                   )}
                                 </div>
                               );
@@ -697,7 +926,7 @@ export default function PlaygroundPage() {
                               return (
                                 <div
                                   key={cost.id}
-                                  className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                  className="group flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
                                   onClick={() => handleEditCost(cost, 'upfront')}
                                 >
                                   <div className="flex-1 min-w-0">
@@ -723,17 +952,51 @@ export default function PlaygroundPage() {
                                       <Pencil className="h-3.5 w-3.5" /> Set amount
                                     </Button>
                                   ) : (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 shrink-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditCost(cost, 'upfront');
-                                      }}
+                                    <div
+                                      className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      <Pencil className="h-3.5 w-3.5" />
-                                    </Button>
+                                      <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                          type="button"
+                                          onClick={() => handleCostAmountAdjust(cost, 'decrease')}
+                                        >
+                                          <span className="text-[10px]">-5%</span>
+                                        </Button>
+                                        <div className="relative flex h-full w-[74px] items-center border-r border-border">
+                                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
+                                            {project.currency === 'GBP' ? '£' : project.currency === 'EUR' ? '€' : '$'}
+                                          </span>
+                                          <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={cost.amount === undefined ? '' : cost.amount.toString()}
+                                            onChange={(e) => handleCostAmountInputChange(cost, e.target.value)}
+                                            className="h-full w-full rounded-none border-0 bg-transparent pl-5 pr-1 text-center text-xs shadow-none focus-visible:ring-0"
+                                          />
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                          type="button"
+                                          onClick={() => handleCostAmountAdjust(cost, 'increase')}
+                                        >
+                                          <span className="text-[10px]">+5%</span>
+                                        </Button>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0"
+                                        onClick={() => handleEditCost(cost, 'upfront')}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
                                   )}
                                 </div>
                               );
