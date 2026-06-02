@@ -372,6 +372,58 @@ export default function PlaygroundPage() {
     });
   };
 
+  const handleSubscriptionPriceInputChange = (subscription: SubscriptionRevenueStream, value: string) => {
+    if (value === '') {
+      persistRevenueStreamUpdate({ ...subscription, price: undefined });
+      return;
+    }
+
+    const parsedPrice = Number.parseFloat(value);
+    if (Number.isNaN(parsedPrice)) return;
+    persistRevenueStreamUpdate({ ...subscription, price: Math.max(0, parsedPrice) });
+  };
+
+  const handleSubscriptionPriceAdjust = (
+    subscription: SubscriptionRevenueStream,
+    direction: 'increase' | 'decrease'
+  ) => {
+    const currentPrice = subscription.price ?? 0;
+    const factor = 0.05;
+    const multiplier = direction === 'increase' ? 1 + factor : 1 - factor;
+    const adjusted = Math.max(0, Number.parseFloat((currentPrice * multiplier).toFixed(2)));
+    persistRevenueStreamUpdate({ ...subscription, price: adjusted === 0 ? undefined : adjusted });
+  };
+
+  const handleSubscriptionSubscribersInputChange = (subscription: SubscriptionRevenueStream, value: string) => {
+    if (value === '') {
+      persistRevenueStreamUpdate({ ...subscription, subscribers: undefined });
+      return;
+    }
+
+    const parsedSubscribers = Number.parseInt(value, 10);
+    if (Number.isNaN(parsedSubscribers)) return;
+    persistRevenueStreamUpdate({ ...subscription, subscribers: Math.max(0, parsedSubscribers) });
+  };
+
+  const handleSubscriptionSubscribersAdjust = (
+    subscription: SubscriptionRevenueStream,
+    direction: 'increase' | 'decrease'
+  ) => {
+    const currentSubscribers = subscription.subscribers ?? 0;
+    const delta = direction === 'increase' ? 1 : -1;
+    persistRevenueStreamUpdate({
+      ...subscription,
+      subscribers: Math.max(0, currentSubscribers + delta),
+    });
+  };
+
+  const handleSubscriptionPricePeriodChange = (
+    subscription: SubscriptionRevenueStream,
+    pricePeriod: SubscriptionRevenueStream['pricePeriod']
+  ) => {
+    persistRevenueStreamUpdate({ ...subscription, pricePeriod });
+  };
+
   const updateOperatingCostAmount = (cost: FixedCost, amount: number | undefined) => {
     if (!projectId) return;
     fixedCostStorage.updateFixedCost(projectId, { ...cost, amount });
@@ -747,7 +799,7 @@ export default function PlaygroundPage() {
                                 return (
                                   <div
                                     key={subscription.id}
-                                    className="flex items-center justify-between rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
+                                    className="group flex items-center justify-between gap-2 rounded-lg bg-muted/80 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
                                     onClick={() => handleEditRevenueStream(subscription)}
                                   >
                                     <div className="flex-1 min-w-0">
@@ -773,17 +825,106 @@ export default function PlaygroundPage() {
                                     <Pencil className="h-3.5 w-3.5" /> Set price
                                   </Button>
                                     ) : (
-                                      <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 shrink-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditRevenueStream(subscription);
-                                      }}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5" />
-                                    </Button>
+                                      <div
+                                        className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleSubscriptionPriceAdjust(subscription, 'decrease')}
+                                          >
+                                            <span className="text-[10px]">-5%</span>
+                                          </Button>
+                                          <div className="relative flex h-full w-[74px] items-center border-r border-border">
+                                            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
+                                              {project.currency === 'GBP' ? '£' : project.currency === 'EUR' ? '€' : '$'}
+                                            </span>
+                                            <Input
+                                              type="text"
+                                              inputMode="decimal"
+                                              value={subscription.price === undefined ? '' : subscription.price.toString()}
+                                              onChange={(e) => handleSubscriptionPriceInputChange(subscription, e.target.value)}
+                                              className="h-full w-full rounded-none border-0 bg-transparent pl-5 pr-1 text-center text-xs shadow-none focus-visible:ring-0"
+                                            />
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleSubscriptionPriceAdjust(subscription, 'increase')}
+                                          >
+                                            <span className="text-[10px]">+5%</span>
+                                          </Button>
+                                        </div>
+                                        <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-9 rounded-none border-r border-border text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleSubscriptionSubscribersAdjust(subscription, 'decrease')}
+                                            disabled={(subscription.subscribers ?? 0) <= 0}
+                                          >
+                                            <Minus className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            step={1}
+                                            value={subscription.subscribers === undefined ? '' : subscription.subscribers}
+                                            onChange={(e) => handleSubscriptionSubscribersInputChange(subscription, e.target.value)}
+                                            className="h-full w-[58px] rounded-none border-0 border-r border-border bg-transparent px-1 text-center text-xs shadow-none focus-visible:ring-0"
+                                          />
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-full w-9 rounded-none text-muted-foreground hover:bg-muted"
+                                            type="button"
+                                            onClick={() => handleSubscriptionSubscribersAdjust(subscription, 'increase')}
+                                          >
+                                            <Plus className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                        <div className="flex h-8 items-stretch overflow-hidden rounded-md border border-border bg-background">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                              'h-full w-[22px] rounded-none border-r border-border px-0 text-[11px]',
+                                              pricePeriod === 'monthly' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                            )}
+                                            type="button"
+                                            onClick={() => handleSubscriptionPricePeriodChange(subscription, 'monthly')}
+                                          >
+                                            M
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                              'h-full w-[22px] rounded-none px-0 text-[11px]',
+                                              pricePeriod === 'annual' ? 'bg-foreground text-background hover:bg-foreground/90' : 'hover:bg-muted'
+                                            )}
+                                            type="button"
+                                            onClick={() => handleSubscriptionPricePeriodChange(subscription, 'annual')}
+                                          >
+                                            Y
+                                          </Button>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 shrink-0"
+                                          onClick={() => handleEditRevenueStream(subscription)}
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
                                     )}
                                   </div>
                                 );
